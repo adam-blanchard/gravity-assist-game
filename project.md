@@ -6,3 +6,5 @@
 - [ ] Add interaction to remove bodies
 - [ ] Add gravity modifier and associated UI element
 - [ ] Allow the user to control a ship that can fly around the solar system
+- [ ] Affect ship with gravity
+- [ ] Add flight path prediction lines
