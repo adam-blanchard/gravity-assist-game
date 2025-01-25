@@ -4,6 +4,8 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
+#define NUM_PLANETS 1
+
 // Structure to represent celestial bodies
 typedef struct
 {
@@ -18,9 +20,9 @@ typedef struct
 {
     Vector2 position;
     Vector2 velocity;
-    Vector2 heading;
-    float thrustForce;
+    float rotation;
     float mass;
+    float thrustForce;
 } Ship;
 
 Vector2 _Vector2Add(Vector2 *v1, Vector2 *v2)
@@ -82,6 +84,51 @@ float calculateOrbitalVelocity(float gravitationalConstant, Body *b, float radiu
     return (float){orbitalVelocity};
 }
 
+void updateShip(Ship *ship, float dt)
+{
+    // Apply rotation
+    if (IsKeyDown(KEY_D))
+        ship->rotation += 180.0f * dt; // Rotate right
+    if (IsKeyDown(KEY_A))
+        ship->rotation -= 180.0f * dt; // Rotate left
+
+    // Normalize rotation to keep it within 0-360 degrees
+    ship->rotation = fmod(ship->rotation + 360.0f, 360.0f);
+
+    // Apply thrust
+    if (IsKeyDown(KEY_W))
+    {
+        // Convert rotation to radians for vector calculations
+        float radians = ship->rotation * PI / 180.0f;
+        Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
+        Vector2 thrust = _Vector2Scale(thrustDirection, ship->thrustForce * dt);
+        ship->velocity = _Vector2Add(&ship->velocity, &thrust);
+    }
+
+    Vector2 scaledShipVelocity = _Vector2Scale(ship->velocity, dt);
+
+    // Update position
+    ship->position = _Vector2Add(&ship->position, &scaledShipVelocity);
+
+    // Vector2 sunForce = gravitationalForce2(&ship->position, &sun->position, ship->mass, sun->mass, G);
+
+    // Vector2 force = sunForce;
+
+    // for (int i = 0; i < sizeof(planets) / sizeof(Body); i++)
+    // {
+    //     Vector2 planetaryForce = gravitationalForce2(&ship->position, &planets[i]->position, ship->mass, planets[i]->mass, G);
+    //     force = _Vector2Add(&force, &planetaryForce);
+    // }
+
+    // Vector2 acceleration = {force.x / ship->mass, force.y / ship->mass};
+
+    // ship->velocity.x += acceleration.x * dt;
+    // ship->velocity.y += acceleration.y * dt;
+
+    // ship->position.x += ship->velocity.x * dt;
+    // ship->position.y += ship->velocity.y * dt;
+}
+
 int main(void)
 {
     const int screenWidth = 800;
@@ -100,34 +147,33 @@ int main(void)
         20,                                  // Radius for visualization
         YELLOW};
 
-    const int numPlanets = 1;
     const int trailSize = 1000;
-    Body planets[numPlanets] = {
+    Body planets[NUM_PLANETS] = {
         {{screenWidth / 2 + 200, screenHeight / 2},
          {0, calculateOrbitalVelocity(G, &sun, 200)},
          8e10,
          7,
          BLUE}};
 
-    Ship ship = {
+    Ship playerShip = {
         {screenWidth / 2, screenHeight / 2 - 100},
-        {0, calculateOrbitalVelocity(G, &sun, 100)},
-        {0, 1},
-        20.0f,
-        1e6};
+        {0, 0},
+        0.0f,
+        1e6,
+        50.0f};
 
     while (!WindowShouldClose())
     {
         float dt = GetFrameTime(); // Time step
 
         // Update physics
-        for (int m = 0; m < numPlanets; m++)
+        for (int m = 0; m < NUM_PLANETS; m++)
         {
             Vector2 sunForce = gravitationalForce(&planets[m], &sun, G); // Force from the Sun's gravity
 
             Vector2 force = sunForce;
 
-            for (int n = 0; n < numPlanets; n++)
+            for (int n = 0; n < NUM_PLANETS; n++)
             {
                 if (m != n)
                 {
@@ -145,26 +191,21 @@ int main(void)
             planets[m].position.y += planets[m].velocity.y * dt;
         }
 
-        // Ship controls
-        // A and D rotate left and right respectively
-        // W is thrust
-
-        // Use thrust force to calculate acceleration
-        // Use ship acceleration to calculate velocity and position
+        updateShip(&playerShip, dt);
 
         BeginDrawing();
         ClearBackground(BLACK);
 
         // Plot trails
         // TODO: Allow different length trails
-        static Vector2 lastPositions[numPlanets][trailSize] = {0}; // Initialise an array of 2D vectors to store past positions
+        static Vector2 lastPositions[NUM_PLANETS][trailSize] = {0}; // Initialise an array of 2D vectors to store past positions
         static int trailIndex = 0;
-        for (int i = 0; i < numPlanets; i++)
+        for (int i = 0; i < NUM_PLANETS; i++)
         {
             lastPositions[i][trailIndex] = planets[i].position; // Populate each position each frame until array is filled, overwrite positions after max exceeded
         }
         trailIndex = (trailIndex + 1) % trailSize;
-        for (int m = 0; m < numPlanets; m++)
+        for (int m = 0; m < NUM_PLANETS; m++)
         {
             for (int n = 0; n < trailSize; n++)
             {
@@ -179,12 +220,28 @@ int main(void)
         DrawCircle(sun.position.x, sun.position.y, sun.radius, YELLOW);
 
         // Draw Planets
-        for (int i = 0; i < numPlanets; i++)
+        for (int i = 0; i < NUM_PLANETS; i++)
         {
             DrawCircle(planets[i].position.x, planets[i].position.y, planets[i].radius, planets[i].renderColour);
         }
 
-        DrawLine(ship.position.x, ship.position.y - 3, ship.position.x, ship.position.y + 3, WHITE);
+        // Draw Ship
+        Vector2 shipSize = {10, 20}; // Width, Height of ship triangle
+        Vector2 shipPoints[3] = {
+            {0, -shipSize.y / 2},
+            {-shipSize.x / 2, shipSize.y / 2},
+            {shipSize.x / 2, shipSize.y / 2}};
+
+        // Rotate ship points
+        for (int i = 0; i < 3; i++)
+        {
+            float radians = playerShip.rotation * PI / 180.0f;
+            float x = shipPoints[i].x * cosf(radians) - shipPoints[i].y * sinf(radians);
+            float y = shipPoints[i].x * sinf(radians) + shipPoints[i].y * cosf(radians);
+            shipPoints[i] = (Vector2){x, y};
+            shipPoints[i] = _Vector2Add(&shipPoints[i], &playerShip.position);
+        }
+        DrawTriangle(shipPoints[0], shipPoints[1], shipPoints[2], WHITE);
 
         // GUI
         DrawText("Press ESC to exit", 10, 10, 20, RAYWHITE);
