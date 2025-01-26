@@ -4,7 +4,10 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
-#define NUM_PLANETS 1
+#define NUM_BODIES 2
+#ifndef PI
+#define PI 3.14159265358979323846f
+#endif
 
 // Structure to represent celestial bodies
 typedef struct
@@ -14,15 +17,16 @@ typedef struct
     float mass;
     float radius;
     Color renderColour;
+    float rotation;
 } Body;
 
 typedef struct
 {
     Vector2 position;
     Vector2 velocity;
-    float rotation;
     float mass;
-    float thrustForce;
+    float rotation;
+    float thrust;
 } Ship;
 
 Vector2 _Vector2Add(Vector2 *v1, Vector2 *v2)
@@ -78,10 +82,47 @@ Vector2 gravitationalForce(Body *b1, Body *b2, float gravitationalConstant)
     return _Vector2Scale(direction, forceMagnitude);
 }
 
-float calculateOrbitalVelocity(float gravitationalConstant, Body *b, float radius)
+float calculateOrbitalVelocity(float gravitationalConstant, float mass, float radius)
 {
-    float orbitalVelocity = sqrtf((gravitationalConstant * b->mass) / radius);
+    float orbitalVelocity = sqrtf((gravitationalConstant * mass) / radius);
     return (float){orbitalVelocity};
+}
+
+float calculateOrbitCircumference(float r)
+{
+    return (float){2 * PI * r};
+}
+
+float calculateEscapeVelocity(float gravitationalConstant, float mass, float radius)
+{
+    float escapeVelocity = sqrtf((2 * gravitationalConstant * mass) / radius);
+    return (float){escapeVelocity};
+}
+
+void updateBodies(int n, Body *bodies[n], float gravitationalConstant, float dt)
+{
+    int numBodies = sizeof(&bodies) / sizeof(Body);
+    for (int m = 0; m < numBodies; m++)
+    {
+        Vector2 force = {0};
+
+        for (int i = 0; i < numBodies; i++)
+        {
+            if (m != i)
+            {
+                Vector2 planetaryForce = gravitationalForce(&bodies[m], &bodies[i], gravitationalConstant);
+                force = _Vector2Add(&force, &planetaryForce);
+            }
+        }
+
+        Vector2 acceleration = {force.x / bodies[m]->mass, force.y / bodies[m]->mass};
+
+        bodies[m]->velocity.x += acceleration.x * dt;
+        bodies[m]->velocity.y += acceleration.y * dt;
+
+        bodies[m]->position.x += bodies[m]->velocity.x * dt;
+        bodies[m]->position.y += bodies[m]->velocity.y * dt;
+    }
 }
 
 void updateShip(Ship *ship, float dt)
@@ -101,7 +142,7 @@ void updateShip(Ship *ship, float dt)
         // Convert rotation to radians for vector calculations
         float radians = ship->rotation * PI / 180.0f;
         Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
-        Vector2 thrust = _Vector2Scale(thrustDirection, ship->thrustForce * dt);
+        Vector2 thrust = _Vector2Scale(thrustDirection, ship->thrust * dt);
         ship->velocity = _Vector2Add(&ship->velocity, &thrust);
     }
 
@@ -109,86 +150,62 @@ void updateShip(Ship *ship, float dt)
 
     // Update position
     ship->position = _Vector2Add(&ship->position, &scaledShipVelocity);
-
-    // Vector2 sunForce = gravitationalForce2(&ship->position, &sun->position, ship->mass, sun->mass, G);
-
-    // Vector2 force = sunForce;
-
-    // for (int i = 0; i < sizeof(planets) / sizeof(Body); i++)
-    // {
-    //     Vector2 planetaryForce = gravitationalForce2(&ship->position, &planets[i]->position, ship->mass, planets[i]->mass, G);
-    //     force = _Vector2Add(&force, &planetaryForce);
-    // }
-
-    // Vector2 acceleration = {force.x / ship->mass, force.y / ship->mass};
-
-    // ship->velocity.x += acceleration.x * dt;
-    // ship->velocity.y += acceleration.y * dt;
-
-    // ship->position.x += ship->velocity.x * dt;
-    // ship->position.y += ship->velocity.y * dt;
 }
 
 int main(void)
 {
-    const int screenWidth = 800;
-    const int screenHeight = 600;
+    int screenWidth = 1280;
+    int screenHeight = 720;
+
+    int wMid = screenWidth / 2;
+    int hMid = screenHeight / 2;
 
     float G = 6.67430e-11;
 
     InitWindow(screenWidth, screenHeight, "2D Solar System Simulation");
     SetTargetFPS(60);
 
-    // Initialize bodies
-    Body sun = {
-        {screenWidth / 2, screenHeight / 2}, // Position at center
-        {0, 0},                              // Sun doesn't move
-        2e16,                                // Mass of the sun (scaled)
-        20,                                  // Radius for visualization
-        YELLOW};
+    Ship playerShip = {
+        {wMid, hMid - 100},
+        {0, 0},
+        1e6,
+        0.0f,
+        10.0f};
+
+    // 0th index in system is the star
+    Body solSystem[2] = {
+        {{wMid, hMid}, {0, 0}, 2e16, 20, YELLOW, 0.0f},
+        {{wMid + 200, hMid}, {0, 20}, 8e10, 7, BLUE, 0.0f}};
 
     const int trailSize = 1000;
-    Body planets[NUM_PLANETS] = {
-        {{screenWidth / 2 + 200, screenHeight / 2},
-         {0, calculateOrbitalVelocity(G, &sun, 200)},
-         8e10,
-         7,
-         BLUE}};
-
-    Ship playerShip = {
-        {screenWidth / 2, screenHeight / 2 - 100},
-        {0, 0},
-        0.0f,
-        1e6,
-        50.0f};
 
     while (!WindowShouldClose())
     {
         float dt = GetFrameTime(); // Time step
 
-        // Update physics
-        for (int m = 0; m < NUM_PLANETS; m++)
+        int solSystemBodies = sizeof(solSystem) / sizeof(Body);
+        // updateBodies(solSystemBodies, &solSystem, G, dt);
+
+        for (int m = 0; m < solSystemBodies; m++)
         {
-            Vector2 sunForce = gravitationalForce(&planets[m], &sun, G); // Force from the Sun's gravity
+            Vector2 force = {0};
 
-            Vector2 force = sunForce;
-
-            for (int n = 0; n < NUM_PLANETS; n++)
+            for (int i = 0; i < solSystemBodies; i++)
             {
-                if (m != n)
+                if (m != i)
                 {
-                    Vector2 planetaryForce = gravitationalForce(&planets[m], &planets[n], G);
+                    Vector2 planetaryForce = gravitationalForce(&solSystem[m], &solSystem[i], G);
                     force = _Vector2Add(&force, &planetaryForce);
                 }
             }
 
-            Vector2 acceleration = {force.x / planets[m].mass, force.y / planets[m].mass};
+            Vector2 acceleration = {force.x / solSystem[m].mass, force.y / solSystem[m].mass};
 
-            planets[m].velocity.x += acceleration.x * dt;
-            planets[m].velocity.y += acceleration.y * dt;
+            solSystem[m].velocity.x += acceleration.x * dt;
+            solSystem[m].velocity.y += acceleration.y * dt;
 
-            planets[m].position.x += planets[m].velocity.x * dt;
-            planets[m].position.y += planets[m].velocity.y * dt;
+            solSystem[m].position.x += solSystem[m].velocity.x * dt;
+            solSystem[m].position.y += solSystem[m].velocity.y * dt;
         }
 
         updateShip(&playerShip, dt);
@@ -198,31 +215,28 @@ int main(void)
 
         // Plot trails
         // TODO: Allow different length trails
-        static Vector2 lastPositions[NUM_PLANETS][trailSize] = {0}; // Initialise an array of 2D vectors to store past positions
-        static int trailIndex = 0;
-        for (int i = 0; i < NUM_PLANETS; i++)
-        {
-            lastPositions[i][trailIndex] = planets[i].position; // Populate each position each frame until array is filled, overwrite positions after max exceeded
-        }
-        trailIndex = (trailIndex + 1) % trailSize;
-        for (int m = 0; m < NUM_PLANETS; m++)
-        {
-            for (int n = 0; n < trailSize; n++)
-            {
-                if (lastPositions[m][n].x != 0 || lastPositions[m][n].y != 0)
-                {
-                    DrawPixelV(lastPositions[m][n], (Color){255, 255, 255, 50});
-                }
-            }
-        }
+        // static Vector2 lastPositions[NUM_BODIES][trailSize] = {0}; // Initialise an array of 2D vectors to store past positions
+        // static int trailIndex = 0;
+        // for (int i = 0; i < NUM_BODIES; i++)
+        // {
+        //     lastPositions[i][trailIndex] = bodies[i].position; // Populate each position each frame until array is filled, overwrite positions after max exceeded
+        // }
+        // trailIndex = (trailIndex + 1) % trailSize;
+        // for (int m = 0; m < NUM_BODIES; m++)
+        // {
+        //     for (int n = 0; n < trailSize; n++)
+        //     {
+        //         if (lastPositions[m][n].x != 0 || lastPositions[m][n].y != 0)
+        //         {
+        //             DrawPixelV(lastPositions[m][n], (Color){255, 255, 255, 50});
+        //         }
+        //     }
+        // }
 
-        // Draw Sun
-        DrawCircle(sun.position.x, sun.position.y, sun.radius, YELLOW);
-
-        // Draw Planets
-        for (int i = 0; i < NUM_PLANETS; i++)
+        // Draw celestial bodies
+        for (int i = 0; i < sizeof(solSystem) / sizeof(Body); i++)
         {
-            DrawCircle(planets[i].position.x, planets[i].position.y, planets[i].radius, planets[i].renderColour);
+            DrawCircle(solSystem[i].position.x, solSystem[i].position.y, solSystem[i].radius, solSystem[i].renderColour);
         }
 
         // Draw Ship
