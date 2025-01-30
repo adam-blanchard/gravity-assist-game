@@ -7,9 +7,8 @@
 #ifndef PI
 #define PI 3.14159265358979323846f
 #endif
-#define TRAJECTORY_STEPS 300
-#define SHIP_TRAJECTORY_STEPS 50
-#define TRAJECTORY_STEP_TIME 0.1f
+#define TRAJECTORY_STEPS 1000
+#define TRAJECTORY_STEP_TIME 0.06f
 
 // Structure to represent celestial bodies
 typedef struct
@@ -171,11 +170,6 @@ void updateShip(Ship *ship, int n, Body *bodies, float gravitationalConstant, fl
         ship->velocity = _Vector2Add(&ship->velocity, &thrust);
     }
 
-    Vector2 scaledShipVelocity = _Vector2Scale(ship->velocity, dt);
-
-    // Update position
-    ship->position = _Vector2Add(&ship->position, &scaledShipVelocity);
-
     Vector2 force = {0};
 
     for (int i = 0; i < n; i++)
@@ -186,11 +180,11 @@ void updateShip(Ship *ship, int n, Body *bodies, float gravitationalConstant, fl
 
     Vector2 acceleration = {force.x / ship->mass, force.y / ship->mass};
 
-    ship->velocity.x += acceleration.x * dt;
-    ship->velocity.y += acceleration.y * dt;
+    Vector2 scaledAcceleration = _Vector2Scale(acceleration, dt);
+    ship->velocity = _Vector2Add(&ship->velocity, &scaledAcceleration);
 
-    ship->position.x += ship->velocity.x * dt;
-    ship->position.y += ship->velocity.y * dt;
+    Vector2 scaledVelocity = _Vector2Scale(ship->velocity, dt);
+    ship->position = _Vector2Add(&ship->position, &scaledVelocity);
 }
 
 float calculateAngle(Vector2 *planetPosition, Vector2 *sunPosition)
@@ -207,8 +201,6 @@ void initialiseStableOrbits(int n, Body *bodies, float gravitationalConstant)
 {
     for (int i = 1; i < n; i++)
     {
-        // float xDist = bodies[i].position.x - bodies[0].position.x;
-        // float yDist = bodies[i].position.y - bodies[0].position.y;
         float radius = calculateDistance(&bodies[i].position, &bodies[0].position);
 
         float orbitalVelocity = calculateOrbitalVelocity(gravitationalConstant, bodies[0].mass, radius);
@@ -237,6 +229,35 @@ void predictBodyTrajectory(Body *body, Body *otherBodies, int numBodies, Vector2
         }
 
         Vector2 acceleration = {totalForce.x / body->mass, totalForce.y / body->mass};
+
+        Vector2 scaledAcceleration = _Vector2Scale(acceleration, TRAJECTORY_STEP_TIME);
+        currentVelocity = _Vector2Add(&currentVelocity, &scaledAcceleration);
+
+        Vector2 scaledVelocity = _Vector2Scale(currentVelocity, TRAJECTORY_STEP_TIME);
+        currentPosition = _Vector2Add(&currentPosition, &scaledVelocity);
+
+        trajectory[i] = currentPosition;
+    }
+}
+
+void predictShipTrajectory(Ship *playerShip, Body *otherBodies, int numBodies, Vector2 *trajectory, float gravitationalConstant)
+{
+    // Isolated prediction of the ship based on current position and velocity
+    // TODO: improve trajectory accuracy by simulating all bodies x timesteps in advance
+    Vector2 currentPosition = playerShip->position;
+    Vector2 currentVelocity = playerShip->velocity;
+
+    for (int i = 0; i < TRAJECTORY_STEPS; i++)
+    {
+        Vector2 force = {0};
+
+        for (int j = 0; j < numBodies; j++)
+        {
+            Vector2 planetaryForce = gravitationalForce2(&currentPosition, &otherBodies[j].position, playerShip->mass, otherBodies[j].mass, gravitationalConstant);
+            force = _Vector2Add(&force, &planetaryForce);
+        }
+
+        Vector2 acceleration = {force.x / playerShip->mass, force.y / playerShip->mass};
 
         Vector2 scaledAcceleration = _Vector2Scale(acceleration, TRAJECTORY_STEP_TIME);
         currentVelocity = _Vector2Add(&currentVelocity, &scaledAcceleration);
@@ -292,8 +313,8 @@ int main(void)
     SetTargetFPS(60);
 
     Ship playerShip = {
-        {wMid, hMid - 100},
-        {75, 0},
+        {wMid, hMid - 300},
+        {40, 0},
         1e6,
         0.0f,
         20.0f};
@@ -322,14 +343,15 @@ int main(void)
         for (int i = 0; i < solSystemBodies; i++)
         {
             solSystem[i].trajectory = (Vector2 *)malloc(TRAJECTORY_STEPS * sizeof(Vector2));
-            // predictBodyTrajectory(&solSystem[i], solSystem, solSystemBodies, solSystem[i].trajectory, G);
-            predictTrajectory(&solSystem[i].position, &solSystem[i].velocity, &solSystem[i].mass, solSystem, solSystemBodies, solSystem[i].trajectory, G);
+            predictBodyTrajectory(&solSystem[i], solSystem, solSystemBodies, solSystem[i].trajectory, G);
+            // predictTrajectory(&solSystem[i].position, &solSystem[i].velocity, &solSystem[i].mass, solSystem, solSystemBodies, solSystem[i].trajectory, G);
         }
 
         // Predict ship trajectory
         // TODO: Revise ship trajectory prediction as it is constantly changing
         playerShip.trajectory = (Vector2 *)malloc(TRAJECTORY_STEPS * sizeof(Vector2));
-        predictTrajectory(&playerShip.position, &playerShip.velocity, &playerShip.mass, solSystem, solSystemBodies, playerShip.trajectory, G);
+        predictShipTrajectory(&playerShip, solSystem, solSystemBodies, playerShip.trajectory, G);
+        // predictTrajectory(&playerShip.position, &playerShip.velocity, &playerShip.mass, solSystem, solSystemBodies, playerShip.trajectory, G);
 
         BeginDrawing();
         ClearBackground(BLACK);
