@@ -19,8 +19,9 @@ typedef struct
     float radius;
     Color renderColour;
     float rotation;
-    Vector2 *trajectory;
-    int trajectorySteps;
+    Vector2 *futurePositions;
+    Vector2 *futureVelocities;
+    int futureSteps;
 } Body;
 
 typedef struct
@@ -30,8 +31,9 @@ typedef struct
     float mass;
     float rotation;
     float thrust;
-    Vector2 *trajectory;
-    int trajectorySteps;
+    Vector2 *futurePositions;
+    Vector2 *futureVelocitites;
+    int futureSteps;
 } Ship;
 
 Vector2 _Vector2Add(Vector2 *v1, Vector2 *v2)
@@ -197,6 +199,15 @@ float calculateAngle(Vector2 *planetPosition, Vector2 *sunPosition)
     return fmod(angleInDegrees + 360.0f, 360.0f);
 }
 
+void initialiseRandomPositions(int n, Body *bodies, int maxWidth, int maxHeight)
+{
+    for (int i = 1; i < n; i++)
+    {
+        bodies[i].position.x = GetRandomValue(100, maxWidth);
+        bodies[i].position.y = GetRandomValue(100, maxHeight);
+    }
+}
+
 void initialiseStableOrbits(int n, Body *bodies, float gravitationalConstant)
 {
     for (int i = 1; i < n; i++)
@@ -299,6 +310,61 @@ void predictTrajectory(Vector2 *initialPosition, Vector2 *initialVelocity, float
     }
 }
 
+void predictTimesteps(Ship *playerShip, Body *bodies, int numBodies, float gravitationalConstant)
+{
+    for (int i = 0; i < TRAJECTORY_STEPS; i++)
+    {
+        for (int j = 0; j < numBodies; j++)
+        {
+            Vector2 force = {0};
+            Vector2 body1Position = {0};
+            Vector2 body1Velocity = {0};
+            Vector2 body2Position = {0};
+            Vector2 body2Velocity = {0};
+
+            if (i > 0)
+            {
+                body1Position = bodies[j].futurePositions[i - 1];
+                body1Velocity = bodies[j].futureVelocities[i - 1];
+            }
+            else
+            {
+                body1Position = bodies[j].position;
+                body1Velocity = bodies[j].velocity;
+            }
+
+            for (int k = 0; k < numBodies; k++)
+            {
+                if (i > 0)
+                {
+                    body2Position = bodies[k].futurePositions[i - 1];
+                    body1Velocity = bodies[k].futureVelocities[i - 1];
+                }
+                else
+                {
+                    body2Position = bodies[k].position;
+                    body1Velocity = bodies[k].velocity;
+                }
+
+                if (j != k)
+                {
+                    // Vector2 planetaryForce = gravitationalForce(&bodies[j], &bodies[k], gravitationalConstant);
+                    Vector2 planetaryForce = gravitationalForce2(&body1Position, &body2Position, bodies[j].mass, bodies[k].mass, gravitationalConstant);
+                    force = _Vector2Add(&force, &planetaryForce);
+                }
+            }
+
+            Vector2 acceleration = {force.x / bodies[j].mass, force.y / bodies[j].mass};
+
+            bodies[j].futureVelocities[i].x += acceleration.x * TRAJECTORY_STEP_TIME;
+            bodies[j].futureVelocities[i].y += acceleration.y * TRAJECTORY_STEP_TIME;
+
+            bodies[j].futurePositions[i].y += bodies[j].futureVelocities[i].y * TRAJECTORY_STEP_TIME;
+            bodies[j].futurePositions[i].x += bodies[j].futureVelocities[i].x * TRAJECTORY_STEP_TIME;
+        }
+    }
+}
+
 int main(void)
 {
     int screenWidth = 1280;
@@ -327,6 +393,7 @@ int main(void)
 
     int solSystemBodies = sizeof(solSystem) / sizeof(Body);
 
+    // initialiseRandomPositions(solSystemBodies, solSystem, screenWidth - 100, screenHeight - 100);
     initialiseStableOrbits(solSystemBodies, solSystem, G);
 
     const int trailSize = 1000;
@@ -340,36 +407,36 @@ int main(void)
         updateShip(&playerShip, solSystemBodies, solSystem, G, dt);
 
         // Predict trajectories of celestial bodies
-        for (int i = 0; i < solSystemBodies; i++)
-        {
-            solSystem[i].trajectory = (Vector2 *)malloc(TRAJECTORY_STEPS * sizeof(Vector2));
-            predictBodyTrajectory(&solSystem[i], solSystem, solSystemBodies, solSystem[i].trajectory, G);
-            // predictTrajectory(&solSystem[i].position, &solSystem[i].velocity, &solSystem[i].mass, solSystem, solSystemBodies, solSystem[i].trajectory, G);
-        }
+        // for (int i = 0; i < solSystemBodies; i++)
+        // {
+        //     solSystem[i].trajectory = (Vector2 *)malloc(TRAJECTORY_STEPS * sizeof(Vector2));
+        //     predictBodyTrajectory(&solSystem[i], solSystem, solSystemBodies, solSystem[i].trajectory, G);
+        //     // predictTrajectory(&solSystem[i].position, &solSystem[i].velocity, &solSystem[i].mass, solSystem, solSystemBodies, solSystem[i].trajectory, G);
+        // }
 
         // Predict ship trajectory
         // TODO: Revise ship trajectory prediction as it is constantly changing
-        playerShip.trajectory = (Vector2 *)malloc(TRAJECTORY_STEPS * sizeof(Vector2));
-        predictShipTrajectory(&playerShip, solSystem, solSystemBodies, playerShip.trajectory, G);
+        // playerShip.trajectory = (Vector2 *)malloc(TRAJECTORY_STEPS * sizeof(Vector2));
+        // predictShipTrajectory(&playerShip, solSystem, solSystemBodies, playerShip.trajectory, G);
         // predictTrajectory(&playerShip.position, &playerShip.velocity, &playerShip.mass, solSystem, solSystemBodies, playerShip.trajectory, G);
 
         BeginDrawing();
         ClearBackground(BLACK);
 
         // Draw trajectories so they're at the bottom
-        for (int i = 0; i < solSystemBodies; i++)
-        {
-            for (int j = 0; j < TRAJECTORY_STEPS - 1; j++)
-            {
-                DrawLineV(solSystem[i].trajectory[j], solSystem[i].trajectory[j + 1], (Color){100, 100, 100, 255});
-            }
-        }
+        // for (int i = 0; i < solSystemBodies; i++)
+        // {
+        //     for (int j = 0; j < TRAJECTORY_STEPS - 1; j++)
+        //     {
+        //         DrawLineV(solSystem[i].trajectory[j], solSystem[i].trajectory[j + 1], (Color){100, 100, 100, 255});
+        //     }
+        // }
 
         // Draw ship trajectory
-        for (int i = 0; i < TRAJECTORY_STEPS - 1; i++)
-        {
-            DrawLineV(playerShip.trajectory[i], playerShip.trajectory[i + 1], (Color){150, 150, 150, 255});
-        }
+        // for (int i = 0; i < TRAJECTORY_STEPS - 1; i++)
+        // {
+        //     DrawLineV(playerShip.trajectory[i], playerShip.trajectory[i + 1], (Color){150, 150, 150, 255});
+        // }
 
         // Draw celestial bodies
         for (int i = 0; i < solSystemBodies; i++)
@@ -402,10 +469,10 @@ int main(void)
         EndDrawing();
     }
 
-    for (int i = 0; i < solSystemBodies; i++)
-    {
-        free(solSystem[i].trajectory);
-    }
+    // for (int i = 0; i < solSystemBodies; i++)
+    // {
+    //     free(solSystem[i].trajectory);
+    // }
     CloseWindow();
     return 0;
 }
