@@ -366,6 +366,31 @@ void predictTimesteps(Ship *playerShip, Body *bodies, int numBodies, float gravi
     }
 }
 
+float calculateOrbitalRadius(float period, float mStar, float mPlanet, float gravitationalConstant)
+{
+    float r3 = (period * period * gravitationalConstant * (mStar + mPlanet)) / 4 * PI * PI;
+    return (float){cbrtf(r3)};
+}
+
+void initialiseOrbits(int n, Body *bodies, float gravitationalConstant)
+{
+    for (int i = 1; i < n; i++)
+    {
+
+        // float radius = calculateDistance(&bodies[i].position, &bodies[0].position);
+
+        float radius = calculateOrbitalRadius(360.0f, bodies[0].mass, bodies[i].mass, gravitationalConstant);
+
+        bodies[i].position.x = radius;
+
+        float orbitalVelocity = calculateOrbitalVelocity(gravitationalConstant, bodies[0].mass, radius);
+        float currentAngle = calculateAngle(&bodies[i].position, &bodies[0].position);
+
+        bodies[i].velocity.y = orbitalVelocity * cosf(currentAngle);
+        bodies[i].velocity.x = orbitalVelocity * sinf(currentAngle);
+    }
+}
+
 float _Clamp(float value, float min, float max)
 {
     if (value < min)
@@ -394,39 +419,32 @@ int main(void)
 
     Camera2D camera = {0};
     camera.rotation = 0.0f; // Camera rotation in degrees
-    camera.zoom = 0.01f;    // Camera zoom (1.0 is normal size)
+    camera.zoom = 0.1f;     // Camera zoom (1.0 is normal size)
 
     Ship playerShip = {
-        {0, -3e4},
-        {1e3, 0},
-        1e6,
+        {0, -3e3},
+        {1e2, 0},
+        1e3,
         0.0f,
-        2e2f};
+        2e1f};
 
     // sol system based on earth's home solar system
     // All body masses and radiuses scaled down by a factor of
 
     // 0th index in system is the star
     Body solSystem[2] = {
-        {{0, 0},   // Position
-         {0, 0},   // Velocity
-         1.989e21, // Mass (kg)
-         900,      // Radius
-         YELLOW,   // Colour
-         0.0f},    // Rotation
-        {{1.496e4, 0},
-         {0, 2.98e3},
-         5.972e10,
-         900,
+        {{0, 0}, // Position
+         {0, 0}, // Velocity
+         2e16,   // Mass (kg)
+         500,    // Radius
+         YELLOW, // Colour
+         0.0f},  // Rotation
+        {{1e3, 0},
+         {0, 0},
+         2e12,
+         50,
          BLUE,
-         0.0f},
-        // {{300, 0},
-        //  {0, 0},
-        //  6.39e23 * SCALE_FACTOR,
-        //  9,
-        //  RED,
-        //  0.0f}
-    };
+         0.0f}};
 
     int solSystemBodies = sizeof(solSystem) / sizeof(Body);
     int cameraLock = 0;
@@ -438,6 +456,8 @@ int main(void)
 
     // initialiseRandomPositions(solSystemBodies, solSystem, screenWidth - 100, screenHeight - 100);
     // initialiseStableOrbits(solSystemBodies, solSystem, G);
+
+    initialiseOrbits(solSystemBodies, solSystem, G);
 
     const int trailSize = 1000;
 
@@ -526,7 +546,7 @@ int main(void)
 
         // Draw Ship
         // original ship size was 8x16
-        Vector2 shipSize = {80, 160}; // Width, Height of ship triangle
+        Vector2 shipSize = {8, 16}; // Width, Height of ship triangle
         Vector2 shipPoints[3] = {
             {0, -shipSize.y / 2},
             {-shipSize.x / 2, shipSize.y / 2},
