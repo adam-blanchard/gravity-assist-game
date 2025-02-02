@@ -423,10 +423,10 @@ int main(void)
 
     Ship playerShip = {
         {0, -3e3},
-        {1e2, 0},
+        {2e3, 0},
         1e3,
         0.0f,
-        2e1f};
+        2e2f};
 
     // sol system based on earth's home solar system
     // All body masses and radiuses scaled down by a factor of
@@ -435,13 +435,13 @@ int main(void)
     Body solSystem[2] = {
         {{0, 0}, // Position
          {0, 0}, // Velocity
-         2e16,   // Mass (kg)
+         2e20,   // Mass (kg)
          500,    // Radius
          YELLOW, // Colour
          0.0f},  // Rotation
-        {{1e3, 0},
+        {{0, 0},
          {0, 0},
-         2e12,
+         2e16,
          50,
          BLUE,
          0.0f}};
@@ -508,13 +508,13 @@ int main(void)
         }
 
         // Camera zoom controls
-        camera.zoom += ((float)GetMouseWheelMove() * 0.05f);
+        camera.zoom += ((float)GetMouseWheelMove() * 0.005f);
 
         if (IsKeyDown(KEY_R))
             camera.zoom += 0.05f;
         if (IsKeyDown(KEY_F))
             camera.zoom -= 0.05f;
-        camera.zoom = _Clamp(camera.zoom, 0.01f, 10.0f); // Limit zoom level
+        camera.zoom = _Clamp(camera.zoom, 0.001f, 10.0f); // Limit zoom level
 
         BeginDrawing();
         ClearBackground(BLACK);
