@@ -26,28 +26,33 @@ int main(void)
     camera.zoom = 0.1f;     // Camera zoom (1.0 is normal size)
 
     Ship playerShip = {
-        {0, -3e3},
-        {2e3, 0},
+        {0, -3e4},
+        {1e3, 0},
         1e3,
         0.0f,
-        2e2f};
+        1e2f};
 
     // sol system based on earth's home solar system
-    // All body masses and radiuses scaled down by a factor of
 
     // 0th index in system is the star
-    Body solSystem[2] = {
+    Body solSystem[3] = {
         {{0, 0}, // Position
          {0, 0}, // Velocity
          2e20,   // Mass (kg)
-         500,    // Radius
+         1000,   // Radius
          YELLOW, // Colour
          0.0f},  // Rotation
         {{0, 0},
          {0, 0},
          2e16,
-         50,
+         10,
          BLUE,
+         0.0f},
+        {{0, 0},
+         {0, 0},
+         2e15,
+         9,
+         RED,
          0.0f}};
 
     int solSystemBodies = sizeof(solSystem) / sizeof(Body);

@@ -8,7 +8,7 @@
 #ifndef G
 #define G 6.67430e-11
 #endif
-#define TRAJECTORY_STEPS 1000
+#define TRAJECTORY_STEPS 10000
 #define TRAJECTORY_STEP_TIME 0.06f
 
 // Structure to represent celestial bodies
@@ -374,16 +374,19 @@ float calculateOrbitalRadius(float period, float mStar, float mPlanet)
 
 void initialiseOrbits(int n, Body *bodies)
 {
-    float orbitalPeriod = 180.0f; // 1 is 10 seconds so 360 represents an orbital period of 1 hour
+    float orbitalPeriod = 18.0f; // 1 is 10 seconds so 360 represents an orbital period of 1 hour
 
     for (int i = 1; i < n; i++)
     {
-
-        // float radius = calculateDistance(&bodies[i].position, &bodies[0].position);
-
         float radius = calculateOrbitalRadius(orbitalPeriod, bodies[0].mass, bodies[i].mass);
 
-        bodies[i].position.x = radius;
+        // radius2 = a2 + b2
+        // b = sqrt(radius2 - a2)
+        float a = GetRandomValue(5, radius - 1);
+        float b = sqrtf((radius * radius) - (a * a));
+
+        bodies[i].position.x = a;
+        bodies[i].position.y = b;
 
         float orbitalVelocity = calculateOrbitalVelocity(bodies[0].mass, radius);
         float currentAngle = calculateAngle(&bodies[i].position, &bodies[0].position);
