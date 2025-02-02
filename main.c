@@ -7,6 +7,7 @@
 #ifndef PI
 #define PI 3.14159265358979323846f
 #endif
+#define SCALE_FACTOR 1e-6
 #define TRAJECTORY_STEPS 1000
 #define TRAJECTORY_STEP_TIME 0.06f
 
@@ -365,6 +366,15 @@ void predictTimesteps(Ship *playerShip, Body *bodies, int numBodies, float gravi
     }
 }
 
+float _Clamp(float value, float min, float max)
+{
+    if (value < min)
+        return min;
+    if (value > max)
+        return max;
+    return value;
+}
+
 int main(void)
 {
     int screenWidth = 1280;
@@ -375,26 +385,59 @@ int main(void)
 
     float G = 6.67430e-11;
 
+    int targetFPS = 60;
+
+    bool enableTrajectories = true;
+
     InitWindow(screenWidth, screenHeight, "Gravity Assist");
-    SetTargetFPS(60);
+    SetTargetFPS(targetFPS);
+
+    Camera2D camera = {0};
+    camera.rotation = 0.0f; // Camera rotation in degrees
+    camera.zoom = 0.01f;    // Camera zoom (1.0 is normal size)
 
     Ship playerShip = {
-        {wMid, hMid - 300},
-        {40, 0},
+        {0, -3e4},
+        {1e3, 0},
         1e6,
         0.0f,
-        20.0f};
+        2e2f};
+
+    // sol system based on earth's home solar system
+    // All body masses and radiuses scaled down by a factor of
 
     // 0th index in system is the star
-    Body solSystem[3] = {
-        {{wMid, hMid}, {0, 0}, 2e16, 20, YELLOW, 0.0f},
-        {{wMid + 200, hMid}, {0, 0}, 8e10, 7, BLUE, 0.0f},
-        {{wMid + 300, hMid}, {0, 0}, 8e10, 7, GREEN, 0.0f}};
+    Body solSystem[2] = {
+        {{0, 0},   // Position
+         {0, 0},   // Velocity
+         1.989e21, // Mass (kg)
+         900,      // Radius
+         YELLOW,   // Colour
+         0.0f},    // Rotation
+        {{1.496e4, 0},
+         {0, 2.98e3},
+         5.972e10,
+         900,
+         BLUE,
+         0.0f},
+        // {{300, 0},
+        //  {0, 0},
+        //  6.39e23 * SCALE_FACTOR,
+        //  9,
+        //  RED,
+        //  0.0f}
+    };
 
     int solSystemBodies = sizeof(solSystem) / sizeof(Body);
+    int cameraLock = 0;
+    Vector2 *cameraLockPosition = {0};
+
+    cameraLockPosition = &solSystem[cameraLock].position;
+    camera.target = *cameraLockPosition;   // Camera target (where the camera looks at)
+    camera.offset = (Vector2){wMid, hMid}; // Offset from camera target
 
     // initialiseRandomPositions(solSystemBodies, solSystem, screenWidth - 100, screenHeight - 100);
-    initialiseStableOrbits(solSystemBodies, solSystem, G);
+    // initialiseStableOrbits(solSystemBodies, solSystem, G);
 
     const int trailSize = 1000;
 
@@ -406,37 +449,74 @@ int main(void)
 
         updateShip(&playerShip, solSystemBodies, solSystem, G, dt);
 
-        // Predict trajectories of celestial bodies
-        // for (int i = 0; i < solSystemBodies; i++)
-        // {
-        //     solSystem[i].trajectory = (Vector2 *)malloc(TRAJECTORY_STEPS * sizeof(Vector2));
-        //     predictBodyTrajectory(&solSystem[i], solSystem, solSystemBodies, solSystem[i].trajectory, G);
-        //     // predictTrajectory(&solSystem[i].position, &solSystem[i].velocity, &solSystem[i].mass, solSystem, solSystemBodies, solSystem[i].trajectory, G);
-        // }
+        if (IsKeyPressed(KEY_T))
+        {
+            enableTrajectories = !enableTrajectories;
+        }
 
-        // Predict ship trajectory
-        // TODO: Revise ship trajectory prediction as it is constantly changing
-        // playerShip.trajectory = (Vector2 *)malloc(TRAJECTORY_STEPS * sizeof(Vector2));
-        // predictShipTrajectory(&playerShip, solSystem, solSystemBodies, playerShip.trajectory, G);
-        // predictTrajectory(&playerShip.position, &playerShip.velocity, &playerShip.mass, solSystem, solSystemBodies, playerShip.trajectory, G);
+        // Predict trajectories of celestial bodies
+        if (enableTrajectories)
+        {
+            for (int i = 0; i < solSystemBodies; i++)
+            {
+                solSystem[i].futurePositions = (Vector2 *)malloc(TRAJECTORY_STEPS * sizeof(Vector2));
+                predictBodyTrajectory(&solSystem[i], solSystem, solSystemBodies, solSystem[i].futurePositions, G);
+                // predictTrajectory(&solSystem[i].position, &solSystem[i].velocity, &solSystem[i].mass, solSystem, solSystemBodies, solSystem[i].trajectory, G);
+            }
+
+            // Predict ship trajectory
+            // TODO: Revise ship trajectory prediction as it is constantly changing
+            playerShip.futurePositions = (Vector2 *)malloc(TRAJECTORY_STEPS * sizeof(Vector2));
+            predictShipTrajectory(&playerShip, solSystem, solSystemBodies, playerShip.futurePositions, G);
+            // predictTrajectory(&playerShip.position, &playerShip.velocity, &playerShip.mass, solSystem, solSystemBodies, playerShip.trajectory, G);
+        }
+
+        camera.target = *cameraLockPosition;
+
+        if (IsKeyPressed(KEY_L))
+        {
+            cameraLock++;
+            if (cameraLock >= solSystemBodies)
+            {
+                cameraLock = -1;
+                cameraLockPosition = &playerShip.position;
+            }
+            else
+            {
+                cameraLockPosition = &solSystem[cameraLock].position;
+            }
+        }
+
+        // Camera zoom controls
+        camera.zoom += ((float)GetMouseWheelMove() * 0.05f);
+
+        if (IsKeyDown(KEY_R))
+            camera.zoom += 0.05f;
+        if (IsKeyDown(KEY_F))
+            camera.zoom -= 0.05f;
+        camera.zoom = _Clamp(camera.zoom, 0.01f, 10.0f); // Limit zoom level
 
         BeginDrawing();
         ClearBackground(BLACK);
+        BeginMode2D(camera);
 
-        // Draw trajectories so they're at the bottom
-        // for (int i = 0; i < solSystemBodies; i++)
-        // {
-        //     for (int j = 0; j < TRAJECTORY_STEPS - 1; j++)
-        //     {
-        //         DrawLineV(solSystem[i].trajectory[j], solSystem[i].trajectory[j + 1], (Color){100, 100, 100, 255});
-        //     }
-        // }
+        if (enableTrajectories)
+        {
+            // Draw trajectories so they're at the bottom
+            for (int i = 0; i < solSystemBodies; i++)
+            {
+                for (int j = 0; j < TRAJECTORY_STEPS - 1; j++)
+                {
+                    DrawLineV(solSystem[i].futurePositions[j], solSystem[i].futurePositions[j + 1], (Color){100, 100, 100, 255});
+                }
+            }
 
-        // Draw ship trajectory
-        // for (int i = 0; i < TRAJECTORY_STEPS - 1; i++)
-        // {
-        //     DrawLineV(playerShip.trajectory[i], playerShip.trajectory[i + 1], (Color){150, 150, 150, 255});
-        // }
+            // Draw ship trajectory
+            for (int i = 0; i < TRAJECTORY_STEPS - 1; i++)
+            {
+                DrawLineV(playerShip.futurePositions[i], playerShip.futurePositions[i + 1], (Color){150, 150, 150, 255});
+            }
+        }
 
         // Draw celestial bodies
         for (int i = 0; i < solSystemBodies; i++)
@@ -445,7 +525,8 @@ int main(void)
         }
 
         // Draw Ship
-        Vector2 shipSize = {8, 16}; // Width, Height of ship triangle
+        // original ship size was 8x16
+        Vector2 shipSize = {80, 160}; // Width, Height of ship triangle
         Vector2 shipPoints[3] = {
             {0, -shipSize.y / 2},
             {-shipSize.x / 2, shipSize.y / 2},
@@ -462,17 +543,26 @@ int main(void)
         }
         DrawTriangle(shipPoints[0], shipPoints[1], shipPoints[2], WHITE);
 
+        EndMode2D();
+
         // GUI
         DrawText("Press ESC to exit", 10, 10, 20, RAYWHITE);
+        DrawText("Press 'T' to toggle trajectories", 10, 40, 20, DARKGRAY);
+        DrawText("Press 'L' to switch camera", 10, 70, 20, DARKGRAY);
         DrawFPS(screenWidth - 100, 0);
 
         EndDrawing();
     }
 
-    // for (int i = 0; i < solSystemBodies; i++)
-    // {
-    //     free(solSystem[i].trajectory);
-    // }
+    if (enableTrajectories)
+    {
+        for (int i = 0; i < solSystemBodies; i++)
+        {
+            free(solSystem[i].futurePositions);
+        }
+        free(playerShip.futurePositions);
+    }
+
     CloseWindow();
     return 0;
 }
