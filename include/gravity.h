@@ -374,19 +374,14 @@ float calculateOrbitalRadius(float period, float mStar, float mPlanet)
 
 void initialiseOrbits(int n, Body *bodies)
 {
-    float orbitalPeriod = 18.0f; // 1 is 10 seconds so 360 represents an orbital period of 1 hour
+    float orbitalPeriod = 12.0f; // 1 is 10 seconds so 360 represents an orbital period of 1 hour
 
     for (int i = 1; i < n; i++)
     {
-        float radius = calculateOrbitalRadius(orbitalPeriod, bodies[0].mass, bodies[i].mass);
+        float radius = calculateOrbitalRadius(orbitalPeriod * i, bodies[0].mass, bodies[i].mass);
 
-        // radius2 = a2 + b2
-        // b = sqrt(radius2 - a2)
-        float a = GetRandomValue(5, radius - 1);
-        float b = sqrtf((radius * radius) - (a * a));
-
-        bodies[i].position.x = a;
-        bodies[i].position.y = b;
+        bodies[i].position.x = radius;
+        bodies[i].position.y = 0;
 
         float orbitalVelocity = calculateOrbitalVelocity(bodies[0].mass, radius);
         float currentAngle = calculateAngle(&bodies[i].position, &bodies[0].position);
