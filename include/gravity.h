@@ -8,8 +8,8 @@
 #ifndef G
 #define G 6.67430e-11
 #endif
-#define TRAJECTORY_STEPS 10000
-#define TRAJECTORY_STEP_TIME 0.06f
+#define TRAJECTORY_STEPS 6000
+#define TRAJECTORY_STEP_TIME 0.033f
 
 // Structure to represent celestial bodies
 typedef struct
@@ -24,6 +24,7 @@ typedef struct
     Vector2 *futurePositions;
     Vector2 *futureVelocities;
     int futureSteps;
+    int fontSize;
 } Body;
 
 typedef struct
@@ -42,6 +43,14 @@ typedef struct
     Texture2D thrustTexture;
     Texture2D *activeTexture;
 } Ship;
+
+typedef struct
+{
+    float val;
+    float increment;
+    float min;
+    float max;
+} WarpController;
 
 float _Clamp(float value, float min, float max)
 {
@@ -409,4 +418,16 @@ void initialiseOrbits(int n, Body *bodies)
         bodies[i].velocity.y = orbitalVelocity * cosf(currentAngle);
         bodies[i].velocity.x = orbitalVelocity * sinf(currentAngle);
     }
+}
+
+void incrementWarp(WarpController *timeScale, float dt)
+{
+    timeScale->val += timeScale->increment * timeScale->val * dt;
+    timeScale->val = _Clamp(timeScale->val, timeScale->min, timeScale->max);
+}
+
+void decrementWarp(WarpController *timeScale, float dt)
+{
+    timeScale->val -= timeScale->increment * timeScale->val * dt;
+    timeScale->val = _Clamp(timeScale->val, timeScale->min, timeScale->max);
 }

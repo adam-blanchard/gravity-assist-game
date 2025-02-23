@@ -1,8 +1,21 @@
 ## TODO
 
+- [ ] Take-off/landing system
 - [ ] Implement proper collision detection
-- [ ] Finalise take-off/landing system
+- [ ] Fuel pickup mechanic (random spawn points)
+- [ ] Orbit Apoapsis and Periapsis
+- [ ] Heading GUI indicator
+- [ ] Retrograde and prograde burn indicators
+- [ ] Speed GUI indicator
+- [ ] Ship Customisation
 
-- [x] Allow the user to control a ship that can fly around the solar system
+- [x] Render sun and planets
+- [x] Render ship
+- [x] Allow user to control the ship
+- [x] All bodies affect eachother with gravity
 - [x] Affect ship with gravity
 - [x] Add flight path prediction lines
+- [x] Camera lock
+- [x] Time warp
+- [x] Ship textures
+- [x] Ship fuel
