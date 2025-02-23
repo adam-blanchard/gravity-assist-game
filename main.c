@@ -11,39 +11,50 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
     // Orbital level
     bool enableTrajectories = true;
 
+    float timeScale = 1.0f;          // Default: normal speed
+    const float minTimeScale = 1.0f; // Minimum speed (slowest)
+    const float maxTimeScale = 16.0f;
+
     Camera2D camera = {0};
     camera.rotation = 0.0f; // Camera rotation in degrees
-    camera.zoom = 0.1f;     // Camera zoom (1.0 is normal size)
+    camera.zoom = 0.01f;    // Camera zoom (1.0 is normal size)
 
     Ship playerShip = {
-        {0, -2e4},
-        {1e3, 0},
-        1e3,
-        0.0f,
-        1e2f};
+        .position = {0, -2e4},
+        .velocity = {1e3, 0},
+        .mass = 1e3,
+        .rotation = 0.0f,
+        .thrust = 1e2f,
+        .fuel = 100.0f,
+        .colliderRadius = 16.0f,
+        .idleTexture = LoadTexture("./textures/ship.png"),
+        .thrustTexture = LoadTexture("./textures/ship_thrust.png")};
 
     // sol system based on earth's home solar system
 
     // 0th index in system is the star
     Body solSystem[3] = {
-        {{0, 0}, // Position
-         {0, 0}, // Velocity
-         2e20,   // Mass (kg)
-         1000,   // Radius
-         YELLOW, // Colour
-         0.0f},  // Rotation
-        {{0, 0},
-         {0, 0},
-         2e16,
-         10,
-         BLUE,
-         0.0f},
-        {{0, 0},
-         {0, 0},
-         2e15,
-         9,
-         RED,
-         0.0f}};
+        {.name = "Sol",
+         .position = {0, 0},
+         .velocity = {0, 0},
+         .mass = 2e20,
+         .radius = 1000,
+         .renderColour = YELLOW,
+         .rotation = 0.0f},
+        {.name = "Earth",
+         .position = {0, 0},
+         .velocity = {0, 0},
+         .mass = 2e16,
+         .radius = 10,
+         .renderColour = BLUE,
+         .rotation = 0.0f},
+        {.name = "Mars",
+         .position = {0, 0},
+         .velocity = {0, 0},
+         .mass = 2e15,
+         .radius = 5,
+         .renderColour = RED,
+         .rotation = 0.0f}};
 
     int solSystemBodies = sizeof(solSystem) / sizeof(Body);
     int cameraLock = 0;
@@ -64,9 +75,20 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
     {
         float dt = GetFrameTime(); // Time step
 
-        updateBodies(solSystemBodies, solSystem, dt);
+        if (IsKeyPressed(KEY_Q))
+            timeScale -= 1.0f; // Slow down
+        if (IsKeyPressed(KEY_E))
+            timeScale += 1.0f; // Speed up
+        if (timeScale < minTimeScale)
+            timeScale = minTimeScale;
+        if (timeScale > maxTimeScale)
+            timeScale = maxTimeScale;
 
-        updateShip(&playerShip, solSystemBodies, solSystem, dt);
+        float scaledDt = dt * timeScale;
+
+        updateBodies(solSystemBodies, solSystem, scaledDt);
+
+        updateShip(&playerShip, solSystemBodies, solSystem, scaledDt);
 
         if (IsKeyPressed(KEY_T))
         {
@@ -108,7 +130,7 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
 
         // Camera zoom controls
         camera.zoom += ((float)GetMouseWheelMove() * 0.005f);
-        camera.zoom = _Clamp(camera.zoom, 0.001f, 10.0f); // Limit zoom level
+        camera.zoom = _Clamp(camera.zoom, 0.008f, 10.0f); // Limit zoom level
 
         BeginDrawing();
         ClearBackground(BLACK);
@@ -139,29 +161,21 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         }
 
         // Draw Ship
-        Vector2 shipSize = {8, 16}; // Width, Height of ship triangle
-        Vector2 shipPoints[3] = {
-            {0, -shipSize.y / 2},
-            {-shipSize.x / 2, shipSize.y / 2},
-            {shipSize.x / 2, shipSize.y / 2}};
-
-        // Rotate ship points
-        for (int i = 0; i < 3; i++)
-        {
-            float radians = playerShip.rotation * PI / 180.0f;
-            float x = shipPoints[i].x * cosf(radians) - shipPoints[i].y * sinf(radians);
-            float y = shipPoints[i].x * sinf(radians) + shipPoints[i].y * cosf(radians);
-            shipPoints[i] = (Vector2){x, y};
-            shipPoints[i] = _Vector2Add(&shipPoints[i], &playerShip.position);
-        }
-        DrawTriangle(shipPoints[0], shipPoints[1], shipPoints[2], WHITE);
+        Rectangle source = {0, 0, (float)playerShip.activeTexture->width, (float)playerShip.activeTexture->height};
+        Rectangle dest = {playerShip.position.x, playerShip.position.y, (float)playerShip.activeTexture->width, (float)playerShip.activeTexture->height};
+        Vector2 origin = {(float)playerShip.activeTexture->width / 2, (float)playerShip.activeTexture->height / 2};
+        DrawTexturePro(*playerShip.activeTexture, source, dest, origin, playerShip.rotation, WHITE);
 
         EndMode2D();
 
         // GUI
+        // Left
         DrawText("Press ESC to exit", 10, 10, 20, RAYWHITE);
         DrawText("Press 'T' to toggle trajectories", 10, 40, 20, DARKGRAY);
         DrawText("Press 'L' to switch camera", 10, 70, 20, DARKGRAY);
+        DrawText("Press 'Q' and 'E' to time warp", 10, 100, 20, DARKGRAY);
+
+        // Right
         DrawFPS(*screenWidth - 100, 10);
         if (cameraLock >= 0)
         {
@@ -171,6 +185,8 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         {
             DrawText(TextFormat("Camera locked to: ship", cameraLock), *screenWidth - 280, 40, 20, DARKGRAY);
         }
+        DrawText(TextFormat("Time Scale: %.1fx", timeScale), *screenWidth - 200, 70, 20, DARKGRAY);
+        DrawText(TextFormat("Fuel Level: %.1fpct", playerShip.fuel), *screenWidth - 200, 100, 20, DARKGRAY);
 
         EndDrawing();
     }
@@ -183,6 +199,9 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         }
         free(playerShip.futurePositions);
     }
+
+    UnloadTexture(playerShip.idleTexture);
+    UnloadTexture(playerShip.thrustTexture);
 }
 
 bool checkPlanetCollision(Ship *ship, Body *planet, float *heightThreshold)
@@ -201,12 +220,13 @@ bool checkPlanetCollision(Ship *ship, Body *planet, float *heightThreshold)
 void levelPlanet(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *targetFPS)
 {
     Body planet[1] = {
-        {{0, 0},
-         {0, 0},
-         2e24,
-         6.378e2,
-         BLACK,
-         0.0f}};
+        {.name = "Earth",
+         .position = {0, 0},
+         .velocity = {0, 0},
+         .mass = 2e24,
+         .radius = 6.378e3,
+         .renderColour = BLACK,
+         .rotation = 0.0f}};
 
     int cameraLock = 0;
     Vector2 *cameraLockPosition = {0};
@@ -217,11 +237,11 @@ void levelPlanet(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int 
     camera.zoom = 1.0f;     // Camera zoom (1.0 is normal size)
 
     Ship playerShip = {
-        {0, -planet[0].radius},
-        {0, 0},
-        1e3,
-        0.0f,
-        1e1f};
+        .position = {0, -planet[0].radius},
+        .velocity = {0, 0},
+        .mass = 4.6e6,
+        .rotation = 0.0f,
+        .thrust = 1e-1f};
 
     float rotationRate = 180.0f;
     float fuelAmount = 100.0f;
@@ -351,9 +371,7 @@ int main(void)
     int wMid = screenWidth / 2;
     int hMid = screenHeight / 2;
 
-    levelPlanet(&screenWidth, &screenHeight, &wMid, &hMid, &targetFPS);
-
-    // levelSpace(&screenWidth, &screenHeight, &wMid, &hMid, &targetFPS);
+    levelSpace(&screenWidth, &screenHeight, &wMid, &hMid, &targetFPS);
 
     CloseWindow();
     return 0;

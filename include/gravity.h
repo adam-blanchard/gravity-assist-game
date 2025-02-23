@@ -14,6 +14,7 @@
 // Structure to represent celestial bodies
 typedef struct
 {
+    char name[16];
     Vector2 position;
     Vector2 velocity;
     float mass;
@@ -32,10 +33,24 @@ typedef struct
     float mass;
     float rotation;
     float thrust;
+    float fuel;
+    float colliderRadius;
     Vector2 *futurePositions;
     Vector2 *futureVelocitites;
     int futureSteps;
+    Texture2D idleTexture;
+    Texture2D thrustTexture;
+    Texture2D *activeTexture;
 } Ship;
+
+float _Clamp(float value, float min, float max)
+{
+    if (value < min)
+        return min;
+    if (value > max)
+        return max;
+    return value;
+}
 
 Vector2 _Vector2Add(Vector2 *v1, Vector2 *v2)
 {
@@ -154,6 +169,7 @@ void updateBodies(int n, Body *bodies, float dt)
 
 void updateShip(Ship *ship, int n, Body *bodies, float dt)
 {
+    ship->activeTexture = &ship->idleTexture;
     // Apply rotation
     if (IsKeyDown(KEY_D))
         ship->rotation += 180.0f * dt; // Rotate right
@@ -164,14 +180,18 @@ void updateShip(Ship *ship, int n, Body *bodies, float dt)
     ship->rotation = fmod(ship->rotation + 360.0f, 360.0f);
 
     // Apply thrust
-    if (IsKeyDown(KEY_W))
+    if (IsKeyDown(KEY_W) && ship->fuel > 0)
     {
         // Convert rotation to radians for vector calculations
         float radians = ship->rotation * PI / 180.0f;
         Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
         Vector2 thrust = _Vector2Scale(thrustDirection, ship->thrust * dt);
         ship->velocity = _Vector2Add(&ship->velocity, &thrust);
+        ship->activeTexture = &ship->thrustTexture;
+        ship->fuel -= 0.1f;
     }
+
+    ship->fuel = _Clamp(ship->fuel, 0.0f, 100.0f);
 
     Vector2 force = {0};
 
@@ -389,13 +409,4 @@ void initialiseOrbits(int n, Body *bodies)
         bodies[i].velocity.y = orbitalVelocity * cosf(currentAngle);
         bodies[i].velocity.x = orbitalVelocity * sinf(currentAngle);
     }
-}
-
-float _Clamp(float value, float min, float max)
-{
-    if (value < min)
-        return min;
-    if (value > max)
-        return max;
-    return value;
 }
