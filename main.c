@@ -10,6 +10,10 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
 {
     bool enableTrajectories = true;
 
+    HUD playerHUD = {
+        .speed = 0,
+        .arrowTexture = LoadTexture("./textures/arrow.png")};
+
     WarpController timeScale = {
         .val = 1.0f,
         .increment = 1.5f,
@@ -103,6 +107,8 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
 
         updateShip(&playerShip, solSystemBodies, solSystem, scaledDt);
 
+        playerHUD.speed = calculateShipSpeed(&playerShip);
+
         // Predict trajectories of celestial bodies
         if (enableTrajectories)
         {
@@ -152,10 +158,10 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         }
 
         // Draw Ship
-        Rectangle source = {0, 0, (float)playerShip.activeTexture->width, (float)playerShip.activeTexture->height};
-        Rectangle dest = {playerShip.position.x, playerShip.position.y, (float)playerShip.activeTexture->width, (float)playerShip.activeTexture->height};
-        Vector2 origin = {(float)playerShip.activeTexture->width / 2, (float)playerShip.activeTexture->height / 2};
-        DrawTexturePro(*playerShip.activeTexture, source, dest, origin, playerShip.rotation, WHITE);
+        Rectangle shipSource = {0, 0, (float)playerShip.activeTexture->width, (float)playerShip.activeTexture->height};
+        Rectangle shipDest = {playerShip.position.x, playerShip.position.y, (float)playerShip.activeTexture->width, (float)playerShip.activeTexture->height};
+        Vector2 shipOrigin = {(float)playerShip.activeTexture->width / 2, (float)playerShip.activeTexture->height / 2};
+        DrawTexturePro(*playerShip.activeTexture, shipSource, shipDest, shipOrigin, playerShip.rotation, WHITE);
 
         EndMode2D();
 
@@ -178,6 +184,13 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         }
         DrawText(TextFormat("Time Scale: %.1fx", timeScale.val), *screenWidth - 200, 70, 20, DARKGRAY);
         DrawText(TextFormat("Fuel Level: %.1fpct", playerShip.fuel), *screenWidth - 200, 100, 20, DARKGRAY);
+
+        // Centre
+        DrawText(TextFormat("%.1fm/s", playerHUD.speed), *wMid, *screenHeight - 100, 20, WHITE);
+        Rectangle arrowSource = {0, 0, (float)playerHUD.arrowTexture.width, (float)playerHUD.arrowTexture.height};
+        Rectangle arrowDest = {*wMid, *screenHeight - 50, (float)playerHUD.arrowTexture.width, (float)playerHUD.arrowTexture.height};
+        Vector2 arrowOrigin = {(float)playerHUD.arrowTexture.width / 2, (float)playerHUD.arrowTexture.height / 2};
+        DrawTexturePro(playerHUD.arrowTexture, arrowSource, arrowDest, arrowOrigin, playerShip.rotation, WHITE);
 
         EndDrawing();
     }

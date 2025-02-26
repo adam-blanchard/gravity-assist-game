@@ -52,6 +52,12 @@ typedef struct
     float max;
 } WarpController;
 
+typedef struct
+{
+    float speed;
+    Texture2D arrowTexture;
+} HUD;
+
 float _Clamp(float value, float min, float max)
 {
     if (value < min)
@@ -430,4 +436,9 @@ void decrementWarp(WarpController *timeScale, float dt)
 {
     timeScale->val -= timeScale->increment * timeScale->val * dt;
     timeScale->val = _Clamp(timeScale->val, timeScale->min, timeScale->max);
+}
+
+float calculateShipSpeed(Ship *playerShip)
+{
+    return sqrtf((playerShip->velocity.x * playerShip->velocity.x) + (playerShip->velocity.y * playerShip->velocity.y));
 }
