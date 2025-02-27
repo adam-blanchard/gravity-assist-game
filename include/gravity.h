@@ -36,6 +36,7 @@ typedef struct
     float thrust;
     float fuel;
     float colliderRadius;
+    bool alive;
     Vector2 *futurePositions;
     Vector2 *futureVelocitites;
     int futureSteps;
@@ -438,7 +439,18 @@ void decrementWarp(WarpController *timeScale, float dt)
     timeScale->val = _Clamp(timeScale->val, timeScale->min, timeScale->max);
 }
 
-float calculateShipSpeed(Ship *playerShip)
+float calculateShipSpeed(Ship *playerShip, Vector2 *targetVelocity)
 {
-    return sqrtf((playerShip->velocity.x * playerShip->velocity.x) + (playerShip->velocity.y * playerShip->velocity.y));
+    Vector2 relativeVelocity = _Vector2Subtract(&playerShip->velocity, targetVelocity);
+    return sqrtf((relativeVelocity.x * relativeVelocity.x) + (relativeVelocity.y * relativeVelocity.y));
+}
+
+bool checkCollision(Ship *playerShip, Body *planetaryBody)
+{
+    if (
+        playerShip->position.x + playerShip->colliderRadius >= planetaryBody->position.x - planetaryBody->radius & playerShip->position.x - playerShip->colliderRadius <= planetaryBody->position.x + planetaryBody->radius & playerShip->position.y + playerShip->colliderRadius >= planetaryBody->position.y - planetaryBody->radius & playerShip->position.y - playerShip->colliderRadius <= planetaryBody->position.y + planetaryBody->radius)
+    {
+        return 1;
+    }
+    return 0;
 }
