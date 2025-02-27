@@ -11,6 +11,12 @@
 #define TRAJECTORY_STEPS 6000
 #define TRAJECTORY_STEP_TIME 0.033f
 
+typedef enum
+{
+    SHIP_FLYING,
+    SHIP_LANDED
+} ShipState;
+
 // Structure to represent celestial bodies
 typedef struct
 {
@@ -35,8 +41,10 @@ typedef struct
     float rotation;
     float thrust;
     float fuel;
+    float fuelConsumption;
     float colliderRadius;
-    bool alive;
+    ShipState state;
+    int alive;
     Vector2 *futurePositions;
     Vector2 *futureVelocitites;
     int futureSteps;
@@ -58,6 +66,13 @@ typedef struct
     float speed;
     Texture2D arrowTexture;
 } HUD;
+
+typedef struct
+{
+    float defaultZoom;
+    float minZoom;
+    float maxZoom;
+} CameraSettings;
 
 float _Clamp(float value, float min, float max)
 {
@@ -204,7 +219,7 @@ void updateShip(Ship *ship, int n, Body *bodies, float dt)
         Vector2 thrust = _Vector2Scale(thrustDirection, ship->thrust * dt);
         ship->velocity = _Vector2Add(&ship->velocity, &thrust);
         ship->activeTexture = &ship->thrustTexture;
-        ship->fuel -= 0.1f;
+        ship->fuel -= ship->fuelConsumption;
     }
 
     ship->fuel = _Clamp(ship->fuel, 0.0f, 100.0f);

@@ -21,9 +21,14 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         .min = 1.0f,
         .max = 16.0f};
 
+    CameraSettings cameraSettings = {
+        .defaultZoom = 1.0f,
+        .minZoom = 0.008f,
+        .maxZoom = 10.0f};
+
     Camera2D camera = {0};
     camera.rotation = 0.0f;
-    camera.zoom = 1.0f;
+    camera.zoom = cameraSettings.defaultZoom;
 
     Ship playerShip = {
         .position = {0, -2e4},
@@ -31,8 +36,11 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         .mass = 1e3,
         .rotation = 0.0f,
         .thrust = 1e2f,
-        .fuel = 10000.0f,
+        .fuel = 100.0f,
+        .fuelConsumption = 0.0f,
         .colliderRadius = 6.0f,
+        .state = SHIP_LANDED,
+        .alive = 1,
         .idleTexture = LoadTexture("./textures/ship.png"),
         .thrustTexture = LoadTexture("./textures/ship_thrust.png")};
 
@@ -118,8 +126,8 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
             }
         }
 
-        camera.zoom += ((float)GetMouseWheelMove() * 0.005f);
-        camera.zoom = _Clamp(camera.zoom, 0.008f, 10.0f);
+        camera.zoom += (float)GetMouseWheelMove() * 0.005f;
+        camera.zoom = _Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
 
         // Apply physics updates
         float scaledDt = dt * timeScale.val;
@@ -134,17 +142,21 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         {
             if (checkCollision(&playerShip, &solSystem[i]))
             {
-                if (calculateShipSpeed(&playerShip, &solSystem[i].velocity) >= crashThreshold)
+                float relativeSpeed = calculateShipSpeed(&playerShip, &solSystem[i].velocity);
+                if (relativeSpeed >= crashThreshold)
                 {
                     printf("CRASHED!!\n");
+                    playerShip.alive = 0;
                 }
-                else
+
+                if (relativeSpeed < crashThreshold)
                 {
                     printf("Safely landed\n");
+                    playerShip.state = SHIP_LANDED;
+                    playerShip.velocity = solSystem[i].velocity;
                     // When safely landed, how do we ensure the ship stays on the same location?
                     // How do we then take off from the planet again?
                 }
-                playerShip.velocity = solSystem[i].velocity;
             }
         }
 
