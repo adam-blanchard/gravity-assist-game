@@ -27,6 +27,7 @@ typedef struct
     float radius;
     Color renderColour;
     float rotation;
+    float orbitalPeriod; // 1 is 10 seconds so 360 represents an orbital period of 1 hour
     Vector2 *futurePositions;
     Vector2 *futureVelocities;
     int futureSteps;
@@ -45,6 +46,7 @@ typedef struct
     float colliderRadius;
     ShipState state;
     int alive;
+    Body *landedBody;
     Vector2 *futurePositions;
     Vector2 *futureVelocitites;
     int futureSteps;
@@ -201,14 +203,17 @@ void updateBodies(int n, Body *bodies, float dt)
 void updateShip(Ship *ship, int n, Body *bodies, float dt)
 {
     ship->activeTexture = &ship->idleTexture;
-    // Apply rotation
-    if (IsKeyDown(KEY_D))
-        ship->rotation += 180.0f * dt; // Rotate right
-    if (IsKeyDown(KEY_A))
-        ship->rotation -= 180.0f * dt; // Rotate left
+    if (ship->state == SHIP_FLYING)
+    {
+        // Apply rotation
+        if (IsKeyDown(KEY_D))
+            ship->rotation += 180.0f * dt; // Rotate right
+        if (IsKeyDown(KEY_A))
+            ship->rotation -= 180.0f * dt; // Rotate left
 
-    // Normalize rotation to keep it within 0-360 degrees
-    ship->rotation = fmod(ship->rotation + 360.0f, 360.0f);
+        // Normalize rotation to keep it within 0-360 degrees
+        ship->rotation = fmod(ship->rotation + 360.0f, 360.0f);
+    }
 
     // Apply thrust
     if (IsKeyDown(KEY_W) && ship->fuel > 0)
@@ -220,25 +225,43 @@ void updateShip(Ship *ship, int n, Body *bodies, float dt)
         ship->velocity = _Vector2Add(&ship->velocity, &thrust);
         ship->activeTexture = &ship->thrustTexture;
         ship->fuel -= ship->fuelConsumption;
+
+        if (ship->state == SHIP_LANDED)
+        {
+            ship->state = SHIP_FLYING;
+            ship->landedBody = NULL;
+        }
     }
 
     ship->fuel = _Clamp(ship->fuel, 0.0f, 100.0f);
 
     Vector2 force = {0};
 
-    for (int i = 0; i < n; i++)
+    if (ship->state == SHIP_FLYING)
     {
-        Vector2 planetaryForce = gravitationalForce2(&ship->position, &bodies[i].position, ship->mass, bodies[i].mass);
-        force = _Vector2Add(&force, &planetaryForce);
+        for (int i = 0; i < n; i++)
+        {
+            Vector2 planetaryForce = gravitationalForce2(&ship->position, &bodies[i].position, ship->mass, bodies[i].mass);
+            force = _Vector2Add(&force, &planetaryForce);
+        }
+
+        Vector2 acceleration = {force.x / ship->mass, force.y / ship->mass};
+
+        Vector2 scaledAcceleration = _Vector2Scale(acceleration, dt);
+        ship->velocity = _Vector2Add(&ship->velocity, &scaledAcceleration);
+
+        Vector2 scaledVelocity = _Vector2Scale(ship->velocity, dt);
+        ship->position = _Vector2Add(&ship->position, &scaledVelocity);
     }
 
-    Vector2 acceleration = {force.x / ship->mass, force.y / ship->mass};
-
-    Vector2 scaledAcceleration = _Vector2Scale(acceleration, dt);
-    ship->velocity = _Vector2Add(&ship->velocity, &scaledAcceleration);
-
-    Vector2 scaledVelocity = _Vector2Scale(ship->velocity, dt);
-    ship->position = _Vector2Add(&ship->position, &scaledVelocity);
+    if (ship->state == SHIP_LANDED)
+    {
+        Vector2 sub = _Vector2Subtract(&ship->position, &ship->landedBody->position);
+        Vector2 norm = _Vector2Normalize(sub);
+        Vector2 scale = _Vector2Scale(norm, ship->landedBody->radius + ship->colliderRadius);
+        ship->position = _Vector2Add(&ship->landedBody->position, &scale);
+        ship->velocity = ship->landedBody->velocity; // Only sync here if not taking off
+    }
 }
 
 float calculateAngle(Vector2 *planetPosition, Vector2 *sunPosition)
@@ -425,11 +448,9 @@ float calculateOrbitalRadius(float period, float mStar, float mPlanet)
 
 void initialiseOrbits(int n, Body *bodies)
 {
-    float orbitalPeriod = 12.0f; // 1 is 10 seconds so 360 represents an orbital period of 1 hour
-
     for (int i = 1; i < n; i++)
     {
-        float radius = calculateOrbitalRadius(orbitalPeriod * i, bodies[0].mass, bodies[i].mass);
+        float radius = calculateOrbitalRadius(bodies[i].orbitalPeriod, bodies[0].mass, bodies[i].mass);
 
         bodies[i].position.x = radius;
         bodies[i].position.y = 0;
@@ -468,4 +489,20 @@ bool checkCollision(Ship *playerShip, Body *planetaryBody)
         return 1;
     }
     return 0;
+}
+
+void landShip(Ship *ship, Body *planet)
+{
+    // ship->state = SHIP_LANDED;
+    // ship->landedBody = planet;
+    // ship->velocity = planet->velocity;
+    ship->state = SHIP_LANDED;
+    ship->landedBody = planet;
+    ship->velocity = planet->velocity;
+
+    // Position ship on planet’s surface
+    // Vector2 direction = _Vector2Subtract(&ship->position, &planet->position);
+    // direction = _Vector2Normalize(direction);
+    // Vector2 scaledDirection = _Vector2Scale(direction, planet->radius + ship->colliderRadius);
+    // ship->position = _Vector2Add(&planet->position, &scaledDirection);
 }

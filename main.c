@@ -9,7 +9,7 @@
 void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *targetFPS)
 {
     bool enableTrajectories = true;
-    float crashThreshold = 50.0f;
+    float crashThreshold = 1e3f;
 
     HUD playerHUD = {
         .speed = 0,
@@ -33,13 +33,13 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
     Ship playerShip = {
         .position = {0, -2e4},
         .velocity = {1e3, 0},
-        .mass = 1e3,
+        .mass = 1e6,
         .rotation = 0.0f,
-        .thrust = 1e2f,
+        .thrust = 5e2f,
         .fuel = 100.0f,
         .fuelConsumption = 0.0f,
         .colliderRadius = 6.0f,
-        .state = SHIP_LANDED,
+        .state = SHIP_FLYING,
         .alive = 1,
         .idleTexture = LoadTexture("./textures/ship.png"),
         .thrustTexture = LoadTexture("./textures/ship_thrust.png")};
@@ -58,6 +58,7 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
          .velocity = {0, 0},
          .mass = 2e16,
          .radius = 100,
+         .orbitalPeriod = 24.0f,
          .renderColour = BLUE,
          .rotation = 0.0f,
          .fontSize = 10},
@@ -66,6 +67,7 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
          .velocity = {0, 0},
          .mass = 2e15,
          .radius = 50,
+         .orbitalPeriod = 36.0f,
          .renderColour = RED,
          .rotation = 0.0f,
          .fontSize = 10}};
@@ -138,24 +140,19 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
 
         playerHUD.speed = calculateShipSpeed(&playerShip, targetVelocity);
 
-        for (int i = 1; i < solSystemBodies; i++)
+        for (int i = 0; i < solSystemBodies; i++)
         {
             if (checkCollision(&playerShip, &solSystem[i]))
             {
                 float relativeSpeed = calculateShipSpeed(&playerShip, &solSystem[i].velocity);
                 if (relativeSpeed >= crashThreshold)
                 {
-                    printf("CRASHED!!\n");
                     playerShip.alive = 0;
                 }
 
                 if (relativeSpeed < crashThreshold)
                 {
-                    printf("Safely landed\n");
-                    playerShip.state = SHIP_LANDED;
-                    playerShip.velocity = solSystem[i].velocity;
-                    // When safely landed, how do we ensure the ship stays on the same location?
-                    // How do we then take off from the planet again?
+                    landShip(&playerShip, &solSystem[i]);
                 }
             }
         }

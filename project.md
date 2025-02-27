@@ -8,10 +8,9 @@
 - [ ] Ship Customisation
 - [ ] KSP-style nav ball (nav circle for 2D)
 - [ ] Death state
-- [ ] Take off from planetary bodies
-- [ ] Fixed position on body when landed
 - [ ] Home screen
 - [ ] Controls pop-out
+- [ ] Scale all masses, radius, and forces to be semi-realistic
 
 - [x] Render sun and planets
 - [x] Render ship
@@ -26,3 +25,5 @@
 - [x] Speed GUI indicator
 - [x] Ship relative speed to body
 - [x] Initial collision detection and landing
+- [x] Rudementary landing and take-off system
+- [x] Fixed position on body when landed
