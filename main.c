@@ -23,23 +23,24 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
 
     CameraSettings cameraSettings = {
         .defaultZoom = 1.0f,
-        .minZoom = 0.008f,
+        .minZoom = 0.001f,
         .maxZoom = 10.0f};
 
     Camera2D camera = {0};
     camera.rotation = 0.0f;
     camera.zoom = cameraSettings.defaultZoom;
 
+    // Mass and thrust based on SpaceX Starship
     Ship playerShip = {
-        .position = {0, -2e4},
-        .velocity = {1e3, 0},
-        .mass = 1e6,
+        .position = {0},
+        .velocity = {0},
+        .mass = 1e5,
         .rotation = 0.0f,
-        .thrust = 5e2f,
+        .thrust = 3.5e1f,
         .fuel = 100.0f,
         .fuelConsumption = 0.0f,
         .colliderRadius = 6.0f,
-        .state = SHIP_FLYING,
+        .state = SHIP_LANDED,
         .alive = 1,
         .idleTexture = LoadTexture("./textures/ship.png"),
         .thrustTexture = LoadTexture("./textures/ship_thrust.png")};
@@ -49,7 +50,7 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
          .position = {0, 0},
          .velocity = {0, 0},
          .mass = 2e20,
-         .radius = 1000,
+         .radius = 1e4,
          .renderColour = YELLOW,
          .rotation = 0.0f,
          .fontSize = 100},
@@ -57,8 +58,8 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
          .position = {0, 0},
          .velocity = {0, 0},
          .mass = 2e16,
-         .radius = 100,
-         .orbitalPeriod = 24.0f,
+         .radius = 1e3,
+         .orbitalPeriod = 120.0f,
          .renderColour = BLUE,
          .rotation = 0.0f,
          .fontSize = 10},
@@ -66,8 +67,8 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
          .position = {0, 0},
          .velocity = {0, 0},
          .mass = 2e15,
-         .radius = 50,
-         .orbitalPeriod = 36.0f,
+         .radius = 5e2,
+         .orbitalPeriod = 240.0f,
          .renderColour = RED,
          .rotation = 0.0f,
          .fontSize = 10}};
@@ -85,6 +86,8 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
     Vector2 *targetVelocity = &defaultVelocity;
 
     initialiseOrbits(solSystemBodies, solSystem);
+
+    // spawnRocketOnBody(&playerShip, &solSystem[1]);
 
     while (!WindowShouldClose())
     {

@@ -23,7 +23,7 @@ typedef struct
     char name[16];
     Vector2 position;
     Vector2 velocity;
-    float mass;
+    float mass; // Kg
     float radius;
     Color renderColour;
     float rotation;
@@ -38,9 +38,9 @@ typedef struct
 {
     Vector2 position;
     Vector2 velocity;
-    float mass;
+    float mass; // Kg
     float rotation;
-    float thrust;
+    float thrust; // kN
     float fuel;
     float fuelConsumption;
     float colliderRadius;
@@ -493,9 +493,6 @@ bool checkCollision(Ship *playerShip, Body *planetaryBody)
 
 void landShip(Ship *ship, Body *planet)
 {
-    // ship->state = SHIP_LANDED;
-    // ship->landedBody = planet;
-    // ship->velocity = planet->velocity;
     ship->state = SHIP_LANDED;
     ship->landedBody = planet;
     ship->velocity = planet->velocity;
@@ -505,4 +502,11 @@ void landShip(Ship *ship, Body *planet)
     // direction = _Vector2Normalize(direction);
     // Vector2 scaledDirection = _Vector2Scale(direction, planet->radius + ship->colliderRadius);
     // ship->position = _Vector2Add(&planet->position, &scaledDirection);
+}
+
+void spawnRocketOnBody(Ship *ship, Body *planet)
+{
+    Vector2 planetSpawnLocation = {0, planet->radius};
+    ship->position = _Vector2Add(&planet->position, &planetSpawnLocation);
+    ship->velocity = planet->velocity;
 }
