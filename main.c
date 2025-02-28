@@ -8,7 +8,7 @@
 
 void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *targetFPS)
 {
-    bool enableTrajectories = true;
+    bool enableTrajectories = false;
     float crashThreshold = 1e3f;
 
     HUD playerHUD = {
@@ -32,16 +32,17 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
 
     // Mass and thrust based on SpaceX Starship
     Ship playerShip = {
-        .position = {0},
-        .velocity = {0},
+        .position = {0, -2e4},
+        .velocity = {1e3, 0},
         .mass = 1e5,
         .rotation = 0.0f,
         .thrust = 3.5e1f,
         .fuel = 100.0f,
         .fuelConsumption = 0.0f,
         .colliderRadius = 6.0f,
-        .state = SHIP_LANDED,
+        .state = SHIP_FLYING, // Initialisation to SHIP_FLYING results in a segfault
         .alive = 1,
+        .activeTexture = NULL,
         .idleTexture = LoadTexture("./textures/ship.png"),
         .thrustTexture = LoadTexture("./textures/ship_thrust.png")};
 
@@ -75,7 +76,7 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
 
     int solSystemBodies = sizeof(solSystem) / sizeof(Body);
     int cameraLock = -1;
-    Vector2 *cameraLockPosition = {0};
+    Vector2 *cameraLockPosition = NULL;
 
     cameraLockPosition = &playerShip.position;
     camera.target = *cameraLockPosition;     // Camera target (where the camera looks at)
@@ -87,7 +88,7 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
 
     initialiseOrbits(solSystemBodies, solSystem);
 
-    // spawnRocketOnBody(&playerShip, &solSystem[1]);
+    spawnRocketOnBody(&playerShip, &solSystem[1]);
 
     while (!WindowShouldClose())
     {
@@ -160,12 +161,14 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
             }
         }
 
-        // Predict trajectories of celestial bodies
-        if (enableTrajectories)
+        // Predict trajectories of celestial bodies if (enableTrajectories)
         {
             for (int i = 0; i < solSystemBodies; i++)
             {
-                free(solSystem[i].futurePositions);
+                if (sizeof(solSystem[i].futurePositions) > 0)
+                {
+                    free(solSystem[i].futurePositions);
+                }
                 solSystem[i].futurePositions = (Vector2 *)malloc(TRAJECTORY_STEPS * sizeof(Vector2));
                 predictBodyTrajectory(&solSystem[i], solSystem, solSystemBodies, solSystem[i].futurePositions);
                 // predictTrajectory(&solSystem[i].position, &solSystem[i].velocity, &solSystem[i].mass, solSystem, solSystemBodies, solSystem[i].trajectory, G);
@@ -173,7 +176,10 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
 
             // Predict ship trajectory
             // TODO: Revise ship trajectory prediction as it is constantly changing
-            free(playerShip.futurePositions);
+            if (sizeof(playerShip.futurePositions) > 0)
+            {
+                free(playerShip.futurePositions);
+            }
             playerShip.futurePositions = (Vector2 *)malloc(TRAJECTORY_STEPS * sizeof(Vector2));
             predictShipTrajectory(&playerShip, solSystem, solSystemBodies, playerShip.futurePositions);
             // predictTrajectory(&playerShip.position, &playerShip.velocity, &playerShip.mass, solSystem, solSystemBodies, playerShip.trajectory, G);
@@ -255,14 +261,14 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         EndDrawing();
     }
 
-    if (enableTrajectories)
-    {
-        for (int i = 0; i < solSystemBodies; i++)
-        {
-            free(solSystem[i].futurePositions);
-        }
-        free(playerShip.futurePositions);
-    }
+    // if (enableTrajectories)
+    // {
+    //     for (int i = 0; i < solSystemBodies; i++)
+    //     {
+    //         free(solSystem[i].futurePositions);
+    //     }
+    //     free(playerShip.futurePositions);
+    // }
 
     UnloadTexture(playerShip.idleTexture);
     UnloadTexture(playerShip.thrustTexture);

@@ -11,7 +11,7 @@
 #define TRAJECTORY_STEPS 6000
 #define TRAJECTORY_STEP_TIME 0.033f
 
-typedef enum
+typedef enum ShipState
 {
     SHIP_FLYING,
     SHIP_LANDED
@@ -506,7 +506,7 @@ void landShip(Ship *ship, Body *planet)
 
 void spawnRocketOnBody(Ship *ship, Body *planet)
 {
-    Vector2 planetSpawnLocation = {0, planet->radius};
+    Vector2 planetSpawnLocation = (Vector2){0, -planet->radius};
     ship->position = _Vector2Add(&planet->position, &planetSpawnLocation);
     ship->velocity = planet->velocity;
 }
