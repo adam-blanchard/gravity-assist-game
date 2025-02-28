@@ -54,7 +54,8 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
          .radius = 1e5,
          .renderColour = YELLOW,
          .rotation = 0.0f,
-         .fontSize = 100},
+         .fontSize = 100,
+         .texture = LoadTexture("./textures/sun.png")},
         {.name = "Earth",
          .position = {0, 0},
          .velocity = {0, 0},
@@ -63,7 +64,8 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
          .orbitalPeriod = 3.153e3f,
          .renderColour = BLUE,
          .rotation = 0.0f,
-         .fontSize = 10},
+         .fontSize = 10,
+         .texture = LoadTexture("./textures/earth.png")},
         {.name = "Mars",
          .position = {0, 0},
          .velocity = {0, 0},
@@ -72,7 +74,8 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
          .orbitalPeriod = 6.3072e3f,
          .renderColour = RED,
          .rotation = 0.0f,
-         .fontSize = 10}};
+         .fontSize = 10,
+         .texture = LoadTexture("./textures/mars.png")}};
 
     int solSystemBodies = sizeof(solSystem) / sizeof(Body);
     int cameraLock = -1;

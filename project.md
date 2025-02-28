@@ -11,6 +11,7 @@
 - [ ] Home screen
 - [ ] Controls pop-out
 - [ ] Scale all masses, radius, and forces to be semi-realistic
+- [ ] Body textures
 
 - [x] Render sun and planets
 - [x] Render ship

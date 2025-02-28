@@ -32,6 +32,7 @@ typedef struct
     Vector2 *futureVelocities;
     int futureSteps;
     int fontSize;
+    Texture2D texture;
 } Body;
 
 typedef struct
