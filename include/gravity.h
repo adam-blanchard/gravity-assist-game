@@ -11,7 +11,7 @@
 #define TRAJECTORY_STEPS 6000
 #define TRAJECTORY_STEP_TIME 0.033f
 
-typedef enum ShipState
+typedef enum
 {
     SHIP_FLYING,
     SHIP_LANDED

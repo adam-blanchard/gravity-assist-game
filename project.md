@@ -11,7 +11,6 @@
 - [ ] Home screen
 - [ ] Controls pop-out
 - [ ] Scale all masses, radius, and forces to be semi-realistic
-- [ ] Player starts landed on a planet
 
 - [x] Render sun and planets
 - [x] Render ship
@@ -28,3 +27,4 @@
 - [x] Initial collision detection and landing
 - [x] Rudementary landing and take-off system
 - [x] Fixed position on body when landed
+- [x] Player starts landed on a planet

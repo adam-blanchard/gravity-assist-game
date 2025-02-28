@@ -22,8 +22,8 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         .max = 16.0f};
 
     CameraSettings cameraSettings = {
-        .defaultZoom = 1.0f,
-        .minZoom = 0.001f,
+        .defaultZoom = 2e0f,
+        .minZoom = 1e-4f,
         .maxZoom = 10.0f};
 
     Camera2D camera = {0};
@@ -32,15 +32,15 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
 
     // Mass and thrust based on SpaceX Starship
     Ship playerShip = {
-        .position = {0, -2e4},
-        .velocity = {1e3, 0},
+        .position = {0, 0},
+        .velocity = {0, 0},
         .mass = 1e5,
         .rotation = 0.0f,
         .thrust = 3.5e1f,
         .fuel = 100.0f,
         .fuelConsumption = 0.0f,
-        .colliderRadius = 6.0f,
-        .state = SHIP_FLYING, // Initialisation to SHIP_FLYING results in a segfault
+        .colliderRadius = 8.0f,
+        .state = SHIP_FLYING, // Initialisation to SHIP_LANDED results in a segfault
         .alive = 1,
         .activeTexture = NULL,
         .idleTexture = LoadTexture("./textures/ship.png"),
@@ -50,26 +50,26 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         {.name = "Sol",
          .position = {0, 0},
          .velocity = {0, 0},
-         .mass = 2e20,
-         .radius = 1e4,
+         .mass = 1.989e20,
+         .radius = 1e5,
          .renderColour = YELLOW,
          .rotation = 0.0f,
          .fontSize = 100},
         {.name = "Earth",
          .position = {0, 0},
          .velocity = {0, 0},
-         .mass = 2e16,
-         .radius = 1e3,
-         .orbitalPeriod = 120.0f,
+         .mass = 5.972e14,
+         .radius = 1e4,
+         .orbitalPeriod = 3.153e3f,
          .renderColour = BLUE,
          .rotation = 0.0f,
          .fontSize = 10},
         {.name = "Mars",
          .position = {0, 0},
          .velocity = {0, 0},
-         .mass = 2e15,
-         .radius = 5e2,
-         .orbitalPeriod = 240.0f,
+         .mass = 6.417e13,
+         .radius = 5e3,
+         .orbitalPeriod = 6.3072e3f,
          .renderColour = RED,
          .rotation = 0.0f,
          .fontSize = 10}};
@@ -132,7 +132,7 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
             }
         }
 
-        camera.zoom += (float)GetMouseWheelMove() * 0.005f;
+        camera.zoom += (float)GetMouseWheelMove() * 0.0005f;
         camera.zoom = _Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
 
         // Apply physics updates
@@ -213,6 +213,8 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         {
             DrawCircle(solSystem[i].position.x, solSystem[i].position.y, solSystem[i].radius, solSystem[i].renderColour);
         }
+
+        DrawCircle(playerShip.position.x, playerShip.position.y, playerShip.colliderRadius, WHITE);
 
         // Draw Ship
         Rectangle shipSource = {0, 0, (float)playerShip.activeTexture->width, (float)playerShip.activeTexture->height};
