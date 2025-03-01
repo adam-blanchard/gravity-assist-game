@@ -17,6 +17,14 @@ typedef enum
     SHIP_LANDED
 } ShipState;
 
+typedef enum
+{
+    BODY_STAR,
+    BODY_PLANET,
+    BODY_MOON,
+    BODY_ASTEROID
+} BodyType;
+
 // Structure to represent celestial bodies
 typedef struct
 {
@@ -28,6 +36,8 @@ typedef struct
     float rotation;
     float rotationPeriod;
     float orbitalPeriod; // 1 is 10 seconds so 360 represents an orbital period of 1 hour
+    BodyType type;
+    int orbitalBodyIndex; // Reference to the primary body this body orbits around - planets around a star, moons around a planet
     Vector2 *futurePositions;
     Vector2 *futureVelocities;
     int futureSteps;
@@ -444,26 +454,39 @@ void predictTimesteps(Ship *playerShip, Body *bodies, int numBodies)
     }
 }
 
-float calculateOrbitalRadius(float period, float mStar, float mPlanet)
+float calculateOrbitalRadius(float period, float mStar)
 {
-    float r3 = (period * period * G * (mStar + mPlanet)) / 4 * PI * PI;
+    float r3 = (period * period * G * mStar) / 4 * PI * PI;
     return (float){cbrtf(r3)};
 }
 
 void initialiseOrbits(int n, Body *bodies)
 {
-    for (int i = 1; i < n; i++)
+    // Planets orbit stars
+    // Moons orbit planets, which orbit stars
+    for (int i = 0; i < n; i++)
     {
-        float radius = calculateOrbitalRadius(bodies[i].orbitalPeriod, bodies[0].mass, bodies[i].mass);
+        if (bodies[i].type != BODY_STAR)
+        {
+            int orbitalBodyIndex = bodies[i].orbitalBodyIndex;
+            float radius = calculateOrbitalRadius(bodies[i].orbitalPeriod, bodies[orbitalBodyIndex].mass);
 
-        bodies[i].position.x = radius;
-        bodies[i].position.y = 0;
+            bodies[i].position.x = radius;
+            bodies[i].position.y = 0;
 
-        float orbitalVelocity = calculateOrbitalVelocity(bodies[0].mass, radius);
-        float currentAngle = calculateAngle(&bodies[i].position, &bodies[0].position);
+            float orbitalVelocity = calculateOrbitalVelocity(bodies[orbitalBodyIndex].mass, radius);
+            float currentAngle = calculateAngle(&bodies[i].position, &bodies[orbitalBodyIndex].position);
 
-        bodies[i].velocity.y = orbitalVelocity * cosf(currentAngle);
-        bodies[i].velocity.x = orbitalVelocity * sinf(currentAngle);
+            bodies[i].velocity.y = orbitalVelocity * cosf(currentAngle);
+            bodies[i].velocity.x = orbitalVelocity * sinf(currentAngle);
+
+            if (bodies[i].type == BODY_MOON)
+            {
+                bodies[i].position.x = bodies[orbitalBodyIndex].position.x + radius;
+                bodies[i].velocity.x += bodies[orbitalBodyIndex].velocity.x;
+                bodies[i].velocity.y += bodies[orbitalBodyIndex].velocity.y;
+            }
+        }
     }
 }
 

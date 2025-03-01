@@ -68,25 +68,37 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         .idleTexture = LoadTexture("./textures/ship.png"),
         .thrustTexture = LoadTexture("./textures/ship_thrust.png")};
 
-    Body solSystem[3] = {
+    Body solSystem[4] = {
         {.name = "Sol",
+         .type = BODY_STAR,
          .position = {0, 0},
          .velocity = {0, 0},
-         .mass = 1.989e18,
-         .radius = 6.957e5,
+         .mass = 2e18,
+         .radius = 7e2,
          .rotation = 0.0f,
          .fontSize = 100,
          .texture = LoadTexture("./textures/sun.png")},
         {.name = "Earth",
+         .type = BODY_PLANET,
          .position = {0, 0},
          .velocity = {0, 0},
-         .mass = 5.972e12,
-         .radius = 6.371e3,
-         .orbitalPeriod = 3.6525e5f,
+         .mass = 6e12,
+         .radius = 6e2,
+         .orbitalPeriod = 3.65e1f,
          .rotation = 0.0f,
          .fontSize = 10,
          .texture = LoadTexture("./textures/earth.png")},
+        {.name = "Moon",
+         .type = BODY_MOON,
+         .position = {0, 0},
+         .velocity = {0, 0},
+         .mass = 7e8,
+         .radius = 2e2,
+         .orbitalPeriod = 2.8e1f,
+         .rotation = 0.0f,
+         .texture = LoadTexture("./textures/moon.png")},
         {.name = "Mars",
+         .type = BODY_PLANET,
          .position = {0, 0},
          .velocity = {0, 0},
          .mass = 6.417e11,
@@ -95,6 +107,10 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
          .rotation = 0.0f,
          .fontSize = 10,
          .texture = LoadTexture("./textures/mars.png")}};
+
+    solSystem[1].orbitalBodyIndex = 0; // Earth orbits around the Sun
+    solSystem[2].orbitalBodyIndex = 1; // The Moon orbits around the Earth
+    solSystem[3].orbitalBodyIndex = 0; // Mars orbits around the Sun
 
     int solSystemBodies = sizeof(solSystem) / sizeof(Body);
     int cameraLock = -1;
@@ -235,14 +251,14 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         for (int i = 0; i < solSystemBodies; i++)
         {
             // Draw Body collider for debug
-            DrawCircle(solSystem[i].position.x, solSystem[i].position.y, solSystem[i].radius, WHITE);
+            // DrawCircle(solSystem[i].position.x, solSystem[i].position.y, solSystem[i].radius, WHITE);
             float scale = ((solSystem[i].radius * 2) / solSystem[i].texture.width) * textureScale;
             Vector2 pos = (Vector2){solSystem[i].position.x - (solSystem[i].radius * textureScale), solSystem[i].position.y - (solSystem[i].radius * textureScale)};
             DrawTextureEx(solSystem[i].texture, pos, solSystem[i].rotation, scale, WHITE);
         }
 
         // Draw Ship collider for debug
-        DrawCircle(playerShip.position.x, playerShip.position.y, playerShip.colliderRadius, WHITE);
+        // DrawCircle(playerShip.position.x, playerShip.position.y, playerShip.colliderRadius, WHITE);
 
         // Draw Ship
         Rectangle shipSource = {0, 0, (float)playerShip.activeTexture->width, (float)playerShip.activeTexture->height};
