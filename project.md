@@ -1,3 +1,7 @@
+## BUG LIST
+
+- [ ] Don't think gravity is properly working on bodies... Earth doesn't seem to exert any gravity on the ship
+
 ## TODO
 
 - [ ] Take-off/landing system
@@ -11,7 +15,8 @@
 - [ ] Home screen
 - [ ] Controls pop-out
 - [ ] Scale all masses, radius, and forces to be semi-realistic
-- [ ] Body textures
+- [ ] Body rotation (need to rework the way bodies are rendered to set the rotation origin)
+- [ ] Moons
 
 - [x] Render sun and planets
 - [x] Render ship
@@ -29,3 +34,4 @@
 - [x] Rudementary landing and take-off system
 - [x] Fixed position on body when landed
 - [x] Player starts landed on a planet
+- [x] Body textures

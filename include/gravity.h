@@ -25,8 +25,8 @@ typedef struct
     Vector2 velocity;
     float mass; // Kg
     float radius;
-    Color renderColour;
     float rotation;
+    float rotationPeriod;
     float orbitalPeriod; // 1 is 10 seconds so 360 represents an orbital period of 1 hour
     Vector2 *futurePositions;
     Vector2 *futureVelocities;
@@ -198,6 +198,9 @@ void updateBodies(int n, Body *bodies, float dt)
 
         bodies[m].position.x += bodies[m].velocity.x * dt;
         bodies[m].position.y += bodies[m].velocity.y * dt;
+
+        // Handle body rotation
+        // bodies[m].rotation += 0.1f;
     }
 }
 
@@ -484,8 +487,7 @@ float calculateShipSpeed(Ship *playerShip, Vector2 *targetVelocity)
 
 bool checkCollision(Ship *playerShip, Body *planetaryBody)
 {
-    if (
-        playerShip->position.x + playerShip->colliderRadius >= planetaryBody->position.x - planetaryBody->radius & playerShip->position.x - playerShip->colliderRadius <= planetaryBody->position.x + planetaryBody->radius & playerShip->position.y + playerShip->colliderRadius >= planetaryBody->position.y - planetaryBody->radius & playerShip->position.y - playerShip->colliderRadius <= planetaryBody->position.y + planetaryBody->radius)
+    if (CheckCollisionCircles(playerShip->position, playerShip->colliderRadius, planetaryBody->position, planetaryBody->radius))
     {
         return 1;
     }

@@ -10,6 +10,8 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
 {
     bool enableTrajectories = false;
     float crashThreshold = 1e3f;
+    const float textureCover = 0.67f;
+    float textureScale = 1 / textureCover;
 
     HUD playerHUD = {
         .speed = 0,
@@ -24,11 +26,31 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
     CameraSettings cameraSettings = {
         .defaultZoom = 2e0f,
         .minZoom = 1e-4f,
-        .maxZoom = 10.0f};
+        .maxZoom = 5.0f};
 
     Camera2D camera = {0};
     camera.rotation = 0.0f;
     camera.zoom = cameraSettings.defaultZoom;
+
+    /*
+    Real-world measurements
+
+        Planet  | Mass     | Orbital Period | Radii
+        Sun     | 1.989e30 | 0              | 6.957e8
+        Mercury | 3.301e23 | 89.97          | 2.439e6
+        Venus   | 4.867e24 | 224.7          | 6.051e6
+        Earth   | 5.972e24 | 365.25         | 6.371e6
+        Mars    | 6.417e23 | 686.98         | 3.389e6
+        Jupiter | 1.898e27 | 4332.59        | 6.991e7
+        Saturn  | 5.683e26 | 10759.22       | 5.823e7
+        Uranus  | 8.681e25 | 30589.74       | 2.536e7
+        Neptune | 1.024e26 | 59800.00       | 2.462e7
+
+    Scaling
+        Mass - divide by 1e12
+        Radius - divide by 1e3
+        Orbital period - times by 1e3
+    */
 
     // Mass and thrust based on SpaceX Starship
     Ship playerShip = {
@@ -36,7 +58,7 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         .velocity = {0, 0},
         .mass = 1e5,
         .rotation = 0.0f,
-        .thrust = 3.5e1f,
+        .thrust = 3.5e0f,
         .fuel = 100.0f,
         .fuelConsumption = 0.0f,
         .colliderRadius = 8.0f,
@@ -50,29 +72,26 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         {.name = "Sol",
          .position = {0, 0},
          .velocity = {0, 0},
-         .mass = 1.989e20,
-         .radius = 1e5,
-         .renderColour = YELLOW,
+         .mass = 1.989e18,
+         .radius = 6.957e5,
          .rotation = 0.0f,
          .fontSize = 100,
          .texture = LoadTexture("./textures/sun.png")},
         {.name = "Earth",
          .position = {0, 0},
          .velocity = {0, 0},
-         .mass = 5.972e14,
-         .radius = 1e4,
-         .orbitalPeriod = 3.153e3f,
-         .renderColour = BLUE,
+         .mass = 5.972e12,
+         .radius = 6.371e3,
+         .orbitalPeriod = 3.6525e5f,
          .rotation = 0.0f,
          .fontSize = 10,
          .texture = LoadTexture("./textures/earth.png")},
         {.name = "Mars",
          .position = {0, 0},
          .velocity = {0, 0},
-         .mass = 6.417e13,
-         .radius = 5e3,
-         .orbitalPeriod = 6.3072e3f,
-         .renderColour = RED,
+         .mass = 6.417e11,
+         .radius = 3.389e3,
+         .orbitalPeriod = 6.8698e5f,
          .rotation = 0.0f,
          .fontSize = 10,
          .texture = LoadTexture("./textures/mars.png")}};
@@ -135,7 +154,7 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
             }
         }
 
-        camera.zoom += (float)GetMouseWheelMove() * 0.0005f;
+        camera.zoom += (float)GetMouseWheelMove() * 0.001f;
         camera.zoom = _Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
 
         // Apply physics updates
@@ -164,7 +183,8 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
             }
         }
 
-        // Predict trajectories of celestial bodies if (enableTrajectories)
+        // Predict trajectories of celestial bodies
+        if (enableTrajectories)
         {
             for (int i = 0; i < solSystemBodies; i++)
             {
@@ -214,9 +234,14 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         // Draw celestial bodies
         for (int i = 0; i < solSystemBodies; i++)
         {
-            DrawCircle(solSystem[i].position.x, solSystem[i].position.y, solSystem[i].radius, solSystem[i].renderColour);
+            // Draw Body collider for debug
+            DrawCircle(solSystem[i].position.x, solSystem[i].position.y, solSystem[i].radius, WHITE);
+            float scale = ((solSystem[i].radius * 2) / solSystem[i].texture.width) * textureScale;
+            Vector2 pos = (Vector2){solSystem[i].position.x - (solSystem[i].radius * textureScale), solSystem[i].position.y - (solSystem[i].radius * textureScale)};
+            DrawTextureEx(solSystem[i].texture, pos, solSystem[i].rotation, scale, WHITE);
         }
 
+        // Draw Ship collider for debug
         DrawCircle(playerShip.position.x, playerShip.position.y, playerShip.colliderRadius, WHITE);
 
         // Draw Ship
@@ -245,8 +270,9 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         {
             DrawText(TextFormat("Camera locked to: ship", cameraLock), *screenWidth - 280, 40, 20, DARKGRAY);
         }
-        DrawText(TextFormat("Time Scale: %.1fx", timeScale.val), *screenWidth - 200, 70, 20, DARKGRAY);
-        DrawText(TextFormat("Fuel Level: %.1fpct", playerShip.fuel), *screenWidth - 200, 100, 20, DARKGRAY);
+        DrawText(TextFormat("Zoom Level: %.2f", camera.zoom), *screenWidth - 200, 70, 20, DARKGRAY);
+        DrawText(TextFormat("Time Scale: %.1fx", timeScale.val), *screenWidth - 200, 100, 20, DARKGRAY);
+        DrawText(TextFormat("Fuel Level: %.1fpct", playerShip.fuel), *screenWidth - 200, 130, 20, DARKGRAY);
 
         // Centre
         if (speedLock >= 0)
@@ -266,17 +292,22 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         EndDrawing();
     }
 
-    // if (enableTrajectories)
-    // {
-    //     for (int i = 0; i < solSystemBodies; i++)
-    //     {
-    //         free(solSystem[i].futurePositions);
-    //     }
-    //     free(playerShip.futurePositions);
-    // }
+    if (enableTrajectories)
+    {
+        for (int i = 0; i < solSystemBodies; i++)
+        {
+            free(solSystem[i].futurePositions);
+        }
+        free(playerShip.futurePositions);
+    }
 
     UnloadTexture(playerShip.idleTexture);
     UnloadTexture(playerShip.thrustTexture);
+
+    for (int i = 0; i < solSystemBodies; i++)
+    {
+        UnloadTexture(solSystem[i].texture);
+    }
 }
 
 int main(void)
