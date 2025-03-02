@@ -24,8 +24,8 @@ typedef struct QuadtreeNode
 
 // Constants
 #define CAPACITY 4
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 720
 #define MAX_OBJECTS 100
 
 // Function declarations
@@ -249,7 +249,7 @@ void drawQuadtree(QuadtreeNode *node)
 
 int main()
 {
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Quadtree Collision Detection Example revised");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Quadtree Collision Detection Example");
     SetTargetFPS(60);
 
     int minSpeed = 1;

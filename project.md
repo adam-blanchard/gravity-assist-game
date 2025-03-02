@@ -16,8 +16,8 @@
 - [ ] Tree structure for hierarchical representation
 - [ ] QuadTree for scaling to thousands of bodies/systems or more - POSSIBLY NOT??
 - [ ] Planet type (volcanic, ice, gas etc.)
+- [ ] Star types - standard, red dwarf, white dwarf, black hole, pulsar, etc.
 - [ ] Function to load texture based on planet type - or, just render a specific texture - tbc
-- [ ] Body types - universe, galaxy, star system, star, planet, moon, asteroid
 
 - [x] Render sun and planets
 - [x] Render ship
@@ -36,3 +36,4 @@
 - [x] Fixed position on body when landed
 - [x] Player starts landed on a planet
 - [x] Body textures
+- [x] Body types - universe, galaxy, star system, star, planet, moon, asteroid
