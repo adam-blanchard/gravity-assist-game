@@ -1,7 +1,4 @@
 default:
-	make main
-
-main:
 	gcc -framework CoreVideo -framework IOKit -framework Cocoa -framework GLUT -framework OpenGL -Llib -Iinclude -lraylib main.c -o main
 
 quadtree_example:

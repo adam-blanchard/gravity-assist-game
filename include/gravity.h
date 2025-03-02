@@ -1,6 +1,9 @@
 #include "raylib.h"
+#include "raymath.h"
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 #ifndef PI
 #define PI 3.14159265358979323846f
@@ -19,11 +22,41 @@ typedef enum
 
 typedef enum
 {
+    TYPE_UNIVERSE, // Root of the hierarchy
+    TYPE_GALAXY,   // Collection of star systems
+    TYPE_STAR,     // Orbits the centre of a galaxy
+    TYPE_PLANET,   // Orbits a star
+    TYPE_MOON      // Orbits a planet
+} CelestialType;
+
+typedef enum
+{
     BODY_STAR,
     BODY_PLANET,
     BODY_MOON,
     BODY_ASTEROID
 } BodyType;
+
+typedef struct
+{
+    float radius;       // Distance from parent (e.g., orbit radius)
+    float angularSpeed; // Rotation speed in radians per second
+    float initialAngle; // Starting angle in radians
+} Orbit;
+
+typedef struct CelestialBody
+{
+    CelestialType type;
+    char *name;
+    Vector2 position;
+    Vector2 localPosition;
+    Orbit orbit;
+    struct CelestialBody *parent;
+    struct CelestialBody **children;
+    int childCount;
+    int childCapacity;
+    float mass; // Mass for gravity calculations
+} CelestialBody;
 
 // Structure to represent celestial bodies
 typedef struct
@@ -221,69 +254,69 @@ void updateBodies(int n, Body *bodies, float dt)
     }
 }
 
-void updateShip(Ship *ship, int n, Body *bodies, float dt)
-{
-    ship->activeTexture = &ship->idleTexture;
-    if (ship->state == SHIP_FLYING)
-    {
-        // Apply rotation
-        if (IsKeyDown(KEY_D))
-            ship->rotation += 180.0f * dt; // Rotate right
-        if (IsKeyDown(KEY_A))
-            ship->rotation -= 180.0f * dt; // Rotate left
+// void updateShip(Ship *ship, int n, Body *bodies, float dt)
+// {
+//     ship->activeTexture = &ship->idleTexture;
+//     if (ship->state == SHIP_FLYING)
+//     {
+//         // Apply rotation
+//         if (IsKeyDown(KEY_D))
+//             ship->rotation += 180.0f * dt; // Rotate right
+//         if (IsKeyDown(KEY_A))
+//             ship->rotation -= 180.0f * dt; // Rotate left
 
-        // Normalize rotation to keep it within 0-360 degrees
-        ship->rotation = fmod(ship->rotation + 360.0f, 360.0f);
-    }
+//         // Normalize rotation to keep it within 0-360 degrees
+//         ship->rotation = fmod(ship->rotation + 360.0f, 360.0f);
+//     }
 
-    // Apply thrust
-    if (IsKeyDown(KEY_W) && ship->fuel > 0)
-    {
-        // Convert rotation to radians for vector calculations
-        float radians = ship->rotation * PI / 180.0f;
-        Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
-        Vector2 thrust = _Vector2Scale(thrustDirection, ship->thrust * dt);
-        ship->velocity = _Vector2Add(&ship->velocity, &thrust);
-        ship->activeTexture = &ship->thrustTexture;
-        ship->fuel -= ship->fuelConsumption;
+//     // Apply thrust
+//     if (IsKeyDown(KEY_W) && ship->fuel > 0)
+//     {
+//         // Convert rotation to radians for vector calculations
+//         float radians = ship->rotation * PI / 180.0f;
+//         Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
+//         Vector2 thrust = _Vector2Scale(thrustDirection, ship->thrust * dt);
+//         ship->velocity = _Vector2Add(&ship->velocity, &thrust);
+//         ship->activeTexture = &ship->thrustTexture;
+//         ship->fuel -= ship->fuelConsumption;
 
-        if (ship->state == SHIP_LANDED)
-        {
-            ship->state = SHIP_FLYING;
-            ship->landedBody = NULL;
-        }
-    }
+//         if (ship->state == SHIP_LANDED)
+//         {
+//             ship->state = SHIP_FLYING;
+//             ship->landedBody = NULL;
+//         }
+//     }
 
-    ship->fuel = _Clamp(ship->fuel, 0.0f, 100.0f);
+//     ship->fuel = _Clamp(ship->fuel, 0.0f, 100.0f);
 
-    Vector2 force = {0};
+//     Vector2 force = {0};
 
-    if (ship->state == SHIP_FLYING)
-    {
-        for (int i = 0; i < n; i++)
-        {
-            Vector2 planetaryForce = gravitationalForce2(&ship->position, &bodies[i].position, ship->mass, bodies[i].mass);
-            force = _Vector2Add(&force, &planetaryForce);
-        }
+//     if (ship->state == SHIP_FLYING)
+//     {
+//         for (int i = 0; i < n; i++)
+//         {
+//             Vector2 planetaryForce = gravitationalForce2(&ship->position, &bodies[i].position, ship->mass, bodies[i].mass);
+//             force = _Vector2Add(&force, &planetaryForce);
+//         }
 
-        Vector2 acceleration = {force.x / ship->mass, force.y / ship->mass};
+//         Vector2 acceleration = {force.x / ship->mass, force.y / ship->mass};
 
-        Vector2 scaledAcceleration = _Vector2Scale(acceleration, dt);
-        ship->velocity = _Vector2Add(&ship->velocity, &scaledAcceleration);
+//         Vector2 scaledAcceleration = _Vector2Scale(acceleration, dt);
+//         ship->velocity = _Vector2Add(&ship->velocity, &scaledAcceleration);
 
-        Vector2 scaledVelocity = _Vector2Scale(ship->velocity, dt);
-        ship->position = _Vector2Add(&ship->position, &scaledVelocity);
-    }
+//         Vector2 scaledVelocity = _Vector2Scale(ship->velocity, dt);
+//         ship->position = _Vector2Add(&ship->position, &scaledVelocity);
+//     }
 
-    if (ship->state == SHIP_LANDED)
-    {
-        Vector2 sub = _Vector2Subtract(&ship->position, &ship->landedBody->position);
-        Vector2 norm = _Vector2Normalize(sub);
-        Vector2 scale = _Vector2Scale(norm, ship->landedBody->radius + ship->colliderRadius);
-        ship->position = _Vector2Add(&ship->landedBody->position, &scale);
-        ship->velocity = ship->landedBody->velocity; // Only sync here if not taking off
-    }
-}
+//     if (ship->state == SHIP_LANDED)
+//     {
+//         Vector2 sub = _Vector2Subtract(&ship->position, &ship->landedBody->position);
+//         Vector2 norm = _Vector2Normalize(sub);
+//         Vector2 scale = _Vector2Scale(norm, ship->landedBody->radius + ship->colliderRadius);
+//         ship->position = _Vector2Add(&ship->landedBody->position, &scale);
+//         ship->velocity = ship->landedBody->velocity; // Only sync here if not taking off
+//     }
+// }
 
 float calculateAngle(Vector2 *planetPosition, Vector2 *sunPosition)
 {
@@ -588,4 +621,147 @@ void updateBodiesv2(int n, Body *bodies, float dt)
         bodies[m].velocity.y = orbitalVelocity * cosf(currentAngle);
         bodies[m].velocity = _Vector2Add(&parent->velocity, &bodies[m].velocity);
     }
+}
+
+CelestialBody *createCelestialBody(CelestialType type, const char *name, Vector2 localPos, Orbit orbit, float mass)
+{
+    CelestialBody *body = (CelestialBody *)malloc(sizeof(CelestialBody));
+    body->type = type;
+    body->name = strdup(name); // Duplicate string to avoid pointer issues
+    body->localPosition = localPos;
+    body->orbit = orbit;
+    body->parent = NULL;
+    body->mass = mass;
+    body->children = NULL;
+    body->childCount = 0;
+    body->childCapacity = 0;
+    return body;
+}
+
+void addChild(CelestialBody *parent, CelestialBody *child)
+{
+    if (parent->childCount == parent->childCapacity)
+    {
+        int newCapacity = parent->childCapacity == 0 ? 4 : parent->childCapacity * 2;
+        CelestialBody **newChildren = (CelestialBody **)realloc(parent->children, sizeof(CelestialBody *) * newCapacity);
+        if (!newChildren)
+        {
+            printf("Failed to allocate memory for children\n");
+            exit(1);
+        }
+        parent->children = newChildren;
+        parent->childCapacity = newCapacity;
+    }
+    parent->children[parent->childCount] = child;
+    parent->childCount++;
+    child->parent = parent;
+}
+
+void updatePositions(CelestialBody *body, float time)
+{
+    if (body->parent == NULL)
+    {
+        // Root (universe) is fixed at origin
+        body->position = (Vector2){0, 0};
+    }
+    else if (body->type == TYPE_GALAXY || body->type == TYPE_STAR || body->type == TYPE_PLANET || body->type == TYPE_MOON)
+    {
+        // Orbiting bodies use circular orbit calculations
+        float angle = body->orbit.initialAngle + body->orbit.angularSpeed * time;
+        Vector2 orbitalPos = {
+            body->orbit.radius * cosf(angle),
+            body->orbit.radius * sinf(angle)};
+        body->position = Vector2Add(body->parent->position, orbitalPos);
+    }
+    else
+    {
+        // Static bodies (stars) use local position offset
+        body->position = Vector2Add(body->parent->position, body->localPosition);
+    }
+    // Recursively update children
+    for (int i = 0; i < body->childCount; i++)
+    {
+        updatePositions(body->children[i], time);
+    }
+}
+
+Vector2 calculateGravity(Ship *ship, CelestialBody *body)
+{
+    Vector2 direction = Vector2Subtract(body->position, ship->position);
+    float distance = Vector2Length(direction);
+    if (distance < 1.0f)
+        distance = 1.0f; // Prevent division by zero
+    float forceMagnitude = (G * body->mass) / (distance * distance);
+    return Vector2Scale(Vector2Normalize(direction), forceMagnitude);
+}
+
+// Recursive function to apply gravity from all bodies
+void applyGravity(CelestialBody *body, Ship *ship, Vector2 *totalAcceleration)
+{
+    if (body->type != TYPE_UNIVERSE)
+    { // Skip universe itself
+        Vector2 acc = calculateGravity(ship, body);
+        *totalAcceleration = Vector2Add(*totalAcceleration, acc);
+    }
+    for (int i = 0; i < body->childCount; i++)
+    {
+        applyGravity(body->children[i], ship, totalAcceleration);
+    }
+}
+
+void updateShip(Ship *ship, CelestialBody *galaxy, float deltaTime)
+{
+    Vector2 totalAcceleration = {0, 0};
+
+    // Accumulate sum of all accelerations
+    applyGravity(galaxy, ship, &totalAcceleration);
+
+    // Update velocity and position
+    ship->velocity = Vector2Add(ship->velocity, Vector2Scale(totalAcceleration, deltaTime));
+    ship->position = Vector2Add(ship->position, Vector2Scale(ship->velocity, deltaTime));
+}
+
+void renderCelestialBody(CelestialBody *body)
+{
+    switch (body->type)
+    {
+    case TYPE_UNIVERSE:
+        // Optional: Draw a faint background (not implemented here)
+        break;
+    case TYPE_GALAXY:
+        DrawCircleV(body->position, 20, DARKGRAY);
+        break;
+    case TYPE_STAR:
+        DrawCircleV(body->position, 10, YELLOW); // Larger yellow circle
+        break;
+    case TYPE_PLANET:
+        DrawCircleV(body->position, 5, BLUE); // Medium blue circle
+        break;
+    case TYPE_MOON:
+        DrawCircleV(body->position, 2, WHITE); // Small gray circle
+        break;
+    }
+    // Render all children
+    for (int i = 0; i < body->childCount; i++)
+    {
+        renderCelestialBody(body->children[i]);
+    }
+}
+
+void renderShip(Ship *ship)
+{
+    DrawCircleV(ship->position, 3, RED); // Small red circle
+}
+
+void freeCelestialBody(CelestialBody *body)
+{
+    if (body == NULL)
+        return;
+    free(body->name);
+    for (int i = 0; i < body->childCount; i++)
+    {
+        freeCelestialBody(body->children[i]);
+    }
+    free(body->children);
+    free(body);
 }
