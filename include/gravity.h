@@ -36,6 +36,7 @@ typedef struct
     float rotation;
     float rotationPeriod;
     float orbitalPeriod; // 1 is 10 seconds so 360 represents an orbital period of 1 hour
+    float orbitalRadius;
     BodyType type;
     int orbitalBodyIndex; // Reference to the primary body this body orbits around - planets around a star, moons around a planet
     Vector2 *futurePositions;
@@ -206,6 +207,12 @@ void updateBodies(int n, Body *bodies, float dt)
         bodies[m].velocity.x += acceleration.x * dt;
         bodies[m].velocity.y += acceleration.y * dt;
 
+        if (bodies[m].type == BODY_MOON)
+        {
+            int parentIndex = bodies[m].orbitalBodyIndex;
+            bodies[m].velocity = _Vector2Add(&bodies[parentIndex].velocity, &bodies[m].velocity);
+        }
+
         bodies[m].position.x += bodies[m].velocity.x * dt;
         bodies[m].position.y += bodies[m].velocity.y * dt;
 
@@ -294,20 +301,6 @@ void initialiseRandomPositions(int n, Body *bodies, int maxWidth, int maxHeight)
     {
         bodies[i].position.x = GetRandomValue(100, maxWidth);
         bodies[i].position.y = GetRandomValue(100, maxHeight);
-    }
-}
-
-void initialiseStableOrbits(int n, Body *bodies)
-{
-    for (int i = 1; i < n; i++)
-    {
-        float radius = calculateDistance(&bodies[i].position, &bodies[0].position);
-
-        float orbitalVelocity = calculateOrbitalVelocity(bodies[0].mass, radius);
-        float currentAngle = calculateAngle(&bodies[i].position, &bodies[0].position);
-
-        bodies[i].velocity.y = orbitalVelocity * cosf(currentAngle);
-        bodies[i].velocity.x = orbitalVelocity * sinf(currentAngle);
     }
 }
 
@@ -483,8 +476,7 @@ void initialiseOrbits(int n, Body *bodies)
             if (bodies[i].type == BODY_MOON)
             {
                 bodies[i].position.x = bodies[orbitalBodyIndex].position.x + radius;
-                bodies[i].velocity.x += bodies[orbitalBodyIndex].velocity.x;
-                bodies[i].velocity.y += bodies[orbitalBodyIndex].velocity.y;
+                bodies[i].velocity = _Vector2Add(&bodies[orbitalBodyIndex].velocity, &bodies[i].velocity);
             }
         }
     }
@@ -535,4 +527,65 @@ void spawnRocketOnBody(Ship *ship, Body *planet)
     Vector2 planetSpawnLocation = (Vector2){0, -planet->radius};
     ship->position = _Vector2Add(&planet->position, &planetSpawnLocation);
     ship->velocity = planet->velocity;
+}
+
+void initialiseOrbitsv2(int n, Body *bodies)
+{
+    for (int i = 0; i < n; i++)
+    {
+        if (bodies[i].type != BODY_STAR)
+        {
+            int parentIndex = bodies[i].orbitalBodyIndex;
+            Body *parent = &bodies[parentIndex];
+
+            // Calculate orbital radius from period
+            bodies[i].orbitalRadius = calculateOrbitalRadius(bodies[i].orbitalPeriod, parent->mass);
+
+            // Set initial position (along x-axis for simplicity)
+            Vector2 pos = {bodies[i].orbitalRadius, 0};
+            bodies[i].position = _Vector2Add(&parent->position, &pos);
+
+            // Calculate orbital velocity
+            float orbitalVelocity = calculateOrbitalVelocity(parent->mass, bodies[i].orbitalRadius);
+            bodies[i].velocity = (Vector2){0, orbitalVelocity}; // Perpendicular to radius
+            bodies[i].velocity = _Vector2Add(&parent->velocity, &bodies[i].velocity);
+        }
+    }
+}
+
+void updateBodiesv2(int n, Body *bodies, float dt)
+{
+    for (int m = 0; m < n; m++)
+    {
+        if (bodies[m].type == BODY_STAR)
+        {
+            // Star remains stationary for now
+            continue;
+        }
+
+        int parentIndex = bodies[m].orbitalBodyIndex;
+        Body *parent = &bodies[parentIndex];
+
+        // Current relative position
+        Vector2 rel_pos = _Vector2Subtract(&bodies[m].position, &parent->position);
+        float currentRadius = _Vector2Length(rel_pos);
+        float currentAngle = atan2f(rel_pos.y, rel_pos.x);
+
+        // Orbital velocity and angular speed
+        float orbitalVelocity = calculateOrbitalVelocity(parent->mass, currentRadius);
+        float angularVelocity = orbitalVelocity / currentRadius;
+
+        // Update angle
+        currentAngle += angularVelocity * dt;
+
+        // Update position
+        rel_pos.x = bodies[m].orbitalRadius * cosf(currentAngle);
+        rel_pos.y = bodies[m].orbitalRadius * sinf(currentAngle);
+        bodies[m].position = _Vector2Add(&parent->position, &rel_pos);
+
+        // Update velocity (tangential to orbit)
+        bodies[m].velocity.x = orbitalVelocity * sinf(currentAngle);
+        bodies[m].velocity.y = orbitalVelocity * cosf(currentAngle);
+        bodies[m].velocity = _Vector2Add(&parent->velocity, &bodies[m].velocity);
+    }
 }

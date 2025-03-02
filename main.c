@@ -94,7 +94,7 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
          .velocity = {0, 0},
          .mass = 7e8,
          .radius = 2e2,
-         .orbitalPeriod = 2.8e1f,
+         .orbitalPeriod = 2.8e3f,
          .rotation = 0.0f,
          .texture = LoadTexture("./textures/moon.png")},
         {.name = "Mars",
@@ -124,7 +124,7 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
     Vector2 defaultVelocity = {0};
     Vector2 *targetVelocity = &defaultVelocity;
 
-    initialiseOrbits(solSystemBodies, solSystem);
+    initialiseOrbitsv2(solSystemBodies, solSystem);
 
     spawnRocketOnBody(&playerShip, &solSystem[1]);
 
@@ -176,7 +176,7 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
         // Apply physics updates
         float scaledDt = dt * timeScale.val;
 
-        updateBodies(solSystemBodies, solSystem, scaledDt);
+        updateBodiesv2(solSystemBodies, solSystem, scaledDt);
 
         updateShip(&playerShip, solSystemBodies, solSystem, scaledDt);
 

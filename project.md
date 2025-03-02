@@ -1,7 +1,3 @@
-## BUG LIST
-
-- [ ] Don't think gravity is properly working on bodies... Earth doesn't seem to exert any gravity on the ship
-
 ## TODO
 
 - [ ] Take-off/landing system
@@ -17,6 +13,8 @@
 - [ ] Scale all masses, radius, and forces to be semi-realistic
 - [ ] Body rotation (need to rework the way bodies are rendered to set the rotation origin)
 - [ ] Moons
+- [ ] Tree structure for hierarchical representation
+- [ ] QuadTree for scaling to thousands of bodies/systems or more
 
 - [x] Render sun and planets
 - [x] Render ship
