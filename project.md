@@ -14,7 +14,10 @@
 - [ ] Body rotation (need to rework the way bodies are rendered to set the rotation origin)
 - [ ] Moons
 - [ ] Tree structure for hierarchical representation
-- [ ] QuadTree for scaling to thousands of bodies/systems or more
+- [ ] QuadTree for scaling to thousands of bodies/systems or more - POSSIBLY NOT??
+- [ ] Planet type (volcanic, ice, gas etc.)
+- [ ] Function to load texture based on planet type - or, just render a specific texture - tbc
+- [ ] Body types - universe, galaxy, star system, star, planet, moon, asteroid
 
 - [x] Render sun and planets
 - [x] Render ship
