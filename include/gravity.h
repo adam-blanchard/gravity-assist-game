@@ -13,6 +13,7 @@
 #endif
 #define TRAJECTORY_STEPS 6000
 #define TRAJECTORY_STEP_TIME 0.033f
+#define PREVIOUS_POSITIONS 1000
 
 typedef enum
 {
@@ -22,11 +23,11 @@ typedef enum
 
 typedef enum
 {
-    TYPE_UNIVERSE, // Root of the hierarchy
-    TYPE_GALAXY,   // Collection of star systems
-    TYPE_STAR,     // Orbits the centre of a galaxy
-    TYPE_PLANET,   // Orbits a star
-    TYPE_MOON      // Orbits a planet
+    TYPE_UNIVERSE, // Root node
+    TYPE_STAR,
+    TYPE_PLANET,
+    TYPE_MOON,
+    TYPE_SHIP
 } CelestialType;
 
 typedef enum
@@ -37,26 +38,25 @@ typedef enum
     BODY_ASTEROID
 } BodyType;
 
-typedef struct
-{
-    float radius;       // Distance from parent (e.g., orbit radius)
-    float angularSpeed; // Rotation speed in radians per second
-    float initialAngle; // Starting angle in radians
-} Orbit;
-
 typedef struct CelestialBody
 {
     CelestialType type;
     char *name;
     Vector2 position;
-    Vector2 localPosition;
-    Orbit orbit;
-    struct CelestialBody *parent;
-    struct CelestialBody **children;
-    int childCount;
-    int childCapacity;
-    float mass; // Mass for gravity calculations
+    Vector2 velocity;
+    float mass; // Kg
+    float radius;
+    Vector2 *previousPositions;
 } CelestialBody;
+
+typedef struct QuadTreeNode
+{
+    Rectangle bounds;                 // 2D region (x, y, width, height)
+    Vector2 centerOfMass;             // Center of mass of all bodies in this node
+    float totalMass;                  // Total mass of bodies in this node
+    struct QuadTreeNode *children[4]; // NW, NE, SW, SE quadrants
+    CelestialBody *body;              // Pointer to body if leaf node; NULL otherwise
+} QuadTreeNode;
 
 // Structure to represent celestial bodies
 typedef struct
@@ -486,35 +486,6 @@ float calculateOrbitalRadius(float period, float mStar)
     return (float){cbrtf(r3)};
 }
 
-void initialiseOrbits(int n, Body *bodies)
-{
-    // Planets orbit stars
-    // Moons orbit planets, which orbit stars
-    for (int i = 0; i < n; i++)
-    {
-        if (bodies[i].type != BODY_STAR)
-        {
-            int orbitalBodyIndex = bodies[i].orbitalBodyIndex;
-            float radius = calculateOrbitalRadius(bodies[i].orbitalPeriod, bodies[orbitalBodyIndex].mass);
-
-            bodies[i].position.x = radius;
-            bodies[i].position.y = 0;
-
-            float orbitalVelocity = calculateOrbitalVelocity(bodies[orbitalBodyIndex].mass, radius);
-            float currentAngle = calculateAngle(&bodies[i].position, &bodies[orbitalBodyIndex].position);
-
-            bodies[i].velocity.y = orbitalVelocity * cosf(currentAngle);
-            bodies[i].velocity.x = orbitalVelocity * sinf(currentAngle);
-
-            if (bodies[i].type == BODY_MOON)
-            {
-                bodies[i].position.x = bodies[orbitalBodyIndex].position.x + radius;
-                bodies[i].velocity = _Vector2Add(&bodies[orbitalBodyIndex].velocity, &bodies[i].velocity);
-            }
-        }
-    }
-}
-
 void incrementWarp(WarpController *timeScale, float dt)
 {
     timeScale->val += timeScale->increment * timeScale->val * dt;
@@ -531,15 +502,6 @@ float calculateShipSpeed(Ship *playerShip, Vector2 *targetVelocity)
 {
     Vector2 relativeVelocity = _Vector2Subtract(&playerShip->velocity, targetVelocity);
     return sqrtf((relativeVelocity.x * relativeVelocity.x) + (relativeVelocity.y * relativeVelocity.y));
-}
-
-bool checkCollision(Ship *playerShip, Body *planetaryBody)
-{
-    if (CheckCollisionCircles(playerShip->position, playerShip->colliderRadius, planetaryBody->position, planetaryBody->radius))
-    {
-        return 1;
-    }
-    return 0;
 }
 
 void landShip(Ship *ship, Body *planet)
@@ -586,182 +548,281 @@ void initialiseOrbitsv2(int n, Body *bodies)
     }
 }
 
-void updateBodiesv2(int n, Body *bodies, float dt)
+QuadTreeNode *createNode(Rectangle bounds)
 {
-    for (int m = 0; m < n; m++)
-    {
-        if (bodies[m].type == BODY_STAR)
-        {
-            // Star remains stationary for now
-            continue;
-        }
-
-        int parentIndex = bodies[m].orbitalBodyIndex;
-        Body *parent = &bodies[parentIndex];
-
-        // Current relative position
-        Vector2 rel_pos = _Vector2Subtract(&bodies[m].position, &parent->position);
-        float currentRadius = _Vector2Length(rel_pos);
-        float currentAngle = atan2f(rel_pos.y, rel_pos.x);
-
-        // Orbital velocity and angular speed
-        float orbitalVelocity = calculateOrbitalVelocity(parent->mass, currentRadius);
-        float angularVelocity = orbitalVelocity / currentRadius;
-
-        // Update angle
-        currentAngle += angularVelocity * dt;
-
-        // Update position
-        rel_pos.x = bodies[m].orbitalRadius * cosf(currentAngle);
-        rel_pos.y = bodies[m].orbitalRadius * sinf(currentAngle);
-        bodies[m].position = _Vector2Add(&parent->position, &rel_pos);
-
-        // Update velocity (tangential to orbit)
-        bodies[m].velocity.x = orbitalVelocity * sinf(currentAngle);
-        bodies[m].velocity.y = orbitalVelocity * cosf(currentAngle);
-        bodies[m].velocity = _Vector2Add(&parent->velocity, &bodies[m].velocity);
-    }
+    QuadTreeNode *node = (QuadTreeNode *)malloc(sizeof(QuadTreeNode));
+    node->bounds = bounds;
+    node->centerOfMass = (Vector2){0, 0};
+    node->totalMass = 0.0f;
+    for (int i = 0; i < 4; i++)
+        node->children[i] = NULL;
+    node->body = NULL;
+    return node;
 }
 
-CelestialBody *createCelestialBody(CelestialType type, const char *name, Vector2 localPos, Orbit orbit, float mass)
+void subdivide(QuadTreeNode *node)
 {
-    CelestialBody *body = (CelestialBody *)malloc(sizeof(CelestialBody));
-    body->type = type;
-    body->name = strdup(name); // Duplicate string to avoid pointer issues
-    body->localPosition = localPos;
-    body->orbit = orbit;
-    body->parent = NULL;
-    body->mass = mass;
-    body->children = NULL;
-    body->childCount = 0;
-    body->childCapacity = 0;
-    return body;
+    float x = node->bounds.x;
+    float y = node->bounds.y;
+    float w = node->bounds.width / 2;
+    float h = node->bounds.height / 2;
+    node->children[0] = createNode((Rectangle){x, y, w, h});         // NW
+    node->children[1] = createNode((Rectangle){x + w, y, w, h});     // NE
+    node->children[2] = createNode((Rectangle){x, y + h, w, h});     // SW
+    node->children[3] = createNode((Rectangle){x + w, y + h, w, h}); // SE
 }
 
-void addChild(CelestialBody *parent, CelestialBody *child)
+void insertBody(QuadTreeNode *node, CelestialBody *body)
 {
-    if (parent->childCount == parent->childCapacity)
-    {
-        int newCapacity = parent->childCapacity == 0 ? 4 : parent->childCapacity * 2;
-        CelestialBody **newChildren = (CelestialBody **)realloc(parent->children, sizeof(CelestialBody *) * newCapacity);
-        if (!newChildren)
-        {
-            printf("Failed to allocate memory for children\n");
-            exit(1);
-        }
-        parent->children = newChildren;
-        parent->childCapacity = newCapacity;
+    if (node->body != NULL)
+    { // Leaf with a body
+        CelestialBody *existingBody = node->body;
+        subdivide(node);
+        // Insert existing body into appropriate child
+        int index = (existingBody->position.x < node->bounds.x + node->bounds.width / 2) ? (existingBody->position.y < node->bounds.y + node->bounds.height / 2 ? 0 : 2) : (existingBody->position.y < node->bounds.y + node->bounds.height / 2 ? 1 : 3);
+        insertBody(node->children[index], existingBody);
+        node->body = NULL;
     }
-    parent->children[parent->childCount] = child;
-    parent->childCount++;
-    child->parent = parent;
-}
-
-void updatePositions(CelestialBody *body, float time)
-{
-    if (body->parent == NULL)
-    {
-        // Root (universe) is fixed at origin
-        body->position = (Vector2){0, 0};
-    }
-    else if (body->type == TYPE_GALAXY || body->type == TYPE_STAR || body->type == TYPE_PLANET || body->type == TYPE_MOON)
-    {
-        // Orbiting bodies use circular orbit calculations
-        float angle = body->orbit.initialAngle + body->orbit.angularSpeed * time;
-        Vector2 orbitalPos = {
-            body->orbit.radius * cosf(angle),
-            body->orbit.radius * sinf(angle)};
-        body->position = Vector2Add(body->parent->position, orbitalPos);
+    if (node->children[0] == NULL)
+    { // Leaf node
+        node->body = body;
+        node->totalMass = body->mass;
+        node->centerOfMass = body->position;
     }
     else
-    {
-        // Static bodies (stars) use local position offset
-        body->position = Vector2Add(body->parent->position, body->localPosition);
-    }
-    // Recursively update children
-    for (int i = 0; i < body->childCount; i++)
-    {
-        updatePositions(body->children[i], time);
-    }
-}
-
-Vector2 calculateGravity(Ship *ship, CelestialBody *body)
-{
-    Vector2 direction = Vector2Subtract(body->position, ship->position);
-    float distance = Vector2Length(direction);
-    if (distance < 1.0f)
-        distance = 1.0f; // Prevent division by zero
-    float forceMagnitude = (G * body->mass) / (distance * distance);
-    return Vector2Scale(Vector2Normalize(direction), forceMagnitude);
-}
-
-// Recursive function to apply gravity from all bodies
-void applyGravity(CelestialBody *body, Ship *ship, Vector2 *totalAcceleration)
-{
-    if (body->type != TYPE_UNIVERSE)
-    { // Skip universe itself
-        Vector2 acc = calculateGravity(ship, body);
-        *totalAcceleration = Vector2Add(*totalAcceleration, acc);
-    }
-    for (int i = 0; i < body->childCount; i++)
-    {
-        applyGravity(body->children[i], ship, totalAcceleration);
+    { // Internal node
+        int index = (body->position.x < node->bounds.x + node->bounds.width / 2) ? (body->position.y < node->bounds.y + node->bounds.height / 2 ? 0 : 2) : (body->position.y < node->bounds.y + node->bounds.height / 2 ? 1 : 3);
+        insertBody(node->children[index], body);
+        // Update totalMass and centerOfMass
+        node->totalMass = 0;
+        node->centerOfMass = (Vector2){0, 0};
+        for (int i = 0; i < 4; i++)
+        {
+            if (node->children[i])
+            {
+                node->totalMass += node->children[i]->totalMass;
+                node->centerOfMass = Vector2Add(node->centerOfMass,
+                                                Vector2Scale(node->children[i]->centerOfMass, node->children[i]->totalMass));
+            }
+        }
+        if (node->totalMass > 0)
+        {
+            node->centerOfMass = Vector2Scale(node->centerOfMass, 1.0f / node->totalMass);
+        }
     }
 }
 
-// void updateShip(Ship *ship, CelestialBody *galaxy, float deltaTime)
-// {
-//     Vector2 totalAcceleration = {0, 0};
-
-//     // Accumulate sum of all accelerations
-//     applyGravity(galaxy, ship, &totalAcceleration);
-
-//     // Update velocity and position
-//     ship->velocity = Vector2Add(ship->velocity, Vector2Scale(totalAcceleration, deltaTime));
-//     ship->position = Vector2Add(ship->position, Vector2Scale(ship->velocity, deltaTime));
-// }
-
-void renderCelestialBody(CelestialBody *body)
+QuadTreeNode *buildQuadTree(CelestialBody **bodies, int numBodies)
 {
-    switch (body->type)
+    if (numBodies == 0)
     {
-    case TYPE_UNIVERSE:
-        // Optional: Draw a faint background (not implemented here)
-        break;
-    case TYPE_GALAXY:
-        DrawCircleV(body->position, 20, DARKGRAY);
-        break;
-    case TYPE_STAR:
-        DrawCircleV(body->position, 10, YELLOW); // Larger yellow circle
-        break;
-    case TYPE_PLANET:
-        DrawCircleV(body->position, 5, BLUE); // Medium blue circle
-        break;
-    case TYPE_MOON:
-        DrawCircleV(body->position, 2, WHITE); // Small gray circle
-        break;
+        printf("No bodies");
+        return NULL;
     }
-    // Render all children
-    for (int i = 0; i < body->childCount; i++)
+
+    float minX = bodies[0]->position.x, maxX = minX;
+    float minY = bodies[0]->position.y, maxY = minY;
+
+    for (int i = 1; i < numBodies; i++)
     {
-        renderCelestialBody(body->children[i]);
+        minX = fmin(minX, bodies[i]->position.x);
+        maxX = fmax(maxX, bodies[i]->position.x);
+        minY = fmin(minY, bodies[i]->position.y);
+        maxY = fmax(maxY, bodies[i]->position.y);
     }
+    float padding = 10.0f;
+    minX -= padding;
+    maxX += padding;
+    minY -= padding;
+    maxY += padding;
+    float width = maxX - minX, height = maxY - minY;
+    if (width > height)
+        minY -= (width - height) / 2;
+    else
+        minX -= (height - width) / 2;
+    Rectangle bounds = {minX, minY, fmax(width, height), fmax(width, height)};
+    QuadTreeNode *root = createNode(bounds);
+    for (int i = 0; i < numBodies; i++)
+    {
+        insertBody(root, bodies[i]);
+    }
+    return root;
 }
 
-void renderShip(Ship *ship)
+Vector2 computeForce(QuadTreeNode *node, CelestialBody *body, float theta)
 {
-    DrawCircleV(ship->position, 3, RED); // Small red circle
+    if (node->totalMass == 0)
+        return (Vector2){0, 0};
+    if (node->body != NULL)
+    {
+        if (node->body == body)
+            return (Vector2){0, 0}; // Skip self
+        Vector2 dir = Vector2Subtract(node->body->position, body->position);
+        float dist = Vector2Length(dir);
+        if (dist < 1e-5)
+            return (Vector2){0, 0}; // Avoid division by zero
+        float mag = (G * body->mass * node->body->mass) / (dist * dist);
+        return Vector2Scale(Vector2Normalize(dir), mag);
+    }
+    float dist = Vector2Distance(body->position, node->centerOfMass);
+    if (dist < 1e-5)
+        dist = 1e-5; // Prevent singularity
+    float size = node->bounds.width;
+    if (size / dist < theta)
+    { // Approximate as point mass
+        float mag = (G * body->mass * node->totalMass) / (dist * dist);
+        Vector2 dir = Vector2Normalize(Vector2Subtract(node->centerOfMass, body->position));
+        return Vector2Scale(dir, mag);
+    }
+    Vector2 force = {0, 0};
+    for (int i = 0; i < 4; i++)
+    {
+        if (node->children[i])
+        {
+            force = Vector2Add(force, computeForce(node->children[i], body, theta));
+        }
+    }
+    return force;
 }
 
-void freeCelestialBody(CelestialBody *body)
+void freeQuadTree(QuadTreeNode *node)
 {
-    if (body == NULL)
+    if (!node)
         return;
-    free(body->name);
-    for (int i = 0; i < body->childCount; i++)
+    for (int i = 0; i < 4; i++)
     {
-        freeCelestialBody(body->children[i]);
+        freeQuadTree(node->children[i]);
     }
-    free(body->children);
-    free(body);
+    free(node);
+}
+
+void detectCollisions(CelestialBody **bodies, int numBodies, QuadTreeNode *node, CelestialBody *body)
+{
+    if (!node || node->totalMass == 0)
+        return;
+    if (node->body && node->body != body)
+    {
+        float dist = Vector2Distance(body->position, node->body->position);
+        if (dist < (body->radius + node->body->radius))
+        {
+            printf("Collision between %s and %s\n", body->name, node->body->name);
+            if (body->type == TYPE_SHIP)
+            {
+                // Reset ship (example handling)
+                body->position = (Vector2){50, 50}; // Arbitrary reset position
+                body->velocity = (Vector2){0, 0};
+            }
+        }
+        return;
+    }
+    for (int i = 0; i < 4; i++)
+    {
+        if (node->children[i])
+        {
+            detectCollisions(bodies, numBodies, node->children[i], body);
+        }
+    }
+}
+
+CelestialBody **initBodies(int *numBodies)
+{
+    *numBodies = 5;
+    CelestialBody **bodies = malloc(sizeof(CelestialBody *) * (*numBodies));
+
+    // Simulating a supermassive black hole at the centre of the universe
+    bodies[0] = malloc(sizeof(CelestialBody));
+    *bodies[0] = (CelestialBody){.type = TYPE_STAR,
+                                 .name = strdup("Centre of Universe"),
+                                 .position = {0, 0},
+                                 .velocity = {0, 0},
+                                 .mass = 4e11,
+                                 .radius = 1.0f,
+                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS)};
+
+    // Star
+    bodies[1] = malloc(sizeof(CelestialBody));
+    *bodies[1] = (CelestialBody){.type = TYPE_STAR,
+                                 .name = strdup("Star1"),
+                                 .position = {200, 0},
+                                 .velocity = {0, 0},
+                                 .mass = 1e5,
+                                 .radius = 10.0f,
+                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS)};
+    float orbitalSpeed = sqrt(G * bodies[0]->mass / 200);
+    bodies[1]->velocity = (Vector2){0, orbitalSpeed};
+
+    // Planet orbiting Star
+    bodies[2] = malloc(sizeof(CelestialBody));
+    *bodies[2] = (CelestialBody){.type = TYPE_PLANET,
+                                 .name = strdup("Planet1"),
+                                 .position = {100, 0},
+                                 .velocity = {0, 0},
+                                 .mass = 1e3,
+                                 .radius = 5.0f,
+                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS)};
+    Vector2 relVel = (Vector2){0, sqrt(G * bodies[1]->mass / 100)};
+    bodies[2]->velocity = Vector2Add(bodies[1]->velocity, relVel);
+
+    // Moon orbiting Planet
+    bodies[3] = malloc(sizeof(CelestialBody));
+    *bodies[3] = (CelestialBody){.type = TYPE_MOON,
+                                 .name = strdup("Moon1"),
+                                 .position = {105, 0},
+                                 .velocity = {0, 0},
+                                 .mass = 1e1,
+                                 .radius = 2.0f,
+                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS)};
+    relVel = (Vector2){0, sqrt(G * bodies[2]->mass / 5)};
+    bodies[3]->velocity = Vector2Add(bodies[2]->velocity, relVel);
+
+    // Ship
+    bodies[4] = malloc(sizeof(CelestialBody));
+    *bodies[4] = (CelestialBody){.type = TYPE_SHIP,
+                                 .name = strdup("Ship"),
+                                 .position = {120, 0},
+                                 .velocity = {0, 0.5f},
+                                 .mass = 1.0f,
+                                 .radius = 3.0f,
+                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS)};
+
+    return bodies;
+}
+
+void drawBodies(CelestialBody **bodies, int numBodies)
+{
+    for (int i = 0; i < numBodies; i++)
+    {
+        Color color = (bodies[i]->type == TYPE_STAR)     ? YELLOW
+                      : (bodies[i]->type == TYPE_PLANET) ? BLUE
+                      : (bodies[i]->type == TYPE_MOON)   ? GRAY
+                                                         : RED;
+        DrawCircleV(bodies[i]->position, bodies[i]->radius, color);
+    }
+}
+
+void drawQuadtree(QuadTreeNode *node)
+{
+    if (node == NULL)
+        return;
+    DrawRectangleLines((int)node->bounds.x, (int)node->bounds.y,
+                       (int)node->bounds.width, (int)node->bounds.height, GRAY);
+
+    for (int i = 0; i < 4; i++)
+    {
+        if (node->children[i] != NULL)
+        {
+            drawQuadtree(node->children[i]);
+        }
+    }
+}
+
+void drawPreviousPositions(CelestialBody **bodies, int numBodies)
+{
+    for (int i = 0; i < numBodies; i++)
+    {
+        for (int j = 0; j < PREVIOUS_POSITIONS; j++)
+        {
+            DrawPixelV(bodies[i]->previousPositions[j], (Color){255, 255, 255, 50});
+        }
+    }
 }

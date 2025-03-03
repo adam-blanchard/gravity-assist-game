@@ -326,69 +326,84 @@ void levelSpace(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *
     }
 }
 
-// void levelUniverse(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *targetFPS)
-// {
-//     // Existing celestial hierarchy setup (galaxy, stars, planets, etc.)
-//     CelestialBody *universe = createCelestialBody(TYPE_UNIVERSE, "The Universe", (Vector2){0, 0}, (Orbit){0, 0, 0}, 0);
-//     CelestialBody *galaxy1 = createCelestialBody(TYPE_GALAXY, "Milky Way", (Vector2){500, 500}, (Orbit){200, .2, 0}, 1e16);
-//     CelestialBody *star1 = createCelestialBody(TYPE_STAR, "Star1", (Vector2){200, 200}, (Orbit){100, .4, 0}, 1e12);
-//     CelestialBody *planet1 = createCelestialBody(TYPE_PLANET, "Planet1", (Vector2){100, 100}, (Orbit){50, .8, 0}, 1e8);
-//     addChild(universe, galaxy1);
-//     addChild(galaxy1, star1);
-//     addChild(star1, planet1);
+void levelUniverse(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *targetFPS)
+{
+    CameraSettings cameraSettings = {
+        .defaultZoom = 2e0f,
+        .minZoom = 1e-4f,
+        .maxZoom = 5.0f};
 
-//     Camera2D camera = {0};
-//     camera.offset = (Vector2){*wMid, *hMid}; // Center of 800x600 screen
-//     camera.rotation = 0.0f;
-//     camera.zoom = 1.0f;
+    Camera2D camera = {0};
+    camera.rotation = 0.0f;
+    camera.zoom = cameraSettings.defaultZoom;
+    camera.offset = (Vector2){*wMid, *hMid}; // Offset from camera target
 
-//     const int trailSize = 1000;
+    WarpController timeScale = {
+        .val = 1.0f,
+        .increment = 1.5f,
+        .min = 1.0f,
+        .max = 16.0f};
 
-//     float time = 0.0f;
-//     while (!WindowShouldClose())
-//     {
-//         float deltaTime = GetFrameTime();
-//         time += deltaTime;
+    int numBodies;
+    CelestialBody **bodies = initBodies(&numBodies);
+    float theta = 0.5f; // Barnes-Hut threshold
+    int trailIndex = 0;
 
-//         // Update celestial bodies
-//         updatePositions(universe, time);
+    while (!WindowShouldClose())
+    {
+        float dt = GetFrameTime();
 
-//         // Update ship
-//         // updateShip(&ship, universe, deltaTime);
+        // Handle input
+        if (IsKeyDown(KEY_E))
+            incrementWarp(&timeScale, dt);
+        if (IsKeyDown(KEY_Q))
+            decrementWarp(&timeScale, dt);
 
-//         // Update camera
-//         camera.target = universe->position;
+        camera.zoom += (float)GetMouseWheelMove() * 0.001f;
+        camera.zoom = _Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
 
-//         BeginDrawing();
-//         ClearBackground(BLACK);
-//         BeginMode2D(camera);
-//         renderCelestialBody(universe);
-//         // renderShip(&ship);
-//         EndMode2D();
-//         static Vector2 lastPositions[3][trailSize] = {0}; // Initialise an array of 2D vectors to store past positions
-//         static int trailIndex = 0;
-//         lastPositions[0][trailIndex] = galaxy1->position;
-//         lastPositions[1][trailIndex] = star1->position;
-//         lastPositions[2][trailIndex] = planet1->position;
+        // Build QuadTree
+        QuadTreeNode *root = buildQuadTree(bodies, numBodies);
 
-//         trailIndex = (trailIndex + 1) % trailSize;
-//         for (int m = 0; m < 3; m++)
-//         {
-//             for (int n = 0; n < trailSize; n++)
-//             {
-//                 if (lastPositions[m][n].x != 0 || lastPositions[m][n].y != 0)
-//                 {
-//                     DrawPixelV(lastPositions[m][n], (Color){255, 255, 255, 50});
-//                 }
-//             }
-//         }
-//         DrawFPS(10, 10);
-//         EndDrawing();
-//     }
+        // Update physics
+        float scaledDt = dt * timeScale.val;
 
-//     // Cleanup
-//     freeCelestialBody(universe);
-// }
+        for (int i = 0; i < numBodies; i++)
+        {
+            Vector2 force = computeForce(root, bodies[i], theta);
+            Vector2 accel = Vector2Scale(force, 1.0f / bodies[i]->mass);
+            bodies[i]->velocity = Vector2Add(bodies[i]->velocity, Vector2Scale(accel, scaledDt));
+            bodies[i]->position = Vector2Add(bodies[i]->position, Vector2Scale(bodies[i]->velocity, scaledDt));
+            detectCollisions(bodies, numBodies, root, bodies[i]);
+            bodies[i]->previousPositions[trailIndex] = bodies[i]->position;
+        }
+        trailIndex += 1;
+        trailIndex = trailIndex % PREVIOUS_POSITIONS;
+
+        // Render
+        BeginDrawing();
+        BeginMode2D(camera);
+        ClearBackground(BLACK);
+
+        drawPreviousPositions(bodies, numBodies);
+        drawQuadtree(root);
+        drawBodies(bodies, numBodies);
+
+        EndMode2D();
+
+        EndDrawing();
+
+        freeQuadTree(root);
+    }
+
+    // Cleanup
+    for (int i = 0; i < numBodies; i++)
+    {
+        free(bodies[i]->name);
+        free(bodies[i]);
+    }
+    free(bodies);
+}
 
 int main(void)
 {
@@ -403,8 +418,8 @@ int main(void)
     int wMid = screenWidth / 2;
     int hMid = screenHeight / 2;
 
-    levelSpace(&screenWidth, &screenHeight, &wMid, &hMid, &targetFPS);
-    // levelUniverse(&screenWidth, &screenHeight, &wMid, &hMid, &targetFPS);
+    // levelSpace(&screenWidth, &screenHeight, &wMid, &hMid, &targetFPS);
+    levelUniverse(&screenWidth, &screenHeight, &wMid, &hMid, &targetFPS);
 
     CloseWindow();
     return 0;
