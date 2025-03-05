@@ -336,7 +336,6 @@ void levelUniverse(int *screenWidth, int *screenHeight, int *wMid, int *hMid, in
     Camera2D camera = {0};
     camera.rotation = 0.0f;
     camera.zoom = cameraSettings.defaultZoom;
-    camera.offset = (Vector2){*wMid, *hMid}; // Offset from camera target
 
     WarpController timeScale = {
         .val = 1.0f,
@@ -344,13 +343,26 @@ void levelUniverse(int *screenWidth, int *screenHeight, int *wMid, int *hMid, in
         .min = 1.0f,
         .max = 32.0f};
 
+    ShipSettings shipSettings = {
+        .thrust = 1.0f,
+        .fuel = 100.0f,
+        .fuelConsumption = 0.0f};
+
     int numBodies;
     CelestialBody **bodies = initBodies(&numBodies);
     float theta = 0.5f; // Barnes-Hut threshold
     int trailIndex = 0;
 
+    CelestialBody *playerShip = bodies[5];
+
+    int cameraLock = 0;
+    Vector2 *cameraLockPosition = &bodies[cameraLock]->position;
+    camera.target = *cameraLockPosition;
+    camera.offset = (Vector2){*wMid, *hMid}; // Offset from camera target
+
     while (!WindowShouldClose())
     {
+        camera.target = *cameraLockPosition;
         float dt = GetFrameTime();
 
         // Handle input
@@ -358,6 +370,13 @@ void levelUniverse(int *screenWidth, int *screenHeight, int *wMid, int *hMid, in
             incrementWarp(&timeScale, dt);
         if (IsKeyDown(KEY_Q))
             decrementWarp(&timeScale, dt);
+
+        if (IsKeyPressed(KEY_L))
+        {
+            cameraLock++;
+            cameraLock = cameraLock % numBodies;
+            cameraLockPosition = &bodies[cameraLock]->position;
+        }
 
         camera.zoom += (float)GetMouseWheelMove() * 0.001f;
         camera.zoom = _Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
@@ -393,10 +412,18 @@ void levelUniverse(int *screenWidth, int *screenHeight, int *wMid, int *hMid, in
 
         EndMode2D();
 
+        // GUI
+        // Left
+        DrawText("Press ESC to exit", 10, 10, 20, RAYWHITE);
+        DrawText("Press 'L' to switch camera", 10, 40, 20, DARKGRAY);
+        DrawText("Press 'Q' and 'E' to time warp", 10, 70, 20, DARKGRAY);
+        DrawText("Scroll to zoom", 10, 100, 20, DARKGRAY);
+
         // Right
         DrawFPS(*screenWidth - 100, 10);
-        DrawText(TextFormat("Zoom Level: %.2f", camera.zoom), *screenWidth - 200, 40, 20, DARKGRAY);
+        DrawText(TextFormat("Camera locked to: body %i", cameraLock), *screenWidth - 280, 40, 20, DARKGRAY);
         DrawText(TextFormat("Time Scale: %.1fx", timeScale.val), *screenWidth - 200, 70, 20, DARKGRAY);
+        DrawText(TextFormat("Zoom Level: %.2fx", calculateNormalisedZoom(&cameraSettings, camera.zoom)), *screenWidth - 200, 100, 20, DARKGRAY);
 
         EndDrawing();
 

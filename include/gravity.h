@@ -60,6 +60,13 @@ typedef struct QuadTreeNode
     CelestialBody *body;              // Pointer to body if leaf node; NULL otherwise
 } QuadTreeNode;
 
+typedef struct ShipSettings
+{
+    float thrust;
+    float fuel;
+    float fuelConsumption;
+} ShipSettings;
+
 // Structure to represent celestial bodies
 typedef struct
 {
@@ -711,8 +718,8 @@ void detectCollisions(CelestialBody **bodies, int numBodies, QuadTreeNode *node,
             if (body->type == TYPE_SHIP)
             {
                 // Reset ship (example handling)
-                body->position = (Vector2){50, 50}; // Arbitrary reset position
-                body->velocity = (Vector2){0, 0};
+                body->position = (Vector2){0, -100}; // Arbitrary reset position
+                body->velocity = (Vector2){0.8f, 0};
             }
         }
         return;
@@ -733,7 +740,7 @@ float calculateOrbitalSpeed(float mass, float radius)
 
 CelestialBody **initBodies(int *numBodies)
 {
-    *numBodies = 5;
+    *numBodies = 6;
     CelestialBody **bodies = malloc(sizeof(CelestialBody *) * (*numBodies));
 
     // Simulating a supermassive black hole at the centre of the universe
@@ -794,27 +801,15 @@ CelestialBody **initBodies(int *numBodies)
     relVel = (Vector2){-calculateOrbitalSpeed(bodies[3]->mass, 40), 0};
     bodies[4]->velocity = Vector2Add(bodies[3]->velocity, relVel);
 
-    // Moon orbiting Planet
-    // bodies[3] = malloc(sizeof(CelestialBody));
-    // *bodies[3] = (CelestialBody){.type = TYPE_MOON,
-    //                              .name = strdup("Moon1"),
-    //                              .position = {220, 40},
-    //                              .velocity = {0, 0},
-    //                              .mass = 1e3,
-    //                              .radius = 2.0f,
-    //                              .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS)};
-    // relVel = (Vector2){0, -calculateOrbitalSpeed(bodies[2]->mass, 20)};
-    // bodies[3]->velocity = Vector2Add(bodies[2]->velocity, relVel);
-
     // Ship
-    // bodies[4] = malloc(sizeof(CelestialBody));
-    // *bodies[4] = (CelestialBody){.type = TYPE_SHIP,
-    //                              .name = strdup("Ship"),
-    //                              .position = {0, -100},
-    //                              .velocity = {0.5f, 0},
-    //                              .mass = 1.0f,
-    //                              .radius = 3.0f,
-    //                              .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS)};
+    bodies[5] = malloc(sizeof(CelestialBody));
+    *bodies[5] = (CelestialBody){.type = TYPE_SHIP,
+                                 .name = strdup("Ship"),
+                                 .position = {0, -100},
+                                 .velocity = {0.8f, 0},
+                                 .mass = 1.0f,
+                                 .radius = 3.0f,
+                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS)};
 
     return bodies;
 }
@@ -857,4 +852,10 @@ void drawPreviousPositions(CelestialBody **bodies, int numBodies)
                 DrawPixelV(bodies[i]->previousPositions[j], (Color){255, 255, 255, 50});
         }
     }
+}
+
+float calculateNormalisedZoom(CameraSettings *settings, float currentZoom)
+{
+    float midpoint = settings->minZoom + ((settings->maxZoom - settings->minZoom) / 2);
+    return (float){currentZoom / midpoint};
 }
