@@ -49,6 +49,7 @@ typedef struct CelestialBody
     float mass; // Kg
     float radius;
     Vector2 *previousPositions;
+    float rotation;
 } CelestialBody;
 
 typedef struct QuadTreeNode
@@ -751,7 +752,8 @@ CelestialBody **initBodies(int *numBodies)
                                  .velocity = {0, 0},
                                  .mass = 1e12f,
                                  .radius = 1.0f,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS)};
+                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+                                 .rotation = 0.0f};
 
     // Star
     bodies[1] = malloc(sizeof(CelestialBody));
@@ -761,7 +763,8 @@ CelestialBody **initBodies(int *numBodies)
                                  .velocity = {0, 0},
                                  .mass = 1e12,
                                  .radius = 10.0f,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS)};
+                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+                                 .rotation = 0.0f};
     float orbitalSpeed = calculateOrbitalSpeed(bodies[0]->mass, 200);
     bodies[1]->velocity = (Vector2){0, orbitalSpeed};
 
@@ -773,7 +776,8 @@ CelestialBody **initBodies(int *numBodies)
                                  .velocity = {0, 0},
                                  .mass = 1e8,
                                  .radius = 3.0f,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS)};
+                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+                                 .rotation = 0.0f};
     Vector2 relVel = (Vector2){calculateOrbitalSpeed(bodies[1]->mass, 40), 0};
     bodies[2]->velocity = Vector2Add(bodies[1]->velocity, relVel);
 
@@ -785,7 +789,8 @@ CelestialBody **initBodies(int *numBodies)
                                  .velocity = {0, 0},
                                  .mass = 1e12,
                                  .radius = 10.0f,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS)};
+                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+                                 .rotation = 0.0f};
     orbitalSpeed = calculateOrbitalSpeed(bodies[0]->mass, 200);
     bodies[3]->velocity = (Vector2){0, -orbitalSpeed};
 
@@ -797,7 +802,8 @@ CelestialBody **initBodies(int *numBodies)
                                  .velocity = {0, 0},
                                  .mass = 1e8,
                                  .radius = 3.0f,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS)};
+                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+                                 .rotation = 0.0f};
     relVel = (Vector2){-calculateOrbitalSpeed(bodies[3]->mass, 40), 0};
     bodies[4]->velocity = Vector2Add(bodies[3]->velocity, relVel);
 
@@ -809,7 +815,8 @@ CelestialBody **initBodies(int *numBodies)
                                  .velocity = {0.8f, 0},
                                  .mass = 1.0f,
                                  .radius = 3.0f,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS)};
+                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+                                 .rotation = 0.0f};
 
     return bodies;
 }
@@ -818,7 +825,8 @@ void drawBodies(CelestialBody **bodies, int numBodies)
 {
     for (int i = 0; i < numBodies; i++)
     {
-        Color color = (bodies[i]->type == TYPE_STAR)     ? YELLOW
+        Color color = (bodies[i]->type == TYPE_UNIVERSE) ? BLACK
+                      : (bodies[i]->type == TYPE_STAR)   ? YELLOW
                       : (bodies[i]->type == TYPE_PLANET) ? BLUE
                       : (bodies[i]->type == TYPE_MOON)   ? GRAY
                                                          : RED;
@@ -858,4 +866,14 @@ float calculateNormalisedZoom(CameraSettings *settings, float currentZoom)
 {
     float midpoint = settings->minZoom + ((settings->maxZoom - settings->minZoom) / 2);
     return (float){currentZoom / midpoint};
+}
+
+void drawPlayerHUD(HUD *playerHUD, float *shipRotation, int *screenWidth, int *screenHeight)
+{
+    float wMid = *screenWidth / 2;
+    float hMid = *screenHeight / 2;
+    Rectangle arrowSource = {0, 0, (float)playerHUD->arrowTexture.width, (float)playerHUD->arrowTexture.height};
+    Rectangle arrowDest = {wMid, *screenHeight - 50, (float)playerHUD->arrowTexture.width, (float)playerHUD->arrowTexture.height};
+    Vector2 arrowOrigin = {(float)playerHUD->arrowTexture.width / 2, (float)playerHUD->arrowTexture.height / 2};
+    DrawTexturePro(playerHUD->arrowTexture, arrowSource, arrowDest, arrowOrigin, *shipRotation, WHITE);
 }

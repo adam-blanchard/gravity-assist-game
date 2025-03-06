@@ -343,6 +343,10 @@ void levelUniverse(int *screenWidth, int *screenHeight, int *wMid, int *hMid, in
         .min = 1.0f,
         .max = 32.0f};
 
+    HUD playerHUD = {
+        .speed = 0.0f,
+        .arrowTexture = LoadTexture("./textures/arrow.png")};
+
     ShipSettings shipSettings = {
         .thrust = 1.0f,
         .fuel = 100.0f,
@@ -378,6 +382,12 @@ void levelUniverse(int *screenWidth, int *screenHeight, int *wMid, int *hMid, in
             cameraLockPosition = &bodies[cameraLock]->position;
         }
 
+        /*
+            TODO:
+                - [ ] Take player input for the ship (thrust, rotation)
+                - [ ] Apply forces to the player's ship
+        */
+
         camera.zoom += (float)GetMouseWheelMove() * 0.001f;
         camera.zoom = _Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
 
@@ -407,7 +417,7 @@ void levelUniverse(int *screenWidth, int *screenHeight, int *wMid, int *hMid, in
         ClearBackground(BLACK);
 
         drawPreviousPositions(bodies, numBodies);
-        drawQuadtree(root);
+        // drawQuadtree(root);
         drawBodies(bodies, numBodies);
 
         EndMode2D();
@@ -418,6 +428,9 @@ void levelUniverse(int *screenWidth, int *screenHeight, int *wMid, int *hMid, in
         DrawText("Press 'L' to switch camera", 10, 40, 20, DARKGRAY);
         DrawText("Press 'Q' and 'E' to time warp", 10, 70, 20, DARKGRAY);
         DrawText("Scroll to zoom", 10, 100, 20, DARKGRAY);
+
+        // Centre
+        drawPlayerHUD(&playerHUD, &playerShip->rotation, screenWidth, screenHeight);
 
         // Right
         DrawFPS(*screenWidth - 100, 10);
