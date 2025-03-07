@@ -382,6 +382,26 @@ void levelUniverse(int *screenWidth, int *screenHeight, int *wMid, int *hMid, in
             cameraLockPosition = &bodies[cameraLock]->position;
         }
 
+        // Apply rotation
+        if (IsKeyDown(KEY_D))
+            playerShip->rotation += 180.0f * dt; // Rotate right
+        if (IsKeyDown(KEY_A))
+            playerShip->rotation -= 180.0f * dt; // Rotate left
+
+        // Normalize rotation to keep it within 0-360 degrees
+        playerShip->rotation = fmod(playerShip->rotation + 360.0f, 360.0f);
+
+        if (IsKeyDown(KEY_W))
+        {
+            // Convert rotation to radians for vector calculations
+            float radians = playerShip->rotation * PI / 180.0f;
+            Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
+            Vector2 thrust = _Vector2Scale(thrustDirection, playerShip->shipSettings.thrust * dt);
+            playerShip->velocity = _Vector2Add(&playerShip->velocity, &thrust);
+            // playerShip->activeTexture = &playerShip->thrustTexture;
+            playerShip->shipSettings.fuel -= playerShip->shipSettings.fuelConsumption;
+        }
+
         /*
             TODO:
                 - [ ] Take player input for the ship (thrust, rotation)

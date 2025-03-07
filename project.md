@@ -12,12 +12,25 @@
 - [ ] Controls pop-out
 - [ ] Scale all masses, radius, and forces to be semi-realistic
 - [ ] Body rotation (need to rework the way bodies are rendered to set the rotation origin)
-- [ ] Moons
 - [ ] Tree structure for hierarchical representation
 - [ ] QuadTree for scaling to thousands of bodies/systems or more - POSSIBLY NOT??
 - [ ] Planet type (volcanic, ice, gas etc.)
 - [ ] Star types - standard, red dwarf, white dwarf, black hole, pulsar, etc.
 - [ ] Function to load texture based on planet type - or, just render a specific texture - tbc
+- [ ] Add ship health
+- [ ] Add shooting
+- [ ] Add enemy ships
+- [ ] Add other descructables such as asteroids and space stations
+- [ ] Add ship/player upgrades
+- [ ] Add player statistics - money
+- [ ] Add game saving
+- [ ] Better HUD/GUI
+- [ ] XP and skill trees - exploration, combat, trading
+- [ ] Keep track of where the player has explored
+- [ ] Ship upgrades - engines, fuel capacity, maneuverability, etc.
+- [ ] Asteroid mining
+- [ ] Universe map
+- [ ] Universe grid to show scale
 
 - [x] Render sun and planets
 - [x] Render ship
@@ -37,3 +50,4 @@
 - [x] Player starts landed on a planet
 - [x] Body textures
 - [x] Body types - universe, galaxy, star system, star, planet, moon, asteroid
+- [x] Moons

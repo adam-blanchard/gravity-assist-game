@@ -40,6 +40,14 @@ typedef enum
     BODY_ASTEROID
 } BodyType;
 
+typedef struct ShipSettings
+{
+    float thrust;
+    float fuel;
+    float fuelConsumption;
+    bool isSelected;
+} ShipSettings;
+
 typedef struct CelestialBody
 {
     CelestialType type;
@@ -50,6 +58,7 @@ typedef struct CelestialBody
     float radius;
     Vector2 *previousPositions;
     float rotation;
+    ShipSettings shipSettings;
 } CelestialBody;
 
 typedef struct QuadTreeNode
@@ -60,13 +69,6 @@ typedef struct QuadTreeNode
     struct QuadTreeNode *children[4]; // NW, NE, SW, SE quadrants
     CelestialBody *body;              // Pointer to body if leaf node; NULL otherwise
 } QuadTreeNode;
-
-typedef struct ShipSettings
-{
-    float thrust;
-    float fuel;
-    float fuelConsumption;
-} ShipSettings;
 
 // Structure to represent celestial bodies
 typedef struct
@@ -816,7 +818,12 @@ CelestialBody **initBodies(int *numBodies)
                                  .mass = 1.0f,
                                  .radius = 3.0f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-                                 .rotation = 0.0f};
+                                 .rotation = 0.0f,
+                                 .shipSettings = (ShipSettings){
+                                     .thrust = 0.1f,
+                                     .fuel = 100.0f,
+                                     .fuelConsumption = 0.0f,
+                                     .isSelected = true}};
 
     return bodies;
 }
