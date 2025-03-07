@@ -19,6 +19,13 @@
 
 typedef enum
 {
+    GAME_HOME,
+    GAME_RUNNING,
+    GAME_PAUSED
+} GameState;
+
+typedef enum
+{
     SHIP_FLYING,
     SHIP_LANDED
 } ShipState;
@@ -752,7 +759,7 @@ CelestialBody **initBodies(int *numBodies)
                                  .name = strdup("Centre of Universe"),
                                  .position = {0, 0},
                                  .velocity = {0, 0},
-                                 .mass = 1e12f,
+                                 .mass = 1e14f,
                                  .radius = 1.0f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f};
@@ -763,7 +770,7 @@ CelestialBody **initBodies(int *numBodies)
                                  .name = strdup("Star1"),
                                  .position = {200, 0},
                                  .velocity = {0, 0},
-                                 .mass = 1e12,
+                                 .mass = 1e13,
                                  .radius = 10.0f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f};
@@ -776,7 +783,7 @@ CelestialBody **initBodies(int *numBodies)
                                  .name = strdup("Planet1"),
                                  .position = {200, 40},
                                  .velocity = {0, 0},
-                                 .mass = 1e8,
+                                 .mass = 1e9,
                                  .radius = 3.0f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f};
@@ -789,7 +796,7 @@ CelestialBody **initBodies(int *numBodies)
                                  .name = strdup("Star2"),
                                  .position = {-200, 0},
                                  .velocity = {0, 0},
-                                 .mass = 1e12,
+                                 .mass = 1e13,
                                  .radius = 10.0f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f};
@@ -802,7 +809,7 @@ CelestialBody **initBodies(int *numBodies)
                                  .name = strdup("Planet2"),
                                  .position = {-200, 40},
                                  .velocity = {0, 0},
-                                 .mass = 1e8,
+                                 .mass = 1e9,
                                  .radius = 3.0f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f};
@@ -815,7 +822,7 @@ CelestialBody **initBodies(int *numBodies)
                                  .name = strdup("Ship"),
                                  .position = {0, -100},
                                  .velocity = {0.8f, 0},
-                                 .mass = 1.0f,
+                                 .mass = 1e1f,
                                  .radius = 3.0f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f,

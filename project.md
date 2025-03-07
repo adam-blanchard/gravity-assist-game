@@ -8,7 +8,6 @@
 - [ ] Ship Customisation
 - [ ] KSP-style nav ball (nav circle for 2D)
 - [ ] Death state
-- [ ] Home screen
 - [ ] Controls pop-out
 - [ ] Scale all masses, radius, and forces to be semi-realistic
 - [ ] Body rotation (need to rework the way bodies are rendered to set the rotation origin)
@@ -51,3 +50,5 @@
 - [x] Body textures
 - [x] Body types - universe, galaxy, star system, star, planet, moon, asteroid
 - [x] Moons
+- [x] Home screen
+- [x] Pause screen
