@@ -1,9 +1,6 @@
 ## TODO
 
 - [ ] Take-off/landing system
-- [ ] Fuel pickup mechanic (random spawn points)
-- [ ] Orbit Apoapsis and Periapsis
-- [ ] Heading GUI indicator
 - [ ] Retrograde and prograde burn indicators
 - [ ] Ship Customisation
 - [ ] KSP-style nav ball (nav circle for 2D)
@@ -11,8 +8,6 @@
 - [ ] Controls pop-out
 - [ ] Scale all masses, radius, and forces to be semi-realistic
 - [ ] Body rotation (need to rework the way bodies are rendered to set the rotation origin)
-- [ ] Tree structure for hierarchical representation
-- [ ] QuadTree for scaling to thousands of bodies/systems or more - POSSIBLY NOT??
 - [ ] Planet type (volcanic, ice, gas etc.)
 - [ ] Star types - standard, red dwarf, white dwarf, black hole, pulsar, etc.
 - [ ] Function to load texture based on planet type - or, just render a specific texture - tbc
@@ -41,6 +36,7 @@
 - [x] Time warp
 - [x] Ship textures
 - [x] Ship fuel
+- [x] Heading GUI indicator
 - [x] Speed GUI indicator
 - [x] Ship relative speed to body
 - [x] Initial collision detection and landing
@@ -49,6 +45,7 @@
 - [x] Player starts landed on a planet
 - [x] Body textures
 - [x] Body types - universe, galaxy, star system, star, planet, moon, asteroid
+- [x] QuadTree for scaling to thousands of bodies/systems or more
 - [x] Moons
 - [x] Home screen
 - [x] Pause screen

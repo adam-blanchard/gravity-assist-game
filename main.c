@@ -326,182 +326,9 @@
 //     }
 // }
 
-// void levelUniverse(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *targetFPS, GameState *gameState)
-// {
-//     CameraSettings cameraSettings = {
-//         .defaultZoom = 1.6e0f,
-//         .minZoom = 1e-4f,
-//         .maxZoom = 5.0f};
-
-//     Camera2D camera = {0};
-//     camera.rotation = 0.0f;
-//     camera.zoom = cameraSettings.defaultZoom;
-
-//     WarpController timeScale = {
-//         .val = 1.0f,
-//         .increment = 1.5f,
-//         .min = 1.0f,
-//         .max = 32.0f};
-
-//     HUD playerHUD = {
-//         .speed = 0.0f,
-//         .arrowTexture = LoadTexture("./textures/arrow.png")};
-
-//     ShipSettings shipSettings = {
-//         .thrust = 1.0f,
-//         .fuel = 100.0f,
-//         .fuelConsumption = 0.0f};
-
-//     int numBodies;
-//     CelestialBody **bodies = initBodies(&numBodies);
-//     float theta = 0.5f; // Barnes-Hut threshold
-//     int trailIndex = 0;
-
-//     CelestialBody *playerShip = bodies[5];
-
-//     int cameraLock = 0;
-//     Vector2 *cameraLockPosition = &bodies[cameraLock]->position;
-//     camera.target = *cameraLockPosition;
-//     camera.offset = (Vector2){*wMid, *hMid}; // Offset from camera target
-
-//     while (!WindowShouldClose())
-//     {
-//         camera.target = *cameraLockPosition;
-//         float dt = GetFrameTime();
-
-//         if (ISKEYPRESSED(KEY_ESCAPE))
-//         {
-//             if (*gameState == GAME_RUNNING)
-//                 *gameState = GAME_PAUSED;
-//             if (*gameState == GAME_PAUSED)
-//                 *gameState = GAME_RUNNING;
-//         }
-
-//         // if (*gameState == GAME_PAUSED) {
-//         //     renderPauseMenu(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *targetFPS, GameState *gameState);
-//         // }
-
-//         // Handle input
-//         if (IsKeyDown(KEY_E))
-//             incrementWarp(&timeScale, dt);
-//         if (IsKeyDown(KEY_Q))
-//             decrementWarp(&timeScale, dt);
-
-//         if (IsKeyPressed(KEY_L))
-//         {
-//             cameraLock++;
-//             cameraLock = cameraLock % numBodies;
-//             cameraLockPosition = &bodies[cameraLock]->position;
-//         }
-
-//         // Apply rotation
-//         if (IsKeyDown(KEY_D))
-//             playerShip->rotation += 180.0f * dt; // Rotate right
-//         if (IsKeyDown(KEY_A))
-//             playerShip->rotation -= 180.0f * dt; // Rotate left
-
-//         // Normalize rotation to keep it within 0-360 degrees
-//         playerShip->rotation = fmod(playerShip->rotation + 360.0f, 360.0f);
-
-//         if (IsKeyDown(KEY_W))
-//         {
-//             // Convert rotation to radians for vector calculations
-//             float radians = playerShip->rotation * PI / 180.0f;
-//             Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
-//             Vector2 thrust = _Vector2Scale(thrustDirection, playerShip->shipSettings.thrust * dt);
-//             playerShip->velocity = _Vector2Add(&playerShip->velocity, &thrust);
-//             // playerShip->activeTexture = &playerShip->thrustTexture;
-//             playerShip->shipSettings.fuel -= playerShip->shipSettings.fuelConsumption;
-//         }
-
-//         /*
-//             TODO:
-//                 - [ ] Take player input for the ship (thrust, rotation)
-//                 - [ ] Apply forces to the player's ship
-//         */
-
-//         camera.zoom += (float)GetMouseWheelMove() * 0.001f;
-//         camera.zoom = _Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
-
-//         // Build QuadTree
-//         QuadTreeNode *root = buildQuadTree(bodies, numBodies);
-
-//         // Update physics
-//         float scaledDt = dt * timeScale.val;
-
-//         for (int i = 0; i < numBodies; i++)
-//         {
-//             if (bodies[i]->type == TYPE_UNIVERSE)
-//                 continue;
-//             Vector2 force = computeForce(root, bodies[i], theta);
-//             Vector2 accel = Vector2Scale(force, 1.0f / bodies[i]->mass);
-//             bodies[i]->velocity = Vector2Add(bodies[i]->velocity, Vector2Scale(accel, scaledDt));
-//             bodies[i]->position = Vector2Add(bodies[i]->position, Vector2Scale(bodies[i]->velocity, scaledDt));
-//             detectCollisions(bodies, numBodies, root, bodies[i]);
-//             bodies[i]->previousPositions[trailIndex] = bodies[i]->position;
-//         }
-//         trailIndex += 1;
-//         trailIndex = trailIndex % PREVIOUS_POSITIONS;
-
-//         // Render
-//         BeginDrawing();
-//         BeginMode2D(camera);
-//         ClearBackground(BLACK);
-
-//         drawPreviousPositions(bodies, numBodies);
-//         // drawQuadtree(root);
-//         drawBodies(bodies, numBodies);
-
-//         EndMode2D();
-
-//         // GUI
-//         // Left
-//         DrawText("Press ESC to exit", 10, 10, 20, RAYWHITE);
-//         DrawText("Press 'L' to switch camera", 10, 40, 20, DARKGRAY);
-//         DrawText("Press 'Q' and 'E' to time warp", 10, 70, 20, DARKGRAY);
-//         DrawText("Scroll to zoom", 10, 100, 20, DARKGRAY);
-
-//         // Centre
-//         drawPlayerHUD(&playerHUD, &playerShip->rotation, screenWidth, screenHeight);
-
-//         // Right
-//         DrawFPS(*screenWidth - 100, 10);
-//         DrawText(TextFormat("Camera locked to: body %i", cameraLock), *screenWidth - 280, 40, 20, DARKGRAY);
-//         DrawText(TextFormat("Time Scale: %.1fx", timeScale.val), *screenWidth - 200, 70, 20, DARKGRAY);
-//         DrawText(TextFormat("Zoom Level: %.2fx", calculateNormalisedZoom(&cameraSettings, camera.zoom)), *screenWidth - 200, 100, 20, DARKGRAY);
-
-//         EndDrawing();
-
-//         freeQuadTree(root);
-//     }
-
-//     // Cleanup
-//     for (int i = 0; i < numBodies; i++)
-//     {
-//         free(bodies[i]->name);
-//         free(bodies[i]);
-//     }
-//     free(bodies);
-// }
-
-void mainMenu(int *screenWidth, int *screenHeight, int *wMid, int *hMid, int *targetFPS, GameState *gameState)
-{
-    while (!WindowShouldClose())
-    {
-        BeginDrawing();
-        ClearBackground(BLACK);
-        DrawText("HELLO WORLD", *wMid, *hMid, 20, RAYWHITE);
-        if (GuiButton((Rectangle){*wMid + 100, *hMid + 100, 50, 50}, "PLAY"))
-            *gameState = GAME_RUNNING;
-        EndDrawing();
-
-        if (*gameState == GAME_RUNNING)
-            break;
-    }
-}
-
 int main(void)
 {
+    // Intended scaling - 1 day IRL is 1 minute in-game
     int screenWidth = 1280;
     int screenHeight = 720;
 
@@ -517,8 +344,8 @@ int main(void)
     GameState gameState = GAME_HOME;
 
     CameraSettings cameraSettings = {
-        .defaultZoom = 1.6e0f,
-        .minZoom = 1e-4f,
+        .defaultZoom = 1e-2f,
+        .minZoom = 1e-6f,
         .maxZoom = 5.0f};
 
     Camera2D camera = {0};
@@ -529,7 +356,7 @@ int main(void)
         .val = 1.0f,
         .increment = 1.5f,
         .min = 1.0f,
-        .max = 32.0f};
+        .max = 1024.0f};
 
     HUD playerHUD = {
         .speed = 0.0f,
@@ -538,7 +365,7 @@ int main(void)
     int numBodies = 0;
     CelestialBody **bodies = NULL;
     CelestialBody *playerShip = NULL;
-    float theta = 0.5f; // Barnes-Hut threshold
+    float theta = 0.0f; // Barnes-Hut threshold - usually 0.5
     int trailIndex = 0;
 
     int cameraLock = 0;
@@ -558,7 +385,7 @@ int main(void)
                 if (!bodies)
                 {
                     bodies = initBodies(&numBodies);
-                    playerShip = bodies[5];
+                    playerShip = bodies[4];
                 }
                 gameState = GAME_RUNNING;
             }
@@ -661,6 +488,7 @@ int main(void)
         }
         else
         {
+            drawCelestialGrid(1 / camera.zoom, 16);
             BeginMode2D(camera);
             drawPreviousPositions(bodies, numBodies);
             drawBodies(bodies, numBodies);

@@ -17,6 +17,9 @@
 #define TRAJECTORY_STEP_TIME 0.033f
 #define PREVIOUS_POSITIONS 1000
 
+#define GRID_COLOUR \
+    CLITERAL(Color) { 255, 255, 255, 50 }
+
 typedef enum
 {
     GAME_HOME,
@@ -501,7 +504,7 @@ void predictTimesteps(Ship *playerShip, Body *bodies, int numBodies)
 
 float calculateOrbitalRadius(float period, float mStar)
 {
-    float r3 = (period * period * G * mStar) / 4 * PI * PI;
+    float r3 = (period * period * G * mStar) / (4 * PI * PI);
     return (float){cbrtf(r3)};
 }
 
@@ -728,7 +731,7 @@ void detectCollisions(CelestialBody **bodies, int numBodies, QuadTreeNode *node,
             if (body->type == TYPE_SHIP)
             {
                 // Reset ship (example handling)
-                body->position = (Vector2){0, -100}; // Arbitrary reset position
+                body->position = (Vector2){0, -10000}; // Arbitrary reset position
                 body->velocity = (Vector2){0.8f, 0};
             }
         }
@@ -750,8 +753,13 @@ float calculateOrbitalSpeed(float mass, float radius)
 
 CelestialBody **initBodies(int *numBodies)
 {
-    *numBodies = 6;
+    *numBodies = 5;
     CelestialBody **bodies = malloc(sizeof(CelestialBody *) * (*numBodies));
+
+    // Maximum 64-bit number is 1.8e19
+    // Heaviest object in the universe is the supermassive black hole at the centre - 1e18
+    // The supermassive black hole is 1 million solar masses of Sol
+    // All other masses are derived from Sol's mass
 
     // Simulating a supermassive black hole at the centre of the universe
     bodies[0] = malloc(sizeof(CelestialBody));
@@ -759,78 +767,96 @@ CelestialBody **initBodies(int *numBodies)
                                  .name = strdup("Centre of Universe"),
                                  .position = {0, 0},
                                  .velocity = {0, 0},
-                                 .mass = 1e14f,
+                                 .mass = 1e18f,
                                  .radius = 1.0f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f};
 
-    // Star
+    // Star - orbits the universe centre in 28 days (28 * 24 * 60 * 60 seconds)
+    float orbitalRadius = calculateOrbitalRadius(365 * 24 * 60 * 60, bodies[0]->mass);
     bodies[1] = malloc(sizeof(CelestialBody));
     *bodies[1] = (CelestialBody){.type = TYPE_STAR,
-                                 .name = strdup("Star1"),
-                                 .position = {200, 0},
+                                 .name = strdup("Sol"),
+                                 .position = {orbitalRadius, 0},
                                  .velocity = {0, 0},
-                                 .mass = 1e13,
-                                 .radius = 10.0f,
+                                 .mass = 1e15f,
+                                 .radius = 3e4,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f};
-    float orbitalSpeed = calculateOrbitalSpeed(bodies[0]->mass, 200);
+    float orbitalSpeed = calculateOrbitalSpeed(bodies[0]->mass, orbitalRadius);
     bodies[1]->velocity = (Vector2){0, orbitalSpeed};
 
-    // Planet orbiting Star
+    // Planet orbiting Star in 24 hours (24 * 60 * 60 seconds)
+    orbitalRadius = calculateOrbitalRadius(365 * 24 * 60 * 60, bodies[1]->mass);
     bodies[2] = malloc(sizeof(CelestialBody));
     *bodies[2] = (CelestialBody){.type = TYPE_PLANET,
                                  .name = strdup("Planet1"),
-                                 .position = {200, 40},
+                                 .position = {bodies[1]->position.x + orbitalRadius, 0},
                                  .velocity = {0, 0},
                                  .mass = 1e9,
-                                 .radius = 3.0f,
+                                 .radius = 3e2f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f};
-    Vector2 relVel = (Vector2){calculateOrbitalSpeed(bodies[1]->mass, 40), 0};
+    Vector2 relVel = (Vector2){0, -calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
     bodies[2]->velocity = Vector2Add(bodies[1]->velocity, relVel);
 
-    // Star
+    // Moon orbiting Planet in 1.5 hour (1.5 * 60 * 60 seconds)
+    orbitalRadius = calculateOrbitalRadius(28 * 24 * 60 * 60, bodies[2]->mass);
     bodies[3] = malloc(sizeof(CelestialBody));
-    *bodies[3] = (CelestialBody){.type = TYPE_STAR,
-                                 .name = strdup("Star2"),
-                                 .position = {-200, 0},
+    *bodies[3] = (CelestialBody){.type = TYPE_MOON,
+                                 .name = strdup("Moon1"),
+                                 .position = {bodies[2]->position.x + orbitalRadius, 0},
                                  .velocity = {0, 0},
-                                 .mass = 1e13,
-                                 .radius = 10.0f,
+                                 .mass = 1e7,
+                                 .radius = 1e2f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f};
-    orbitalSpeed = calculateOrbitalSpeed(bodies[0]->mass, 200);
-    bodies[3]->velocity = (Vector2){0, -orbitalSpeed};
+    relVel = (Vector2){0, calculateOrbitalSpeed(bodies[2]->mass, orbitalRadius)};
+    bodies[3]->velocity = Vector2Add(bodies[2]->velocity, relVel);
 
-    // Planet orbiting Star
+    // // Star
+    // bodies[3] = malloc(sizeof(CelestialBody));
+    // *bodies[3] = (CelestialBody){.type = TYPE_STAR,
+    //                              .name = strdup("Star2"),
+    //                              .position = {-20000, 0},
+    //                              .velocity = {0, 0},
+    //                              .mass = 1e14,
+    //                              .radius = 100.0f,
+    //                              .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+    //                              .rotation = 0.0f};
+    // orbitalSpeed = calculateOrbitalSpeed(bodies[0]->mass, 20000);
+    // bodies[3]->velocity = (Vector2){0, -orbitalSpeed};
+
+    // // Planet orbiting Star
+    // bodies[4] = malloc(sizeof(CelestialBody));
+    // *bodies[4] = (CelestialBody){.type = TYPE_PLANET,
+    //                              .name = strdup("Planet2"),
+    //                              .position = {-20000, 400},
+    //                              .velocity = {0, 0},
+    //                              .mass = 1e9,
+    //                              .radius = 30.0f,
+    //                              .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+    //                              .rotation = 0.0f};
+    // relVel = (Vector2){-calculateOrbitalSpeed(bodies[3]->mass, 400), 0};
+    // bodies[4]->velocity = Vector2Add(bodies[3]->velocity, relVel);
+
+    // // Ship
     bodies[4] = malloc(sizeof(CelestialBody));
-    *bodies[4] = (CelestialBody){.type = TYPE_PLANET,
-                                 .name = strdup("Planet2"),
-                                 .position = {-200, 40},
-                                 .velocity = {0, 0},
-                                 .mass = 1e9,
-                                 .radius = 3.0f,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-                                 .rotation = 0.0f};
-    relVel = (Vector2){-calculateOrbitalSpeed(bodies[3]->mass, 40), 0};
-    bodies[4]->velocity = Vector2Add(bodies[3]->velocity, relVel);
-
-    // Ship
-    bodies[5] = malloc(sizeof(CelestialBody));
-    *bodies[5] = (CelestialBody){.type = TYPE_SHIP,
+    *bodies[4] = (CelestialBody){.type = TYPE_SHIP,
                                  .name = strdup("Ship"),
-                                 .position = {0, -100},
-                                 .velocity = {0.8f, 0},
+                                 .position = {0, -10000},
+                                 .velocity = {10.0f, 0},
                                  .mass = 1e1f,
-                                 .radius = 3.0f,
+                                 .radius = 10.0f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f,
                                  .shipSettings = (ShipSettings){
-                                     .thrust = 0.1f,
+                                     .thrust = 1e0f,
                                      .fuel = 100.0f,
                                      .fuelConsumption = 0.0f,
                                      .isSelected = true}};
+    orbitalSpeed = calculateOrbitalSpeed(bodies[4]->mass, 10000);
+    bodies[4]->velocity = (Vector2){orbitalSpeed, 0};
 
     return bodies;
 }
@@ -871,7 +897,7 @@ void drawPreviousPositions(CelestialBody **bodies, int numBodies)
         for (int j = 0; j < PREVIOUS_POSITIONS; j++)
         {
             if (bodies[i]->type != TYPE_UNIVERSE)
-                DrawPixelV(bodies[i]->previousPositions[j], (Color){255, 255, 255, 50});
+                DrawPixelV(bodies[i]->previousPositions[j], (Color){255, 255, 255, 255});
         }
     }
 }
@@ -890,4 +916,27 @@ void drawPlayerHUD(HUD *playerHUD, float *shipRotation, int *screenWidth, int *s
     Rectangle arrowDest = {wMid, *screenHeight - 50, (float)playerHUD->arrowTexture.width, (float)playerHUD->arrowTexture.height};
     Vector2 arrowOrigin = {(float)playerHUD->arrowTexture.width / 2, (float)playerHUD->arrowTexture.height / 2};
     DrawTexturePro(playerHUD->arrowTexture, arrowSource, arrowDest, arrowOrigin, *shipRotation, WHITE);
+}
+
+void drawCelestialGrid(float zoomLevel, int numQuadrants)
+{
+    int numLines = sqrt(numQuadrants) - 1;
+
+    if (numLines < 1)
+    {
+        return;
+    }
+
+    int screenWidth = GetScreenWidth();
+    int screenHeight = GetScreenHeight();
+
+    for (int i = 0; i < numLines; i++)
+    {
+        // Draw horizontal line
+        int horizontalHeight = screenHeight * (i + 1) / (numLines + 1);
+        DrawLine(-screenWidth, horizontalHeight, screenWidth, horizontalHeight, GRID_COLOUR);
+        // Draw vertical line
+        int verticalWidth = screenWidth * (i + 1) / (numLines + 1);
+        DrawLine(verticalWidth, -screenHeight, verticalWidth, screenHeight, GRID_COLOUR);
+    }
 }
