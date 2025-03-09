@@ -360,7 +360,7 @@ int main(void)
 
     HUD playerHUD = {
         .speed = 0.0f,
-        .arrowTexture = LoadTexture("./textures/arrow.png")};
+        .arrowTexture = LoadTexture("./textures/hud/arrow.png")};
 
     int numBodies = 0;
     CelestialBody **bodies = NULL;

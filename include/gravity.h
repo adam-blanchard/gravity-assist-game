@@ -11,7 +11,7 @@
 #define PI 3.14159265358979323846f
 #endif
 #ifndef G
-#define G 6.67430e-11
+#define G 6.67430e-9
 #endif
 #define TRAJECTORY_STEPS 6000
 #define TRAJECTORY_STEP_TIME 0.033f
@@ -772,7 +772,7 @@ CelestialBody **initBodies(int *numBodies)
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f};
 
-    // Star - orbits the universe centre in 28 days (28 * 24 * 60 * 60 seconds)
+    // Star - orbits the universe centre
     float orbitalRadius = calculateOrbitalRadius(365 * 24 * 60 * 60, bodies[0]->mass);
     bodies[1] = malloc(sizeof(CelestialBody));
     *bodies[1] = (CelestialBody){.type = TYPE_STAR,
@@ -786,11 +786,11 @@ CelestialBody **initBodies(int *numBodies)
     float orbitalSpeed = calculateOrbitalSpeed(bodies[0]->mass, orbitalRadius);
     bodies[1]->velocity = (Vector2){0, orbitalSpeed};
 
-    // Planet orbiting Star in 24 hours (24 * 60 * 60 seconds)
-    orbitalRadius = calculateOrbitalRadius(365 * 24 * 60 * 60, bodies[1]->mass);
+    // Planet orbiting Star in 24 IRL hours
+    orbitalRadius = calculateOrbitalRadius(24 * 60 * 60, bodies[1]->mass);
     bodies[2] = malloc(sizeof(CelestialBody));
     *bodies[2] = (CelestialBody){.type = TYPE_PLANET,
-                                 .name = strdup("Planet1"),
+                                 .name = strdup("Earth"),
                                  .position = {bodies[1]->position.x + orbitalRadius, 0},
                                  .velocity = {0, 0},
                                  .mass = 1e9,
@@ -800,8 +800,8 @@ CelestialBody **initBodies(int *numBodies)
     Vector2 relVel = (Vector2){0, -calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
     bodies[2]->velocity = Vector2Add(bodies[1]->velocity, relVel);
 
-    // Moon orbiting Planet in 1.5 hour (1.5 * 60 * 60 seconds)
-    orbitalRadius = calculateOrbitalRadius(28 * 24 * 60 * 60, bodies[2]->mass);
+    // Moon orbiting Planet
+    orbitalRadius = calculateOrbitalRadius(12 * 60 * 60, bodies[2]->mass);
     bodies[3] = malloc(sizeof(CelestialBody));
     *bodies[3] = (CelestialBody){.type = TYPE_MOON,
                                  .name = strdup("Moon1"),
@@ -814,33 +814,7 @@ CelestialBody **initBodies(int *numBodies)
     relVel = (Vector2){0, calculateOrbitalSpeed(bodies[2]->mass, orbitalRadius)};
     bodies[3]->velocity = Vector2Add(bodies[2]->velocity, relVel);
 
-    // // Star
-    // bodies[3] = malloc(sizeof(CelestialBody));
-    // *bodies[3] = (CelestialBody){.type = TYPE_STAR,
-    //                              .name = strdup("Star2"),
-    //                              .position = {-20000, 0},
-    //                              .velocity = {0, 0},
-    //                              .mass = 1e14,
-    //                              .radius = 100.0f,
-    //                              .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-    //                              .rotation = 0.0f};
-    // orbitalSpeed = calculateOrbitalSpeed(bodies[0]->mass, 20000);
-    // bodies[3]->velocity = (Vector2){0, -orbitalSpeed};
-
-    // // Planet orbiting Star
-    // bodies[4] = malloc(sizeof(CelestialBody));
-    // *bodies[4] = (CelestialBody){.type = TYPE_PLANET,
-    //                              .name = strdup("Planet2"),
-    //                              .position = {-20000, 400},
-    //                              .velocity = {0, 0},
-    //                              .mass = 1e9,
-    //                              .radius = 30.0f,
-    //                              .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-    //                              .rotation = 0.0f};
-    // relVel = (Vector2){-calculateOrbitalSpeed(bodies[3]->mass, 400), 0};
-    // bodies[4]->velocity = Vector2Add(bodies[3]->velocity, relVel);
-
-    // // Ship
+    // Ship
     bodies[4] = malloc(sizeof(CelestialBody));
     *bodies[4] = (CelestialBody){.type = TYPE_SHIP,
                                  .name = strdup("Ship"),
