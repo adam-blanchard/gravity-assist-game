@@ -374,6 +374,23 @@ int main(void)
     camera.target = (Vector2){0, 0};
     camera.offset = (Vector2){wMid, hMid}; // Offset from camera target
 
+    int numStarTextures = 1;
+    Texture2D starTexture1 = LoadTexture("./textures/star/sun.png");
+    Texture2D **starTextures = malloc(sizeof(Texture2D *) * (numStarTextures));
+    starTextures[0] = &starTexture1;
+
+    int numPlanetTextures = 2;
+    Texture2D planetTexture1 = LoadTexture("./textures/planet/planet_1.png");
+    Texture2D planetTexture2 = LoadTexture("./textures/planet/planet_2.png");
+    Texture2D **planetTextures = malloc(sizeof(Texture2D *) * (numPlanetTextures));
+    planetTextures[0] = &planetTexture1;
+    planetTextures[1] = &planetTexture2;
+
+    int numMoonTextures = 1;
+    Texture2D moonTexture1 = LoadTexture("./textures/moon/moon.png");
+    Texture2D **moonTextures = malloc(sizeof(Texture2D *) * (numMoonTextures));
+    moonTextures[0] = &moonTexture1;
+
     while (!WindowShouldClose())
     {
         float dt = GetFrameTime();
@@ -385,7 +402,7 @@ int main(void)
             {
                 if (!bodies)
                 {
-                    bodies = initBodies(&numBodies);
+                    bodies = initBodies(&numBodies, starTextures, planetTextures, moonTextures);
                     playerShip = bodies[3];
                 }
                 gameState = GAME_RUNNING;
@@ -536,6 +553,37 @@ int main(void)
             free(bodies[i]);
         }
         free(bodies);
+    }
+
+    UnloadTexture(starTexture1);
+    UnloadTexture(planetTexture1);
+    UnloadTexture(moonTexture1);
+
+    if (starTextures)
+    {
+        for (int i = 0; i < numStarTextures; i++)
+        {
+            free(starTextures[i]);
+        }
+        free(starTextures);
+    }
+
+    if (planetTextures)
+    {
+        for (int i = 0; i < numPlanetTextures; i++)
+        {
+            free(planetTextures[i]);
+        }
+        free(planetTextures);
+    }
+
+    if (moonTextures)
+    {
+        for (int i = 0; i < numMoonTextures; i++)
+        {
+            free(moonTextures[i]);
+        }
+        free(moonTextures);
     }
 
     CloseWindow();

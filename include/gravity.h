@@ -69,7 +69,18 @@ typedef struct CelestialBody
     Vector2 *previousPositions;
     float rotation;
     ShipSettings shipSettings;
+    Texture2D *texture;
 } CelestialBody;
+
+typedef struct
+{
+    int numStarTextures;
+    Texture2D *starTextures;
+    int numPlanetTextures;
+    Texture2D *planetTextures;
+    int numMoonTextures;
+    Texture2D *moonTextures;
+} GameTextures;
 
 typedef struct QuadTreeNode
 {
@@ -751,7 +762,7 @@ float calculateOrbitalSpeed(float mass, float radius)
     return (float){sqrtf((G * mass) / radius)};
 }
 
-CelestialBody **initBodies(int *numBodies)
+CelestialBody **initBodies(int *numBodies, Texture2D **starTextures, Texture2D **planetTextures, Texture2D **moonTextures)
 {
     *numBodies = 4;
     CelestialBody **bodies = malloc(sizeof(CelestialBody *) * (*numBodies));
@@ -781,7 +792,8 @@ CelestialBody **initBodies(int *numBodies)
                                  .mass = 1e15f,
                                  .radius = 3.2e5,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-                                 .rotation = 0.0f};
+                                 .rotation = 0.0f,
+                                 .texture = starTextures[0]};
 
     // Planet orbiting Star
     float orbitalRadius = calculateOrbitalRadius(24 * 60 * 60, bodies[0]->mass);
@@ -793,7 +805,8 @@ CelestialBody **initBodies(int *numBodies)
                                  .mass = 1e9,
                                  .radius = 3.2e3f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-                                 .rotation = 0.0f};
+                                 .rotation = 0.0f,
+                                 .texture = planetTextures[0]};
     bodies[1]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[0]->mass, orbitalRadius)};
 
     // Moon orbiting Planet
@@ -806,7 +819,8 @@ CelestialBody **initBodies(int *numBodies)
                                  .mass = 1e7,
                                  .radius = 3.2e2f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-                                 .rotation = 0.0f};
+                                 .rotation = 0.0f,
+                                 .texture = moonTextures[0]};
     Vector2 relVel = (Vector2){0, -calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
     bodies[2]->velocity = Vector2Add(bodies[1]->velocity, relVel);
 
@@ -912,3 +926,20 @@ void drawCelestialGrid(float zoomLevel, int numQuadrants)
         DrawLine(verticalWidth, -screenHeight, verticalWidth, screenHeight, GRID_COLOUR);
     }
 }
+
+// GameTextures loadGameTextures()
+// {
+//     Texture2D star1 = LoadTexture("./textures/star/sun.png");
+//     Texture2D planet1 = LoadTexture("./textures/planet/planet_1.png");
+//     Texture2D moon1 = LoadTexture("./textures/moon/moon.png");
+
+//     GameTextures gameTextures = {
+//         .numStarTextures = 1,
+//         .starTextures = {&star1},
+//         .numPlanetTextures = 1,
+//         .planetTextures = {&planet1},
+//         .numMoonTextures = 1,
+//         .moonTextures = {&moon1}};
+
+//     return gameTextures;
+// }
