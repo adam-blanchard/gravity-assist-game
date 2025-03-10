@@ -367,6 +367,7 @@ int main(void)
     CelestialBody *playerShip = NULL;
     float theta = 0.0f; // Barnes-Hut threshold - usually 0.5
     int trailIndex = 0;
+    QuadTreeNode *root = NULL;
 
     int cameraLock = 0;
     Vector2 *cameraLockPosition = NULL;
@@ -385,7 +386,7 @@ int main(void)
                 if (!bodies)
                 {
                     bodies = initBodies(&numBodies);
-                    playerShip = bodies[4];
+                    playerShip = bodies[3];
                 }
                 gameState = GAME_RUNNING;
             }
@@ -442,7 +443,7 @@ int main(void)
             camera.zoom = _Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
 
             // Build QuadTree
-            QuadTreeNode *root = buildQuadTree(bodies, numBodies);
+            root = buildQuadTree(bodies, numBodies);
 
             // Update physics
             float scaledDt = dt * timeScale.val;
@@ -460,7 +461,6 @@ int main(void)
             }
             trailIndex += 1;
             trailIndex = trailIndex % PREVIOUS_POSITIONS;
-            freeQuadTree(root);
             break;
 
         case GAME_PAUSED:
@@ -490,6 +490,11 @@ int main(void)
         {
             drawCelestialGrid(1 / camera.zoom, 16);
             BeginMode2D(camera);
+            // if (root)
+            // {
+            //     drawQuadtree(root);
+            //     freeQuadTree(root);
+            // }
             drawPreviousPositions(bodies, numBodies);
             drawBodies(bodies, numBodies);
 

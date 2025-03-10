@@ -11,7 +11,7 @@
 #define PI 3.14159265358979323846f
 #endif
 #ifndef G
-#define G 6.67430e-9
+#define G 6.67430e-5
 #endif
 #define TRAJECTORY_STEPS 6000
 #define TRAJECTORY_STEP_TIME 0.033f
@@ -753,7 +753,7 @@ float calculateOrbitalSpeed(float mass, float radius)
 
 CelestialBody **initBodies(int *numBodies)
 {
-    *numBodies = 5;
+    *numBodies = 4;
     CelestialBody **bodies = malloc(sizeof(CelestialBody *) * (*numBodies));
 
     // Maximum 64-bit number is 1.8e19
@@ -762,75 +762,73 @@ CelestialBody **initBodies(int *numBodies)
     // All other masses are derived from Sol's mass
 
     // Simulating a supermassive black hole at the centre of the universe
-    bodies[0] = malloc(sizeof(CelestialBody));
-    *bodies[0] = (CelestialBody){.type = TYPE_UNIVERSE,
-                                 .name = strdup("Centre of Universe"),
-                                 .position = {0, 0},
-                                 .velocity = {0, 0},
-                                 .mass = 1e18f,
-                                 .radius = 1.0f,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-                                 .rotation = 0.0f};
+    // bodies[0] = malloc(sizeof(CelestialBody));
+    // *bodies[0] = (CelestialBody){.type = TYPE_UNIVERSE,
+    //                              .name = strdup("Centre of Universe"),
+    //                              .position = {0, 0},
+    //                              .velocity = {0, 0},
+    //                              .mass = 1e18f,
+    //                              .radius = 1.0f,
+    //                              .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+    //                              .rotation = 0.0f};
 
-    // Star - orbits the universe centre
-    float orbitalRadius = calculateOrbitalRadius(365 * 24 * 60 * 60, bodies[0]->mass);
-    bodies[1] = malloc(sizeof(CelestialBody));
-    *bodies[1] = (CelestialBody){.type = TYPE_STAR,
+    // Star
+    bodies[0] = malloc(sizeof(CelestialBody));
+    *bodies[0] = (CelestialBody){.type = TYPE_STAR,
                                  .name = strdup("Sol"),
-                                 .position = {orbitalRadius, 0},
+                                 .position = {100, 0},
                                  .velocity = {0, 0},
                                  .mass = 1e15f,
-                                 .radius = 3e4,
+                                 .radius = 3.2e5,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f};
-    float orbitalSpeed = calculateOrbitalSpeed(bodies[0]->mass, orbitalRadius);
-    bodies[1]->velocity = (Vector2){0, orbitalSpeed};
 
-    // Planet orbiting Star in 24 IRL hours
-    orbitalRadius = calculateOrbitalRadius(24 * 60 * 60, bodies[1]->mass);
-    bodies[2] = malloc(sizeof(CelestialBody));
-    *bodies[2] = (CelestialBody){.type = TYPE_PLANET,
+    // Planet orbiting Star
+    float orbitalRadius = calculateOrbitalRadius(24 * 60 * 60, bodies[0]->mass);
+    bodies[1] = malloc(sizeof(CelestialBody));
+    *bodies[1] = (CelestialBody){.type = TYPE_PLANET,
                                  .name = strdup("Earth"),
-                                 .position = {bodies[1]->position.x + orbitalRadius, 0},
+                                 .position = {bodies[0]->position.x + orbitalRadius, 0},
                                  .velocity = {0, 0},
                                  .mass = 1e9,
-                                 .radius = 3e2f,
+                                 .radius = 3.2e3f,
+                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+                                 .rotation = 0.0f};
+    bodies[1]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[0]->mass, orbitalRadius)};
+
+    // Moon orbiting Planet
+    orbitalRadius = calculateOrbitalRadius(12 * 60 * 60, bodies[1]->mass);
+    bodies[2] = malloc(sizeof(CelestialBody));
+    *bodies[2] = (CelestialBody){.type = TYPE_MOON,
+                                 .name = strdup("Moon1"),
+                                 .position = {bodies[1]->position.x + orbitalRadius, 0},
+                                 .velocity = {0, 0},
+                                 .mass = 1e7,
+                                 .radius = 3.2e2f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f};
     Vector2 relVel = (Vector2){0, -calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
     bodies[2]->velocity = Vector2Add(bodies[1]->velocity, relVel);
 
-    // Moon orbiting Planet
-    orbitalRadius = calculateOrbitalRadius(12 * 60 * 60, bodies[2]->mass);
-    bodies[3] = malloc(sizeof(CelestialBody));
-    *bodies[3] = (CelestialBody){.type = TYPE_MOON,
-                                 .name = strdup("Moon1"),
-                                 .position = {bodies[2]->position.x + orbitalRadius, 0},
-                                 .velocity = {0, 0},
-                                 .mass = 1e7,
-                                 .radius = 1e2f,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-                                 .rotation = 0.0f};
-    relVel = (Vector2){0, calculateOrbitalSpeed(bodies[2]->mass, orbitalRadius)};
-    bodies[3]->velocity = Vector2Add(bodies[2]->velocity, relVel);
-
     // Ship
-    bodies[4] = malloc(sizeof(CelestialBody));
-    *bodies[4] = (CelestialBody){.type = TYPE_SHIP,
+    // Ship texture is 64x64
+    bodies[3] = malloc(sizeof(CelestialBody));
+    *bodies[3] = (CelestialBody){.type = TYPE_SHIP,
                                  .name = strdup("Ship"),
-                                 .position = {0, -10000},
-                                 .velocity = {10.0f, 0},
+                                 .position = {0, 0},
+                                 .velocity = {0, 0},
                                  .mass = 1e1f,
-                                 .radius = 10.0f,
+                                 .radius = 32.0f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f,
                                  .shipSettings = (ShipSettings){
-                                     .thrust = 1e0f,
+                                     .thrust = 5e1f,
                                      .fuel = 100.0f,
                                      .fuelConsumption = 0.0f,
                                      .isSelected = true}};
-    orbitalSpeed = calculateOrbitalSpeed(bodies[4]->mass, 10000);
-    bodies[4]->velocity = (Vector2){orbitalSpeed, 0};
+    bodies[3]->position = Vector2Add(bodies[1]->position, (Vector2){1e4, 0});
+    float orbitalSpeed = calculateOrbitalSpeed(bodies[1]->mass, 1e3);
+    bodies[3]->velocity = (Vector2){0, orbitalSpeed};
 
     return bodies;
 }

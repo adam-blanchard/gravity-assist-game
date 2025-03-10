@@ -1,3 +1,10 @@
+## Next Steps
+
+1. [ ] Finish orbit and size scaling - Objects are moving too fast now and we're getting weird interactions - scale the system down
+2. [ ] Focus on player movement
+3. [ ] Add back textures
+4. [ ] Add game mechanics
+
 ## TODO
 
 - [ ] Take-off/landing system
