@@ -328,7 +328,6 @@
 
 int main(void)
 {
-    // Intended scaling - 1 day IRL is 1 minute in-game
     int screenWidth = 1280;
     int screenHeight = 720;
 
@@ -344,9 +343,9 @@ int main(void)
     GameState gameState = GAME_HOME;
 
     CameraSettings cameraSettings = {
-        .defaultZoom = 1e-2f,
+        .defaultZoom = 3e-2f,
         .minZoom = 1e-6f,
-        .maxZoom = 5.0f};
+        .maxZoom = 1.0f};
 
     Camera2D camera = {0};
     camera.rotation = 0.0f;
@@ -369,11 +368,12 @@ int main(void)
     int trailIndex = 0;
     QuadTreeNode *root = NULL;
 
-    int cameraLock = 0;
+    int cameraLock = 1;
     Vector2 *cameraLockPosition = NULL;
     camera.target = (Vector2){0, 0};
     camera.offset = (Vector2){wMid, hMid}; // Offset from camera target
 
+    // Load and initialise celestial body textures
     int numStarTextures = 1;
     Texture2D starTexture1 = LoadTexture("./textures/star/sun.png");
     Texture2D **starTextures = malloc(sizeof(Texture2D *) * (numStarTextures));
@@ -456,7 +456,7 @@ int main(void)
                 playerShip->shipSettings.fuel -= playerShip->shipSettings.fuelConsumption;
             }
 
-            camera.zoom += (float)GetMouseWheelMove() * 0.001f;
+            camera.zoom += (float)GetMouseWheelMove() * camera.zoom * (camera.zoom / 5.0f);
             camera.zoom = _Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
 
             // Build QuadTree
@@ -531,7 +531,7 @@ int main(void)
             DrawFPS(screenWidth - 100, 10);
             DrawText(TextFormat("Camera locked to: body %i", cameraLock), screenWidth - 280, 40, 20, DARKGRAY);
             DrawText(TextFormat("Time Scale: %.1fx", timeScale.val), screenWidth - 200, 70, 20, DARKGRAY);
-            DrawText(TextFormat("Zoom Level: %.2fx", calculateNormalisedZoom(&cameraSettings, camera.zoom)), screenWidth - 200, 100, 20, DARKGRAY);
+            DrawText(TextFormat("Zoom Level: %.3fx", calculateNormalisedZoom(&cameraSettings, camera.zoom)), screenWidth - 200, 100, 20, DARKGRAY);
 
             if (gameState == GAME_PAUSED)
             {

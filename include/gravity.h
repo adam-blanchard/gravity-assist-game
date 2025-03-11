@@ -841,8 +841,8 @@ CelestialBody **initBodies(int *numBodies, Texture2D **starTextures, Texture2D *
                                      .fuelConsumption = 0.0f,
                                      .isSelected = true}};
     bodies[3]->position = Vector2Add(bodies[1]->position, (Vector2){1e4, 0});
-    float orbitalSpeed = calculateOrbitalSpeed(bodies[1]->mass, 1e3);
-    bodies[3]->velocity = (Vector2){0, orbitalSpeed};
+    relVel = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, 1e4)};
+    bodies[3]->velocity = Vector2Add(bodies[1]->velocity, relVel);
 
     return bodies;
 }
