@@ -16,6 +16,7 @@
 #define TRAJECTORY_STEPS 6000
 #define TRAJECTORY_STEP_TIME 0.033f
 #define PREVIOUS_POSITIONS 1000
+#define TEXTURE_SCALE 1.2
 
 #define GRID_COLOUR \
     CLITERAL(Color) { 255, 255, 255, 50 }
@@ -38,11 +39,11 @@ typedef enum
 
 typedef enum
 {
-    TYPE_UNIVERSE, // Root node
     TYPE_STAR,
     TYPE_PLANET,
     TYPE_MOON,
-    TYPE_SHIP
+    TYPE_SHIP,
+    TYPE_SPACESTATION
 } CelestialType;
 
 typedef enum
@@ -206,31 +207,6 @@ Vector2 _Vector2Normalize(Vector2 v)
         v.y / length};
 }
 
-// Function to compute gravitational force between two bodies
-Vector2 gravitationalForce(Body *b1, Body *b2)
-{
-    Vector2 direction = _Vector2Subtract(&b2->position, &b1->position);
-    float distance = _Vector2Length(direction);
-    if (distance == 0)
-        return (Vector2){0, 0}; // Avoid division by zero
-
-    float forceMagnitude = G * b1->mass * b2->mass / (distance * distance);
-    direction = _Vector2Normalize(direction);
-    return _Vector2Scale(direction, forceMagnitude);
-}
-
-Vector2 gravitationalForce2(Vector2 *pos1, Vector2 *pos2, float mass1, float mass2)
-{
-    Vector2 direction = _Vector2Subtract(pos2, pos1);
-    float distance = _Vector2Length(direction);
-    if (distance == 0)
-        return (Vector2){0, 0}; // Avoid division by zero
-
-    float forceMagnitude = G * mass1 * mass2 / (distance * distance);
-    direction = _Vector2Normalize(direction);
-    return _Vector2Scale(direction, forceMagnitude);
-}
-
 float calculateOrbitalVelocity(float mass, float radius)
 {
     float orbitalVelocity = sqrtf((G * mass) / radius);
@@ -256,104 +232,6 @@ float calculateDistance(Vector2 *pos1, Vector2 *pos2)
     return (float)(radius);
 }
 
-void updateBodies(int n, Body *bodies, float dt)
-{
-    for (int m = 0; m < n; m++)
-    {
-        Vector2 force = {0};
-
-        for (int i = 0; i < n; i++)
-        {
-            if (m != i)
-            {
-                Vector2 planetaryForce = gravitationalForce(&bodies[m], &bodies[i]);
-                force = _Vector2Add(&force, &planetaryForce);
-            }
-        }
-
-        Vector2 acceleration = {force.x / bodies[m].mass, force.y / bodies[m].mass};
-
-        bodies[m].velocity.x += acceleration.x * dt;
-        bodies[m].velocity.y += acceleration.y * dt;
-
-        if (bodies[m].type == BODY_MOON)
-        {
-            int parentIndex = bodies[m].orbitalBodyIndex;
-            bodies[m].velocity = _Vector2Add(&bodies[parentIndex].velocity, &bodies[m].velocity);
-        }
-
-        bodies[m].position.x += bodies[m].velocity.x * dt;
-        bodies[m].position.y += bodies[m].velocity.y * dt;
-
-        // Handle body rotation
-        // bodies[m].rotation += 0.1f;
-    }
-}
-
-void updateShip(Ship *ship, int n, Body *bodies, float dt)
-{
-    ship->activeTexture = &ship->idleTexture;
-    if (ship->state == SHIP_FLYING)
-    {
-        // Apply rotation
-        if (IsKeyDown(KEY_D))
-            ship->rotation += 180.0f * dt; // Rotate right
-        if (IsKeyDown(KEY_A))
-            ship->rotation -= 180.0f * dt; // Rotate left
-
-        // Normalize rotation to keep it within 0-360 degrees
-        ship->rotation = fmod(ship->rotation + 360.0f, 360.0f);
-    }
-
-    // Apply thrust
-    if (IsKeyDown(KEY_W) && ship->fuel > 0)
-    {
-        // Convert rotation to radians for vector calculations
-        float radians = ship->rotation * PI / 180.0f;
-        Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
-        Vector2 thrust = _Vector2Scale(thrustDirection, ship->thrust * dt);
-        ship->velocity = _Vector2Add(&ship->velocity, &thrust);
-        ship->activeTexture = &ship->thrustTexture;
-        ship->fuel -= ship->fuelConsumption;
-
-        if (ship->state == SHIP_LANDED)
-        {
-            ship->state = SHIP_FLYING;
-            ship->landedBody = NULL;
-        }
-    }
-
-    ship->fuel = _Clamp(ship->fuel, 0.0f, 100.0f);
-
-    Vector2 force = {0};
-
-    if (ship->state == SHIP_FLYING)
-    {
-        for (int i = 0; i < n; i++)
-        {
-            Vector2 planetaryForce = gravitationalForce2(&ship->position, &bodies[i].position, ship->mass, bodies[i].mass);
-            force = _Vector2Add(&force, &planetaryForce);
-        }
-
-        Vector2 acceleration = {force.x / ship->mass, force.y / ship->mass};
-
-        Vector2 scaledAcceleration = _Vector2Scale(acceleration, dt);
-        ship->velocity = _Vector2Add(&ship->velocity, &scaledAcceleration);
-
-        Vector2 scaledVelocity = _Vector2Scale(ship->velocity, dt);
-        ship->position = _Vector2Add(&ship->position, &scaledVelocity);
-    }
-
-    if (ship->state == SHIP_LANDED)
-    {
-        Vector2 sub = _Vector2Subtract(&ship->position, &ship->landedBody->position);
-        Vector2 norm = _Vector2Normalize(sub);
-        Vector2 scale = _Vector2Scale(norm, ship->landedBody->radius + ship->colliderRadius);
-        ship->position = _Vector2Add(&ship->landedBody->position, &scale);
-        ship->velocity = ship->landedBody->velocity; // Only sync here if not taking off
-    }
-}
-
 float calculateAngle(Vector2 *planetPosition, Vector2 *sunPosition)
 {
     Vector2 relativePosition = _Vector2Subtract(planetPosition, sunPosition);
@@ -362,158 +240,6 @@ float calculateAngle(Vector2 *planetPosition, Vector2 *sunPosition)
 
     // Normalize to 0-360 degrees
     return fmod(angleInDegrees + 360.0f, 360.0f);
-}
-
-void initialiseRandomPositions(int n, Body *bodies, int maxWidth, int maxHeight)
-{
-    for (int i = 1; i < n; i++)
-    {
-        bodies[i].position.x = GetRandomValue(100, maxWidth);
-        bodies[i].position.y = GetRandomValue(100, maxHeight);
-    }
-}
-
-void predictBodyTrajectory(Body *body, Body *otherBodies, int numBodies, Vector2 *trajectory)
-{
-    Vector2 currentPosition = body->position;
-    Vector2 currentVelocity = body->velocity;
-
-    for (int i = 0; i < TRAJECTORY_STEPS; i++)
-    {
-        Vector2 totalForce = {0};
-        for (int j = 0; j < numBodies; j++)
-        {
-            if (&otherBodies[j] != body)
-            {
-                Vector2 force = gravitationalForce2(&currentPosition, &otherBodies[j].position, body->mass, otherBodies[j].mass);
-                totalForce = _Vector2Add(&totalForce, &force);
-            }
-        }
-
-        Vector2 acceleration = {totalForce.x / body->mass, totalForce.y / body->mass};
-
-        Vector2 scaledAcceleration = _Vector2Scale(acceleration, TRAJECTORY_STEP_TIME);
-        currentVelocity = _Vector2Add(&currentVelocity, &scaledAcceleration);
-
-        Vector2 scaledVelocity = _Vector2Scale(currentVelocity, TRAJECTORY_STEP_TIME);
-        currentPosition = _Vector2Add(&currentPosition, &scaledVelocity);
-
-        trajectory[i] = currentPosition;
-    }
-}
-
-void predictShipTrajectory(Ship *playerShip, Body *otherBodies, int numBodies, Vector2 *trajectory)
-{
-    // Isolated prediction of the ship based on current position and velocity
-    // TODO: improve trajectory accuracy by simulating all bodies x timesteps in advance
-    Vector2 currentPosition = playerShip->position;
-    Vector2 currentVelocity = playerShip->velocity;
-
-    for (int i = 0; i < TRAJECTORY_STEPS; i++)
-    {
-        Vector2 force = {0};
-
-        for (int j = 0; j < numBodies; j++)
-        {
-            Vector2 planetaryForce = gravitationalForce2(&currentPosition, &otherBodies[j].position, playerShip->mass, otherBodies[j].mass);
-            force = _Vector2Add(&force, &planetaryForce);
-        }
-
-        Vector2 acceleration = {force.x / playerShip->mass, force.y / playerShip->mass};
-
-        Vector2 scaledAcceleration = _Vector2Scale(acceleration, TRAJECTORY_STEP_TIME);
-        currentVelocity = _Vector2Add(&currentVelocity, &scaledAcceleration);
-
-        Vector2 scaledVelocity = _Vector2Scale(currentVelocity, TRAJECTORY_STEP_TIME);
-        currentPosition = _Vector2Add(&currentPosition, &scaledVelocity);
-
-        trajectory[i] = currentPosition;
-    }
-}
-
-void predictTrajectory(Vector2 *initialPosition, Vector2 *initialVelocity, float *mass, Body *otherBodies, int numBodies, Vector2 *trajectory)
-{
-    float radiusThreshold = 5.0f;
-    Vector2 currentPosition = *initialPosition;
-    Vector2 currentVelocity = *initialVelocity;
-
-    for (int i = 0; i < TRAJECTORY_STEPS; i++)
-    {
-        Vector2 totalForce = {0};
-        for (int j = 0; j < numBodies; j++)
-        {
-            if (calculateDistance(&currentPosition, &otherBodies[j].position) > radiusThreshold)
-            {
-                Vector2 force = gravitationalForce2(&currentPosition, &otherBodies[j].position, *mass, otherBodies[j].mass);
-                totalForce = _Vector2Add(&totalForce, &force);
-            }
-        }
-
-        Vector2 acceleration = {totalForce.x / *mass, totalForce.y / *mass};
-
-        Vector2 scaledAcceleration = _Vector2Scale(acceleration, TRAJECTORY_STEP_TIME);
-        currentVelocity = _Vector2Add(&currentVelocity, &scaledAcceleration);
-
-        Vector2 scaledVelocity = _Vector2Scale(currentVelocity, TRAJECTORY_STEP_TIME);
-        currentPosition = _Vector2Add(&currentPosition, &scaledVelocity);
-
-        trajectory[i] = currentPosition;
-    }
-}
-
-void predictTimesteps(Ship *playerShip, Body *bodies, int numBodies)
-{
-    for (int i = 0; i < TRAJECTORY_STEPS; i++)
-    {
-        for (int j = 0; j < numBodies; j++)
-        {
-            Vector2 force = {0};
-            Vector2 body1Position = {0};
-            Vector2 body1Velocity = {0};
-            Vector2 body2Position = {0};
-            Vector2 body2Velocity = {0};
-
-            if (i > 0)
-            {
-                body1Position = bodies[j].futurePositions[i - 1];
-                body1Velocity = bodies[j].futureVelocities[i - 1];
-            }
-            else
-            {
-                body1Position = bodies[j].position;
-                body1Velocity = bodies[j].velocity;
-            }
-
-            for (int k = 0; k < numBodies; k++)
-            {
-                if (i > 0)
-                {
-                    body2Position = bodies[k].futurePositions[i - 1];
-                    body1Velocity = bodies[k].futureVelocities[i - 1];
-                }
-                else
-                {
-                    body2Position = bodies[k].position;
-                    body1Velocity = bodies[k].velocity;
-                }
-
-                if (j != k)
-                {
-                    // Vector2 planetaryForce = gravitationalForce(&bodies[j], &bodies[k]);
-                    Vector2 planetaryForce = gravitationalForce2(&body1Position, &body2Position, bodies[j].mass, bodies[k].mass);
-                    force = _Vector2Add(&force, &planetaryForce);
-                }
-            }
-
-            Vector2 acceleration = {force.x / bodies[j].mass, force.y / bodies[j].mass};
-
-            bodies[j].futureVelocities[i].x += acceleration.x * TRAJECTORY_STEP_TIME;
-            bodies[j].futureVelocities[i].y += acceleration.y * TRAJECTORY_STEP_TIME;
-
-            bodies[j].futurePositions[i].y += bodies[j].futureVelocities[i].y * TRAJECTORY_STEP_TIME;
-            bodies[j].futurePositions[i].x += bodies[j].futureVelocities[i].x * TRAJECTORY_STEP_TIME;
-        }
-    }
 }
 
 float calculateOrbitalRadius(float period, float mStar)
@@ -558,30 +284,6 @@ void spawnRocketOnBody(Ship *ship, Body *planet)
     Vector2 planetSpawnLocation = (Vector2){0, -planet->radius};
     ship->position = _Vector2Add(&planet->position, &planetSpawnLocation);
     ship->velocity = planet->velocity;
-}
-
-void initialiseOrbitsv2(int n, Body *bodies)
-{
-    for (int i = 0; i < n; i++)
-    {
-        if (bodies[i].type != BODY_STAR)
-        {
-            int parentIndex = bodies[i].orbitalBodyIndex;
-            Body *parent = &bodies[parentIndex];
-
-            // Calculate orbital radius from period
-            bodies[i].orbitalRadius = calculateOrbitalRadius(bodies[i].orbitalPeriod, parent->mass);
-
-            // Set initial position (along x-axis for simplicity)
-            Vector2 pos = {bodies[i].orbitalRadius, 0};
-            bodies[i].position = _Vector2Add(&parent->position, &pos);
-
-            // Calculate orbital velocity
-            float orbitalVelocity = calculateOrbitalVelocity(parent->mass, bodies[i].orbitalRadius);
-            bodies[i].velocity = (Vector2){0, orbitalVelocity}; // Perpendicular to radius
-            bodies[i].velocity = _Vector2Add(&parent->velocity, &bodies[i].velocity);
-        }
-    }
 }
 
 QuadTreeNode *createNode(Rectangle bounds)
@@ -765,7 +467,7 @@ float calculateOrbitalSpeed(float mass, float radius)
     return (float){sqrtf((G * mass) / radius)};
 }
 
-CelestialBody **initBodies(int *numBodies, Texture2D **starTextures, Texture2D **planetTextures, Texture2D **moonTextures)
+CelestialBody **initBodies(int *numBodies, Texture2D **starTextures, Texture2D **planetTextures, Texture2D **moonTextures, Texture2D *shipTexture)
 {
     *numBodies = 4;
     CelestialBody **bodies = malloc(sizeof(CelestialBody *) * (*numBodies));
@@ -842,7 +544,8 @@ CelestialBody **initBodies(int *numBodies, Texture2D **starTextures, Texture2D *
                                      .thrust = 5e1f,
                                      .fuel = 100.0f,
                                      .fuelConsumption = 0.0f,
-                                     .isSelected = true}};
+                                     .isSelected = true},
+                                 .texture = shipTexture};
     bodies[3]->position = Vector2Add(bodies[1]->position, (Vector2){1e4, 0});
     relVel = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, 1e4)};
     bodies[3]->velocity = Vector2Add(bodies[1]->velocity, relVel);
@@ -852,14 +555,23 @@ CelestialBody **initBodies(int *numBodies, Texture2D **starTextures, Texture2D *
 
 void drawBodies(CelestialBody **bodies, int numBodies)
 {
+    // for (int i = 0; i < numBodies; i++)
+    // {
+    //     Color color = (bodies[i]->type == TYPE_STAR)     ? YELLOW
+    //                   : (bodies[i]->type == TYPE_PLANET) ? BLUE
+    //                   : (bodies[i]->type == TYPE_MOON)   ? GRAY
+    //                                                      : RED;
+    //     DrawCircleV(bodies[i]->position, bodies[i]->radius, color);
+    // }
+
     for (int i = 0; i < numBodies; i++)
     {
-        Color color = (bodies[i]->type == TYPE_UNIVERSE) ? BLACK
-                      : (bodies[i]->type == TYPE_STAR)   ? YELLOW
-                      : (bodies[i]->type == TYPE_PLANET) ? BLUE
-                      : (bodies[i]->type == TYPE_MOON)   ? GRAY
-                                                         : RED;
-        DrawCircleV(bodies[i]->position, bodies[i]->radius, color);
+
+        // Draw Body collider for debug
+        // DrawCircle(solSystem[i].position.x, solSystem[i].position.y, solSystem[i].radius, WHITE);
+        float scale = ((bodies[i]->radius * 2) / bodies[i]->texture->width) * TEXTURE_SCALE;
+        Vector2 pos = (Vector2){bodies[i]->position.x - (bodies[i]->radius * TEXTURE_SCALE), bodies[i]->position.y - (bodies[i]->radius * TEXTURE_SCALE)};
+        DrawTextureEx(*bodies[i]->texture, pos, bodies[i]->rotation, scale, WHITE);
     }
 }
 
@@ -885,8 +597,7 @@ void drawPreviousPositions(CelestialBody **bodies, int numBodies)
     {
         for (int j = 0; j < PREVIOUS_POSITIONS; j++)
         {
-            if (bodies[i]->type != TYPE_UNIVERSE)
-                DrawPixelV(bodies[i]->previousPositions[j], (Color){255, 255, 255, 255});
+            DrawPixelV(bodies[i]->previousPositions[j], (Color){255, 255, 255, 255});
         }
     }
 }

@@ -391,6 +391,8 @@ int main(void)
     Texture2D **moonTextures = malloc(sizeof(Texture2D *) * (numMoonTextures));
     moonTextures[0] = &moonTexture1;
 
+    Texture2D shipTexture = LoadTexture("./textures/ship/ship.png");
+
     while (!WindowShouldClose())
     {
         float dt = GetFrameTime();
@@ -402,7 +404,7 @@ int main(void)
             {
                 if (!bodies)
                 {
-                    bodies = initBodies(&numBodies, starTextures, planetTextures, moonTextures);
+                    bodies = initBodies(&numBodies, starTextures, planetTextures, moonTextures, &shipTexture);
                     playerShip = bodies[3];
                 }
                 gameState = GAME_RUNNING;
@@ -467,8 +469,6 @@ int main(void)
 
             for (int i = 0; i < numBodies; i++)
             {
-                if (bodies[i]->type == TYPE_UNIVERSE)
-                    continue;
                 Vector2 force = computeForce(root, bodies[i], theta);
                 Vector2 accel = Vector2Scale(force, 1.0f / bodies[i]->mass);
                 bodies[i]->velocity = Vector2Add(bodies[i]->velocity, Vector2Scale(accel, scaledDt));
@@ -557,7 +557,9 @@ int main(void)
 
     UnloadTexture(starTexture1);
     UnloadTexture(planetTexture1);
+    UnloadTexture(planetTexture2);
     UnloadTexture(moonTexture1);
+    UnloadTexture(shipTexture);
 
     if (starTextures)
     {

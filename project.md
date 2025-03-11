@@ -7,13 +7,12 @@
 
 ## TODO
 
+- [ ] Refactor CelestialGrid to be fixed in game space instead of rendered on the screen
 - [ ] Take-off/landing system
-- [ ] Retrograde and prograde burn indicators
 - [ ] Ship Customisation
 - [ ] KSP-style nav ball (nav circle for 2D)
 - [ ] Death state
 - [ ] Controls pop-out
-- [ ] Scale all masses, radius, and forces to be semi-realistic
 - [ ] Body rotation (need to rework the way bodies are rendered to set the rotation origin)
 - [ ] Planet type (volcanic, ice, gas etc.)
 - [ ] Star types - standard, red dwarf, white dwarf, black hole, pulsar, etc.
@@ -31,7 +30,6 @@
 - [ ] Ship upgrades - engines, fuel capacity, maneuverability, etc.
 - [ ] Asteroid mining
 - [ ] Universe map
-- [ ] Universe grid to show scale
 
 - [x] Render sun and planets
 - [x] Render ship
@@ -56,3 +54,5 @@
 - [x] Moons
 - [x] Home screen
 - [x] Pause screen
+- [x] Universe grid to show scale
+- [x] Scale all masses, radius, and forces to be semi-realistic
