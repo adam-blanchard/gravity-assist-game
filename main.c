@@ -387,7 +387,7 @@ int main(void)
     planetTextures[1] = &planetTexture2;
 
     int numMoonTextures = 1;
-    Texture2D moonTexture1 = LoadTexture("./textures/moon/moon.png");
+    Texture2D moonTexture1 = LoadTexture("./textures/moon/moon_1.png");
     Texture2D **moonTextures = malloc(sizeof(Texture2D *) * (numMoonTextures));
     moonTextures[0] = &moonTexture1;
 
@@ -495,7 +495,7 @@ int main(void)
 
         // Render
         BeginDrawing();
-        ClearBackground(BLACK);
+        ClearBackground(SPACE_COLOUR);
 
         if (gameState == GAME_HOME)
         {

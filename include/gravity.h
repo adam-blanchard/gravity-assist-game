@@ -20,6 +20,9 @@
 #define GRID_COLOUR \
     CLITERAL(Color) { 255, 255, 255, 50 }
 
+#define SPACE_COLOUR \
+    CLITERAL(Color) { 10, 10, 10, 255 }
+
 typedef enum
 {
     GAME_HOME,
