@@ -60,6 +60,7 @@ typedef struct ShipSettings
     float fuel;
     float fuelConsumption;
     bool isSelected;
+    Texture2D *thrustTexture;
 } ShipSettings;
 
 typedef struct CelestialBody
@@ -467,7 +468,7 @@ float calculateOrbitalSpeed(float mass, float radius)
     return (float){sqrtf((G * mass) / radius)};
 }
 
-CelestialBody **initBodies(int *numBodies, Texture2D **starTextures, Texture2D **planetTextures, Texture2D **moonTextures, Texture2D *shipTexture)
+CelestialBody **initBodies(int *numBodies, Texture2D **starTextures, Texture2D **planetTextures, Texture2D **moonTextures, Texture2D **shipTextures)
 {
     *numBodies = 4;
     CelestialBody **bodies = malloc(sizeof(CelestialBody *) * (*numBodies));
@@ -544,8 +545,9 @@ CelestialBody **initBodies(int *numBodies, Texture2D **starTextures, Texture2D *
                                      .thrust = 5e1f,
                                      .fuel = 100.0f,
                                      .fuelConsumption = 0.0f,
-                                     .isSelected = true},
-                                 .texture = shipTexture};
+                                     .isSelected = true,
+                                     .thrustTexture = shipTextures[1]},
+                                 .texture = shipTextures[0]};
     bodies[3]->position = Vector2Add(bodies[1]->position, (Vector2){1e4, 0});
     relVel = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, 1e4)};
     bodies[3]->velocity = Vector2Add(bodies[1]->velocity, relVel);
@@ -569,9 +571,30 @@ void drawBodies(CelestialBody **bodies, int numBodies)
 
         // Draw Body collider for debug
         // DrawCircle(solSystem[i].position.x, solSystem[i].position.y, solSystem[i].radius, WHITE);
+        // float scale = ((bodies[i]->radius * 2) / bodies[i]->texture->width) * TEXTURE_SCALE;
+        // Vector2 pos = (Vector2){bodies[i]->position.x - (bodies[i]->radius * TEXTURE_SCALE), bodies[i]->position.y - (bodies[i]->radius * TEXTURE_SCALE)};
+        // DrawTextureEx(*bodies[i]->texture, pos, bodies[i]->rotation, scale, WHITE);
+
         float scale = ((bodies[i]->radius * 2) / bodies[i]->texture->width) * TEXTURE_SCALE;
-        Vector2 pos = (Vector2){bodies[i]->position.x - (bodies[i]->radius * TEXTURE_SCALE), bodies[i]->position.y - (bodies[i]->radius * TEXTURE_SCALE)};
-        DrawTextureEx(*bodies[i]->texture, pos, bodies[i]->rotation, scale, WHITE);
+        // Source rectangle (part of the texture to use for drawing i.e. the whole texture)
+        Rectangle source = {
+            0,
+            0,
+            (float)bodies[i]->texture->width,
+            (float)bodies[i]->texture->height};
+        // Destination rectangle (Screen rectangle locating where to draw the texture)
+        // TODO: Scale texture by relevant amount by subtracting from star positions and adding to end positions
+        float scaleParam = (bodies[i]->texture->width * scale / 2);
+        Rectangle dest = {
+            bodies[i]->position.x,
+            bodies[i]->position.y,
+            (float)bodies[i]->texture->width,
+            (float)bodies[i]->texture->height};
+        // Origin of the texture for rotation and scaling - centre for our purpose
+        Vector2 origin = {
+            (float)bodies[i]->texture->width / 2,
+            (float)bodies[i]->texture->height / 2};
+        DrawTexturePro(*bodies[i]->texture, source, dest, origin, bodies[i]->rotation, WHITE);
     }
 }
 

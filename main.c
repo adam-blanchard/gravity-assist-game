@@ -391,7 +391,12 @@ int main(void)
     Texture2D **moonTextures = malloc(sizeof(Texture2D *) * (numMoonTextures));
     moonTextures[0] = &moonTexture1;
 
-    Texture2D shipTexture = LoadTexture("./textures/ship/ship.png");
+    int numShipTextures = 2;
+    Texture2D shipTexture = LoadTexture("./textures/ship/ship_1.png");
+    Texture2D shipThrustTexture = LoadTexture("./textures/ship/ship_1_thrust.png");
+    Texture2D **shipTextures = malloc(sizeof(Texture2D *) * (numShipTextures));
+    shipTextures[0] = &shipTexture;
+    shipTextures[1] = &shipThrustTexture;
 
     while (!WindowShouldClose())
     {
@@ -404,7 +409,7 @@ int main(void)
             {
                 if (!bodies)
                 {
-                    bodies = initBodies(&numBodies, starTextures, planetTextures, moonTextures, &shipTexture);
+                    bodies = initBodies(&numBodies, starTextures, planetTextures, moonTextures, shipTextures);
                     playerShip = bodies[3];
                 }
                 gameState = GAME_RUNNING;
@@ -446,7 +451,7 @@ int main(void)
 
             // Normalize rotation to keep it within 0-360 degrees
             playerShip->rotation = fmod(playerShip->rotation + 360.0f, 360.0f);
-
+            playerShip->texture = shipTextures[0];
             if (IsKeyDown(KEY_W))
             {
                 // Convert rotation to radians for vector calculations
@@ -454,11 +459,11 @@ int main(void)
                 Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
                 Vector2 thrust = _Vector2Scale(thrustDirection, playerShip->shipSettings.thrust * dt);
                 playerShip->velocity = _Vector2Add(&playerShip->velocity, &thrust);
-                // playerShip->activeTexture = &playerShip->thrustTexture;
+                playerShip->texture = shipTextures[1];
                 playerShip->shipSettings.fuel -= playerShip->shipSettings.fuelConsumption;
             }
 
-            camera.zoom += (float)GetMouseWheelMove() * camera.zoom * (camera.zoom / 5.0f);
+            camera.zoom += (float)GetMouseWheelMove() * camera.zoom * (camera.zoom / 4.0f);
             camera.zoom = _Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
 
             // Build QuadTree
@@ -469,6 +474,7 @@ int main(void)
 
             for (int i = 0; i < numBodies; i++)
             {
+                // bodies[i]->rotation += 0.1f;
                 Vector2 force = computeForce(root, bodies[i], theta);
                 Vector2 accel = Vector2Scale(force, 1.0f / bodies[i]->mass);
                 bodies[i]->velocity = Vector2Add(bodies[i]->velocity, Vector2Scale(accel, scaledDt));
@@ -560,6 +566,7 @@ int main(void)
     UnloadTexture(planetTexture2);
     UnloadTexture(moonTexture1);
     UnloadTexture(shipTexture);
+    UnloadTexture(shipThrustTexture);
 
     if (starTextures)
     {
@@ -586,6 +593,15 @@ int main(void)
             free(moonTextures[i]);
         }
         free(moonTextures);
+    }
+
+    if (shipTextures)
+    {
+        for (int i = 0; i < numShipTextures; i++)
+        {
+            free(shipTextures[i]);
+        }
+        free(shipTextures);
     }
 
     CloseWindow();
