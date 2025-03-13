@@ -16,10 +16,10 @@
 #define TRAJECTORY_STEPS 6000
 #define TRAJECTORY_STEP_TIME 0.033f
 #define PREVIOUS_POSITIONS 1000
-#define TEXTURE_SCALE 2.7
+#define TEXTURE_SCALE 2.8
 #define GRID_SPACING 1e2
 #define GRID_LINE_WIDTH 100
-#define HUD_ARROW_SCALE 2
+#define HUD_ARROW_SCALE 0.01
 
 #define TRAIL_COLOUR \
     CLITERAL(Color) { 255, 255, 255, 255 }
@@ -52,13 +52,7 @@ typedef enum
     TYPE_SPACESTATION
 } CelestialType;
 
-typedef enum
-{
-    BODY_STAR,
-    BODY_PLANET,
-    BODY_MOON,
-    BODY_ASTEROID
-} BodyType;
+typedef struct CelestialBody CelestialBody;
 
 typedef struct ShipSettings
 {
@@ -67,6 +61,9 @@ typedef struct ShipSettings
     float fuelConsumption;
     bool isSelected;
     Texture2D *thrustTexture;
+    ShipState state;
+    CelestialBody *landedBody;
+    Vector2 landingPosition;
 } ShipSettings;
 
 typedef struct CelestialBody
@@ -83,14 +80,16 @@ typedef struct CelestialBody
     Texture2D *texture;
 } CelestialBody;
 
-typedef struct
+typedef struct GameTextures
 {
     int numStarTextures;
-    Texture2D *starTextures;
+    Texture2D **starTextures;
     int numPlanetTextures;
-    Texture2D *planetTextures;
+    Texture2D **planetTextures;
     int numMoonTextures;
-    Texture2D *moonTextures;
+    Texture2D **moonTextures;
+    int numShipTextures;
+    Texture2D **shipTextures;
 } GameTextures;
 
 typedef struct QuadTreeNode
@@ -101,48 +100,6 @@ typedef struct QuadTreeNode
     struct QuadTreeNode *children[4]; // NW, NE, SW, SE quadrants
     CelestialBody *body;              // Pointer to body if leaf node; NULL otherwise
 } QuadTreeNode;
-
-// Structure to represent celestial bodies
-typedef struct
-{
-    char name[16];
-    Vector2 position;
-    Vector2 velocity;
-    float mass; // Kg
-    float radius;
-    float rotation;
-    float rotationPeriod;
-    float orbitalPeriod; // 1 is 10 seconds so 360 represents an orbital period of 1 hour
-    float orbitalRadius;
-    BodyType type;
-    int orbitalBodyIndex; // Reference to the primary body this body orbits around - planets around a star, moons around a planet
-    Vector2 *futurePositions;
-    Vector2 *futureVelocities;
-    int futureSteps;
-    int fontSize;
-    Texture2D texture;
-} Body;
-
-typedef struct
-{
-    Vector2 position;
-    Vector2 velocity;
-    float mass; // Kg
-    float rotation;
-    float thrust; // kN
-    float fuel;
-    float fuelConsumption;
-    float colliderRadius;
-    ShipState state;
-    int alive;
-    Body *landedBody;
-    Vector2 *futurePositions;
-    Vector2 *futureVelocitites;
-    int futureSteps;
-    Texture2D idleTexture;
-    Texture2D thrustTexture;
-    Texture2D *activeTexture;
-} Ship;
 
 typedef struct
 {
@@ -155,6 +112,7 @@ typedef struct
 typedef struct
 {
     float speed;
+    Texture2D compassTexture;
     Texture2D arrowTexture;
 } HUD;
 
@@ -267,12 +225,6 @@ void decrementWarp(WarpController *timeScale, float dt)
     timeScale->val = _Clamp(timeScale->val, timeScale->min, timeScale->max);
 }
 
-float calculateShipSpeed(Ship *playerShip, Vector2 *targetVelocity)
-{
-    Vector2 relativeVelocity = _Vector2Subtract(&playerShip->velocity, targetVelocity);
-    return sqrtf((relativeVelocity.x * relativeVelocity.x) + (relativeVelocity.y * relativeVelocity.y));
-}
-
 float calculateRelativeSpeed(CelestialBody *body1, CelestialBody *body2)
 {
     Vector2 relativeVelocity = Vector2Subtract(body1->velocity, body2->velocity);
@@ -282,26 +234,6 @@ float calculateRelativeSpeed(CelestialBody *body1, CelestialBody *body2)
 float calculateAbsoluteSpeed(CelestialBody *body)
 {
     return sqrtf((body->velocity.x * body->velocity.x) + (body->velocity.y * body->velocity.y));
-}
-
-void landShip(Ship *ship, Body *planet)
-{
-    ship->state = SHIP_LANDED;
-    ship->landedBody = planet;
-    ship->velocity = planet->velocity;
-
-    // Position ship on planet’s surface
-    // Vector2 direction = _Vector2Subtract(&ship->position, &planet->position);
-    // direction = _Vector2Normalize(direction);
-    // Vector2 scaledDirection = _Vector2Scale(direction, planet->radius + ship->colliderRadius);
-    // ship->position = _Vector2Add(&planet->position, &scaledDirection);
-}
-
-void spawnRocketOnBody(Ship *ship, Body *planet)
-{
-    Vector2 planetSpawnLocation = (Vector2){0, -planet->radius};
-    ship->position = _Vector2Add(&planet->position, &planetSpawnLocation);
-    ship->velocity = planet->velocity;
 }
 
 float calculateOrbitalSpeed(float mass, float radius)
@@ -391,11 +323,6 @@ QuadTreeNode *buildQuadTree(CelestialBody **bodies, int numBodies)
         minY = fmin(minY, bodies[i]->position.y);
         maxY = fmax(maxY, bodies[i]->position.y);
     }
-    // float padding = 10.0f;
-    // minX -= padding;
-    // maxX += padding;
-    // minY -= padding;
-    // maxY += padding;
     float width = maxX - minX, height = maxY - minY;
     if (width > height)
         minY -= (width - height) / 2;
@@ -486,26 +413,10 @@ void detectCollisions(CelestialBody **bodies, int numBodies, QuadTreeNode *node,
     }
 }
 
-CelestialBody **initBodies(int *numBodies, Texture2D **starTextures, Texture2D **planetTextures, Texture2D **moonTextures, Texture2D **shipTextures)
+CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
 {
     *numBodies = 4;
     CelestialBody **bodies = malloc(sizeof(CelestialBody *) * (*numBodies));
-
-    // Maximum 64-bit number is 1.8e19
-    // Heaviest object in the universe is the supermassive black hole at the centre - 1e18
-    // The supermassive black hole is 1 million solar masses of Sol
-    // All other masses are derived from Sol's mass
-
-    // Simulating a supermassive black hole at the centre of the universe
-    // bodies[0] = malloc(sizeof(CelestialBody));
-    // *bodies[0] = (CelestialBody){.type = TYPE_UNIVERSE,
-    //                              .name = strdup("Centre of Universe"),
-    //                              .position = {0, 0},
-    //                              .velocity = {0, 0},
-    //                              .mass = 1e18f,
-    //                              .radius = 1.0f,
-    //                              .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-    //                              .rotation = 0.0f};
 
     // Star
     bodies[0] = malloc(sizeof(CelestialBody));
@@ -517,7 +428,7 @@ CelestialBody **initBodies(int *numBodies, Texture2D **starTextures, Texture2D *
                                  .radius = 3.2e5,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f,
-                                 .texture = starTextures[0]};
+                                 .texture = gameTextures->starTextures[0]};
 
     // Planet orbiting Star
     float orbitalRadius = calculateOrbitalRadius(24 * 60 * 60, bodies[0]->mass);
@@ -530,7 +441,7 @@ CelestialBody **initBodies(int *numBodies, Texture2D **starTextures, Texture2D *
                                  .radius = 3.2e3f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f,
-                                 .texture = planetTextures[0]};
+                                 .texture = gameTextures->planetTextures[0]};
     bodies[1]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[0]->mass, orbitalRadius)};
 
     // Moon orbiting Planet
@@ -544,7 +455,7 @@ CelestialBody **initBodies(int *numBodies, Texture2D **starTextures, Texture2D *
                                  .radius = 3.2e2f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f,
-                                 .texture = moonTextures[0]};
+                                 .texture = gameTextures->moonTextures[0]};
     Vector2 relVel = (Vector2){0, -calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
     bodies[2]->velocity = Vector2Add(bodies[1]->velocity, relVel);
 
@@ -564,8 +475,11 @@ CelestialBody **initBodies(int *numBodies, Texture2D **starTextures, Texture2D *
                                      .fuel = 100.0f,
                                      .fuelConsumption = 0.0f,
                                      .isSelected = true,
-                                     .thrustTexture = shipTextures[1]},
-                                 .texture = shipTextures[0]};
+                                     .thrustTexture = gameTextures->shipTextures[1],
+                                     .state = SHIP_FLYING,
+                                     .landedBody = NULL,
+                                     .landingPosition = {0}},
+                                 .texture = gameTextures->shipTextures[0]};
     bodies[3]->position = Vector2Add(bodies[1]->position, (Vector2){1e4, 0});
     relVel = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, 1e4)};
     bodies[3]->velocity = Vector2Add(bodies[1]->velocity, relVel);
@@ -673,6 +587,7 @@ void drawPlayerHUD(HUD *playerHUD, float *shipRotation, CelestialBody *velocityT
     int screenHeight = GetScreenHeight();
     float wMid = screenWidth / 2;
     float hMid = screenHeight / 2;
+    // DrawCircle(wMid, screenHeight - 100, 100, (Color){255, 255, 255, 100});
     if (velocityTarget)
     {
         DrawText(TextFormat("Velocity Lock: %s", velocityTarget->name), screenWidth / 2 - MeasureText(TextFormat("Velocity Lock: %s", velocityTarget->name), 16) / 2, screenHeight - 120, 16, WHITE);
@@ -683,10 +598,38 @@ void drawPlayerHUD(HUD *playerHUD, float *shipRotation, CelestialBody *velocityT
         // char text = "Velocity Lock: Absolute";
         DrawText("Velocity Lock: Absolute", screenWidth / 2 - MeasureText("Velocity Lock: Absolute", 16) / 2, screenHeight - 120, 16, WHITE);
     }
-    DrawText(TextFormat("%.1fm/s", playerHUD->speed), screenWidth / 2 - MeasureText(TextFormat("%.1fm/s", playerHUD->speed), 16) / 2, screenHeight - 100, 16, WHITE);
-    Rectangle arrowSource = {0, 0, (float)playerHUD->arrowTexture.width, (float)playerHUD->arrowTexture.height};
-    Rectangle arrowDest = {wMid, screenHeight - 50, (float)playerHUD->arrowTexture.width * HUD_ARROW_SCALE, (float)playerHUD->arrowTexture.height * HUD_ARROW_SCALE};
-    Vector2 arrowOrigin = {(float)playerHUD->arrowTexture.width / 2, (float)playerHUD->arrowTexture.height / 2};
+    DrawText(TextFormat("%.1fkm/s", playerHUD->speed), screenWidth / 2 - MeasureText(TextFormat("%.1fkm/s", playerHUD->speed), 16) / 2, screenHeight - 100, 16, WHITE);
+
+    Rectangle compassSource = {
+        0,
+        0,
+        (float)playerHUD->compassTexture.width,
+        (float)playerHUD->compassTexture.height};
+    Rectangle compassDest = {
+        wMid,
+        screenHeight - 50,
+        (float)playerHUD->compassTexture.width,
+        (float)playerHUD->compassTexture.height};
+    Vector2 compassOrigin = {
+        (float)((playerHUD->compassTexture.width) / 2),
+        (float)((playerHUD->compassTexture.height) / 2)};
+    DrawTexturePro(playerHUD->compassTexture, compassSource, compassDest, compassOrigin, 0.0f, WHITE);
+
+    float widthScale = (playerHUD->arrowTexture.width * -0.5 / 2);
+    float heightScale = (playerHUD->arrowTexture.height * -0.5 / 2);
+    Rectangle arrowSource = {
+        0,
+        0,
+        (float)playerHUD->arrowTexture.width,
+        (float)playerHUD->arrowTexture.height};
+    Rectangle arrowDest = {
+        wMid,
+        screenHeight - 50,
+        (float)playerHUD->arrowTexture.width + widthScale,
+        (float)playerHUD->arrowTexture.height + heightScale};
+    Vector2 arrowOrigin = {
+        (float)((playerHUD->arrowTexture.width + widthScale) / 2),
+        (float)((playerHUD->arrowTexture.height + heightScale) / 2)};
     DrawTexturePro(playerHUD->arrowTexture, arrowSource, arrowDest, arrowOrigin, *shipRotation, WHITE);
 }
 
@@ -747,19 +690,101 @@ void drawCelestialGrid(CelestialBody **bodies, int numBodies, Camera2D camera)
     }
 }
 
-// GameTextures loadGameTextures()
-// {
-//     Texture2D star1 = LoadTexture("./textures/star/sun.png");
-//     Texture2D planet1 = LoadTexture("./textures/planet/planet_1.png");
-//     Texture2D moon1 = LoadTexture("./textures/moon/moon.png");
+void landShip(CelestialBody *ship, CelestialBody *body)
+{
+    if (ship->type != TYPE_SHIP || ship->shipSettings.state == SHIP_LANDED)
+        return;
 
-//     GameTextures gameTextures = {
-//         .numStarTextures = 1,
-//         .starTextures = {&star1},
-//         .numPlanetTextures = 1,
-//         .planetTextures = {&planet1},
-//         .numMoonTextures = 1,
-//         .moonTextures = {&moon1}};
+    // Set landing state
+    ship->shipSettings.state = SHIP_LANDED;
+    ship->shipSettings.landedBody = body;
+    ship->velocity = body->velocity; // Match velocity to the body
 
-//     return gameTextures;
-// }
+    Vector2 direction = Vector2Subtract(ship->position, body->position);
+    float distance = Vector2Length(direction);
+    direction = Vector2Normalize(direction);
+
+    // Position ship on the surface and store landing position
+    Vector2 surfacePosition = Vector2Scale(direction, body->radius + ship->radius);
+    ship->position = Vector2Add(body->position, surfacePosition);
+    ship->shipSettings.landingPosition = surfacePosition; // Store relative position
+}
+
+void takeoffShip(CelestialBody *ship)
+{
+    if (ship->type != TYPE_SHIP || ship->shipSettings.state != SHIP_LANDED || ship->shipSettings.landedBody == NULL)
+        return;
+
+    // Set flying state
+    ship->shipSettings.state = SHIP_FLYING;
+
+    // Calculate takeoff direction (normal to surface)
+    Vector2 direction = Vector2Normalize(ship->shipSettings.landingPosition);
+    float takeoffSpeed = calculateEscapeVelocity(ship->shipSettings.landedBody->mass, ship->shipSettings.landedBody->radius) * 0.8f; // Slightly less than escape velocity
+    Vector2 takeoffVelocity = Vector2Scale(direction, takeoffSpeed);
+
+    // Set velocity relative to the body's velocity
+    ship->velocity = Vector2Add(ship->shipSettings.landedBody->velocity, takeoffVelocity);
+
+    // Clear landed body reference
+    ship->shipSettings.landedBody = NULL;
+}
+
+void updateShipPosition(CelestialBody *ship)
+{
+    if (ship->type == TYPE_SHIP && ship->shipSettings.state == SHIP_LANDED && ship->shipSettings.landedBody != NULL)
+    {
+        // Keep ship positioned at the landing spot relative to the body
+        ship->position = _Vector2Add(&ship->shipSettings.landedBody->position, &ship->shipSettings.landingPosition);
+        ship->velocity = ship->shipSettings.landedBody->velocity; // Sync velocity
+    }
+}
+
+void freeGameTextures(GameTextures gameTextures)
+{
+    if (
+        gameTextures.numStarTextures > 0 || gameTextures.numPlanetTextures > 0 || gameTextures.numMoonTextures > 0 || gameTextures.numShipTextures > 0)
+    {
+        for (int i = 0; i < gameTextures.numStarTextures; i++)
+        {
+            UnloadTexture(*gameTextures.starTextures[i]);
+            free(gameTextures.starTextures[i]);
+        }
+        free(gameTextures.starTextures);
+
+        for (int i = 0; i < gameTextures.numPlanetTextures; i++)
+        {
+            UnloadTexture(*gameTextures.planetTextures[i]);
+            free(gameTextures.planetTextures[i]);
+        }
+        free(gameTextures.planetTextures);
+
+        for (int i = 0; i < gameTextures.numMoonTextures; i++)
+        {
+            UnloadTexture(*gameTextures.moonTextures[i]);
+            free(gameTextures.moonTextures[i]);
+        }
+        free(gameTextures.moonTextures);
+
+        for (int i = 0; i < gameTextures.numShipTextures; i++)
+        {
+            UnloadTexture(*gameTextures.shipTextures[i]);
+            free(gameTextures.shipTextures[i]);
+        }
+        free(gameTextures.shipTextures);
+    }
+}
+
+void freeCelestialBodies(CelestialBody **bodies, int numBodies)
+{
+    if (bodies)
+    {
+        for (int i = 0; i < numBodies; i++)
+        {
+            free(bodies[i]->name);
+            free(bodies[i]->previousPositions);
+            free(bodies[i]);
+        }
+        free(bodies);
+    }
+}

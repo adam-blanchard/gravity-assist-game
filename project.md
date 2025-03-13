@@ -7,7 +7,6 @@
 
 ## TODO
 
-- [ ] Add back relative speed indicator
 - [ ] Take-off/landing system
 - [ ] Space stations
 - [ ] Add more planets, moons, and other star systems
@@ -59,3 +58,4 @@
 - [x] Scale all masses, radius, and forces to be semi-realistic
 - [x] Body rotation (need to rework the way bodies are rendered to set the rotation origin)
 - [x] Refactor CelestialGrid to be fixed in game space instead of rendered on the screen
+- [x] Add back relative speed indicator
