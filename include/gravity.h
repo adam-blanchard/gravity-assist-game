@@ -20,6 +20,7 @@
 #define GRID_SPACING 1e2
 #define GRID_LINE_WIDTH 100
 #define HUD_ARROW_SCALE 0.01
+#define MAX_LANDING_SPEED 50
 
 #define TRAIL_COLOUR \
     CLITERAL(Color) { 255, 255, 255, 255 }
@@ -123,55 +124,6 @@ typedef struct
     float maxZoom;
 } CameraSettings;
 
-float _Clamp(float value, float min, float max)
-{
-    if (value < min)
-        return min;
-    if (value > max)
-        return max;
-    return value;
-}
-
-Vector2 _Vector2Add(Vector2 *v1, Vector2 *v2)
-{
-    return (Vector2){
-        v1->x + v2->x,
-        v1->y + v2->y};
-}
-
-Vector2 _Vector2Subtract(Vector2 *v1, Vector2 *v2)
-{
-    return (Vector2){
-        v1->x - v2->x,
-        v1->y - v2->y};
-}
-
-Vector2 _Vector2Scale(Vector2 v, float scalar)
-{
-    return (Vector2){
-        v.x * scalar,
-        v.y * scalar};
-}
-
-float _Vector2Length(Vector2 v)
-{
-    return (float){
-        sqrtf(v.x * v.x + v.y * v.y)};
-}
-
-Vector2 _Vector2Normalize(Vector2 v)
-{
-    float length = sqrtf(v.x * v.x + v.y * v.y);
-
-    // Avoid division by zero
-    if (length == 0)
-        return (Vector2){0, 0};
-
-    return (Vector2){
-        v.x / length,
-        v.y / length};
-}
-
 float calculateOrbitalVelocity(float mass, float radius)
 {
     float orbitalVelocity = sqrtf((G * mass) / radius);
@@ -197,16 +149,6 @@ float calculateDistance(Vector2 *pos1, Vector2 *pos2)
     return (float)(radius);
 }
 
-float calculateAngle(Vector2 *planetPosition, Vector2 *sunPosition)
-{
-    Vector2 relativePosition = _Vector2Subtract(planetPosition, sunPosition);
-    float angleInRadians = atan2f(relativePosition.y, relativePosition.x);
-    float angleInDegrees = angleInRadians * (180.0f / PI);
-
-    // Normalize to 0-360 degrees
-    return fmod(angleInDegrees + 360.0f, 360.0f);
-}
-
 float calculateOrbitalRadius(float period, float mStar)
 {
     float r3 = (period * period * G * mStar) / (4 * PI * PI);
@@ -216,13 +158,13 @@ float calculateOrbitalRadius(float period, float mStar)
 void incrementWarp(WarpController *timeScale, float dt)
 {
     timeScale->val += timeScale->increment * timeScale->val * dt;
-    timeScale->val = _Clamp(timeScale->val, timeScale->min, timeScale->max);
+    timeScale->val = Clamp(timeScale->val, timeScale->min, timeScale->max);
 }
 
 void decrementWarp(WarpController *timeScale, float dt)
 {
     timeScale->val -= timeScale->increment * timeScale->val * dt;
-    timeScale->val = _Clamp(timeScale->val, timeScale->min, timeScale->max);
+    timeScale->val = Clamp(timeScale->val, timeScale->min, timeScale->max);
 }
 
 float calculateRelativeSpeed(CelestialBody *body1, CelestialBody *body2)
@@ -239,6 +181,46 @@ float calculateAbsoluteSpeed(CelestialBody *body)
 float calculateOrbitalSpeed(float mass, float radius)
 {
     return (float){sqrtf((G * mass) / radius)};
+}
+
+void landShip(CelestialBody *ship, CelestialBody *body)
+{
+    if (ship->type != TYPE_SHIP || ship->shipSettings.state == SHIP_LANDED)
+        return;
+
+    // Set landing state
+    ship->shipSettings.state = SHIP_LANDED;
+    ship->shipSettings.landedBody = body;
+    ship->velocity = body->velocity; // Match velocity to the body
+
+    Vector2 direction = Vector2Subtract(ship->position, body->position);
+    float distance = Vector2Length(direction);
+    direction = Vector2Normalize(direction);
+
+    // Position ship on the surface and store landing position
+    Vector2 surfacePosition = Vector2Scale(direction, body->radius + ship->radius);
+    ship->position = Vector2Add(body->position, surfacePosition);
+    ship->shipSettings.landingPosition = surfacePosition; // Store relative position
+}
+
+void takeoffShip(CelestialBody *ship)
+{
+    if (ship->type != TYPE_SHIP || ship->shipSettings.state != SHIP_LANDED || ship->shipSettings.landedBody == NULL)
+        return;
+
+    // Set flying state
+    ship->shipSettings.state = SHIP_FLYING;
+
+    // Calculate takeoff direction (normal to surface)
+    Vector2 direction = Vector2Normalize(ship->shipSettings.landingPosition);
+    float takeoffSpeed = calculateEscapeVelocity(ship->shipSettings.landedBody->mass, ship->shipSettings.landedBody->radius) * 0.8f; // Slightly less than escape velocity
+    Vector2 takeoffVelocity = Vector2Scale(direction, takeoffSpeed);
+
+    // Set velocity relative to the body's velocity
+    ship->velocity = Vector2Add(ship->shipSettings.landedBody->velocity, takeoffVelocity);
+
+    // Clear landed body reference
+    ship->shipSettings.landedBody = NULL;
 }
 
 QuadTreeNode *createNode(Rectangle bounds)
@@ -394,12 +376,20 @@ void detectCollisions(CelestialBody **bodies, int numBodies, QuadTreeNode *node,
         if (dist < (body->radius + node->body->radius))
         {
             printf("Collision between %s and %s\n", body->name, node->body->name);
-            if (body->type == TYPE_SHIP)
+            if (body->type == TYPE_SHIP && body->shipSettings.state != SHIP_LANDED)
             {
-                // Reset ship (example handling)
-                body->position = Vector2Add(bodies[1]->position, (Vector2){1e4, 0});
-                Vector2 relVel = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, 1e4)};
-                body->velocity = Vector2Add(bodies[1]->velocity, relVel);
+                float relVel = calculateRelativeSpeed(body, node->body);
+                if (relVel <= MAX_LANDING_SPEED)
+                {
+                    landShip(body, node->body);
+                }
+                else
+                {
+                    // Reset ship (example handling)
+                    body->position = Vector2Add(bodies[1]->position, (Vector2){1e4, 0});
+                    Vector2 relVel = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, 1e4)};
+                    body->velocity = Vector2Add(bodies[1]->velocity, relVel);
+                }
             }
         }
         return;
@@ -690,52 +680,12 @@ void drawCelestialGrid(CelestialBody **bodies, int numBodies, Camera2D camera)
     }
 }
 
-void landShip(CelestialBody *ship, CelestialBody *body)
-{
-    if (ship->type != TYPE_SHIP || ship->shipSettings.state == SHIP_LANDED)
-        return;
-
-    // Set landing state
-    ship->shipSettings.state = SHIP_LANDED;
-    ship->shipSettings.landedBody = body;
-    ship->velocity = body->velocity; // Match velocity to the body
-
-    Vector2 direction = Vector2Subtract(ship->position, body->position);
-    float distance = Vector2Length(direction);
-    direction = Vector2Normalize(direction);
-
-    // Position ship on the surface and store landing position
-    Vector2 surfacePosition = Vector2Scale(direction, body->radius + ship->radius);
-    ship->position = Vector2Add(body->position, surfacePosition);
-    ship->shipSettings.landingPosition = surfacePosition; // Store relative position
-}
-
-void takeoffShip(CelestialBody *ship)
-{
-    if (ship->type != TYPE_SHIP || ship->shipSettings.state != SHIP_LANDED || ship->shipSettings.landedBody == NULL)
-        return;
-
-    // Set flying state
-    ship->shipSettings.state = SHIP_FLYING;
-
-    // Calculate takeoff direction (normal to surface)
-    Vector2 direction = Vector2Normalize(ship->shipSettings.landingPosition);
-    float takeoffSpeed = calculateEscapeVelocity(ship->shipSettings.landedBody->mass, ship->shipSettings.landedBody->radius) * 0.8f; // Slightly less than escape velocity
-    Vector2 takeoffVelocity = Vector2Scale(direction, takeoffSpeed);
-
-    // Set velocity relative to the body's velocity
-    ship->velocity = Vector2Add(ship->shipSettings.landedBody->velocity, takeoffVelocity);
-
-    // Clear landed body reference
-    ship->shipSettings.landedBody = NULL;
-}
-
 void updateShipPosition(CelestialBody *ship)
 {
     if (ship->type == TYPE_SHIP && ship->shipSettings.state == SHIP_LANDED && ship->shipSettings.landedBody != NULL)
     {
         // Keep ship positioned at the landing spot relative to the body
-        ship->position = _Vector2Add(&ship->shipSettings.landedBody->position, &ship->shipSettings.landingPosition);
+        ship->position = Vector2Add(ship->shipSettings.landedBody->position, ship->shipSettings.landingPosition);
         ship->velocity = ship->shipSettings.landedBody->velocity; // Sync velocity
     }
 }

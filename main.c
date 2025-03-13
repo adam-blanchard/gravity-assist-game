@@ -155,31 +155,16 @@ int main(void)
                 // Convert rotation to radians for vector calculations
                 float radians = playerShip->rotation * PI / 180.0f;
                 Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
-                Vector2 thrust = _Vector2Scale(thrustDirection, playerShip->shipSettings.thrust * dt);
-                playerShip->velocity = _Vector2Add(&playerShip->velocity, &thrust);
+                Vector2 thrust = Vector2Scale(thrustDirection, playerShip->shipSettings.thrust * dt);
+                playerShip->velocity = Vector2Add(playerShip->velocity, thrust);
                 playerShip->texture = gameTextures.shipTextures[1];
                 playerShip->shipSettings.fuel -= playerShip->shipSettings.fuelConsumption;
             }
 
             camera.zoom += (float)GetMouseWheelMove() * (1e-5f + camera.zoom * (camera.zoom / 4.0f));
-            camera.zoom = _Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
+            camera.zoom = Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
 
-            if (IsKeyPressed(KEY_L))
-            { // 'L' to land
-                for (int i = 0; i < numBodies; i++)
-                {
-                    if (bodies[i]->type != TYPE_SHIP && bodies[i]->type != TYPE_STAR)
-                    {
-                        float dist = Vector2Distance(playerShip->position, bodies[i]->position);
-                        if (dist < bodies[i]->radius + playerShip->radius + 100.0f)
-                        { // Proximity check
-                            landShip(playerShip, bodies[i]);
-                            break;
-                        }
-                    }
-                }
-            }
-            if (IsKeyPressed(KEY_T))
+            if (IsKeyPressed(KEY_W) && playerShip->shipSettings.state == SHIP_LANDED)
             {
                 takeoffShip(playerShip);
             }
@@ -201,7 +186,7 @@ int main(void)
                 Vector2 accel = Vector2Scale(force, 1.0f / bodies[i]->mass);
                 bodies[i]->velocity = Vector2Add(bodies[i]->velocity, Vector2Scale(accel, scaledDt));
                 bodies[i]->position = Vector2Add(bodies[i]->position, Vector2Scale(bodies[i]->velocity, scaledDt));
-                // detectCollisions(bodies, numBodies, root, bodies[i]);
+                detectCollisions(bodies, numBodies, root, bodies[i]);
                 bodies[i]->previousPositions[trailIndex] = bodies[i]->position;
             }
             trailIndex += 1;
@@ -274,7 +259,6 @@ int main(void)
                 DrawText("Press 'Q' and 'E' to time warp", 10, 70, 20, WHITE);
                 DrawText("Scroll to zoom", 10, 100, 20, WHITE);
                 DrawText("Press 'V' to switch velocity lock", 10, 130, 20, WHITE);
-                DrawText("Press 'L' to Land and 'T' to takeoff", 10, 160, 20, WHITE);
             }
         }
 
