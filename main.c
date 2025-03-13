@@ -373,6 +373,9 @@ int main(void)
     camera.target = (Vector2){0, 0};
     camera.offset = (Vector2){wMid, hMid}; // Offset from camera target
 
+    int velocityLock = -1;
+    CelestialBody *velocityTarget = NULL;
+
     // Load and initialise celestial body textures
     int numStarTextures = 1;
     Texture2D starTexture1 = LoadTexture("./textures/star/sun.png");
@@ -443,6 +446,20 @@ int main(void)
                 cameraLockPosition = &bodies[cameraLock]->position;
             }
 
+            if (IsKeyPressed(KEY_V))
+            {
+                velocityLock++;
+                if (velocityLock >= numBodies)
+                {
+                    velocityLock = -1;
+                    velocityTarget = NULL;
+                }
+                else
+                {
+                    velocityTarget = bodies[velocityLock];
+                }
+            }
+
             // Apply rotation
             if (IsKeyDown(KEY_D))
                 playerShip->rotation += 180.0f * dt; // Rotate right
@@ -484,6 +501,15 @@ int main(void)
             }
             trailIndex += 1;
             trailIndex = trailIndex % PREVIOUS_POSITIONS;
+
+            if (velocityLock == -1)
+            {
+                playerHUD.speed = calculateAbsoluteSpeed(playerShip);
+            }
+            else
+            {
+                playerHUD.speed = calculateRelativeSpeed(playerShip, velocityTarget);
+            }
             break;
 
         case GAME_PAUSED:
@@ -530,9 +556,10 @@ int main(void)
             DrawText("Press 'L' to switch camera", 10, 40, 20, DARKGRAY);
             DrawText("Press 'Q' and 'E' to time warp", 10, 70, 20, DARKGRAY);
             DrawText("Scroll to zoom", 10, 100, 20, DARKGRAY);
+            DrawText("Press 'V' to switch velocity lock", 10, 130, 20, DARKGRAY);
 
             // Centre
-            drawPlayerHUD(&playerHUD, &playerShip->rotation, &screenWidth, &screenHeight);
+            drawPlayerHUD(&playerHUD, &playerShip->rotation, velocityTarget);
 
             // Right
             DrawFPS(screenWidth - 100, 10);

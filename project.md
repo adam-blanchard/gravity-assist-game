@@ -7,6 +7,7 @@
 
 ## TODO
 
+- [ ] Add back relative speed indicator
 - [ ] Take-off/landing system
 - [ ] Space stations
 - [ ] Add more planets, moons, and other star systems

@@ -19,6 +19,7 @@
 #define TEXTURE_SCALE 2.7
 #define GRID_SPACING 1e2
 #define GRID_LINE_WIDTH 100
+#define HUD_ARROW_SCALE 2
 
 #define TRAIL_COLOUR \
     CLITERAL(Color) { 255, 255, 255, 255 }
@@ -270,6 +271,17 @@ float calculateShipSpeed(Ship *playerShip, Vector2 *targetVelocity)
 {
     Vector2 relativeVelocity = _Vector2Subtract(&playerShip->velocity, targetVelocity);
     return sqrtf((relativeVelocity.x * relativeVelocity.x) + (relativeVelocity.y * relativeVelocity.y));
+}
+
+float calculateRelativeSpeed(CelestialBody *body1, CelestialBody *body2)
+{
+    Vector2 relativeVelocity = Vector2Subtract(body1->velocity, body2->velocity);
+    return sqrtf((relativeVelocity.x * relativeVelocity.x) + (relativeVelocity.y * relativeVelocity.y));
+}
+
+float calculateAbsoluteSpeed(CelestialBody *body)
+{
+    return sqrtf((body->velocity.x * body->velocity.x) + (body->velocity.y * body->velocity.y));
 }
 
 void landShip(Ship *ship, Body *planet)
@@ -655,12 +667,25 @@ float calculateNormalisedZoom(CameraSettings *settings, float currentZoom)
     return (float){currentZoom / midpoint};
 }
 
-void drawPlayerHUD(HUD *playerHUD, float *shipRotation, int *screenWidth, int *screenHeight)
+void drawPlayerHUD(HUD *playerHUD, float *shipRotation, CelestialBody *velocityTarget)
 {
-    float wMid = *screenWidth / 2;
-    float hMid = *screenHeight / 2;
+    int screenWidth = GetScreenWidth();
+    int screenHeight = GetScreenHeight();
+    float wMid = screenWidth / 2;
+    float hMid = screenHeight / 2;
+    if (velocityTarget)
+    {
+        DrawText(TextFormat("Velocity Lock: %s", velocityTarget->name), screenWidth / 2 - MeasureText(TextFormat("Velocity Lock: %s", velocityTarget->name), 16) / 2, screenHeight - 120, 16, WHITE);
+        // GetScreenWidth() / 2 - MeasureText("Game Paused", 40) / 2
+    }
+    else
+    {
+        // char text = "Velocity Lock: Absolute";
+        DrawText("Velocity Lock: Absolute", screenWidth / 2 - MeasureText("Velocity Lock: Absolute", 16) / 2, screenHeight - 120, 16, WHITE);
+    }
+    DrawText(TextFormat("%.1fm/s", playerHUD->speed), screenWidth / 2 - MeasureText(TextFormat("%.1fm/s", playerHUD->speed), 16) / 2, screenHeight - 100, 16, WHITE);
     Rectangle arrowSource = {0, 0, (float)playerHUD->arrowTexture.width, (float)playerHUD->arrowTexture.height};
-    Rectangle arrowDest = {wMid, *screenHeight - 50, (float)playerHUD->arrowTexture.width, (float)playerHUD->arrowTexture.height};
+    Rectangle arrowDest = {wMid, screenHeight - 50, (float)playerHUD->arrowTexture.width * HUD_ARROW_SCALE, (float)playerHUD->arrowTexture.height * HUD_ARROW_SCALE};
     Vector2 arrowOrigin = {(float)playerHUD->arrowTexture.width / 2, (float)playerHUD->arrowTexture.height / 2};
     DrawTexturePro(playerHUD->arrowTexture, arrowSource, arrowDest, arrowOrigin, *shipRotation, WHITE);
 }
@@ -720,10 +745,6 @@ void drawCelestialGrid(CelestialBody **bodies, int numBodies, Camera2D camera)
     {
         DrawLineV((Vector2){startX, y}, (Vector2){endX, y}, GRID_COLOUR);
     }
-
-    // Highlight the origin (0, 0) with thicker lines
-    // DrawLineV((Vector2){0, startY}, (Vector2){0, endY}, RED); // Vertical axis
-    // DrawLineV((Vector2){startX, 0}, (Vector2){endX, 0}, RED); //
 }
 
 // GameTextures loadGameTextures()
