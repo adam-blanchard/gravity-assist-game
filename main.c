@@ -463,7 +463,7 @@ int main(void)
                 playerShip->shipSettings.fuel -= playerShip->shipSettings.fuelConsumption;
             }
 
-            camera.zoom += (float)GetMouseWheelMove() * camera.zoom * (camera.zoom / 4.0f);
+            camera.zoom += (float)GetMouseWheelMove() * (1e-5f + camera.zoom * (camera.zoom / 4.0f));
             camera.zoom = _Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
 
             // Build QuadTree
@@ -511,13 +511,14 @@ int main(void)
         }
         else
         {
-            drawCelestialGrid(1 / camera.zoom, 16);
+            // drawStaticGrid(1 / camera.zoom, 16);
             BeginMode2D(camera);
             // if (root)
             // {
             //     drawQuadtree(root);
             //     freeQuadTree(root);
             // }
+            drawCelestialGrid(bodies, numBodies, camera);
             drawPreviousPositions(bodies, numBodies);
             drawBodies(bodies, numBodies);
 

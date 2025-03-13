@@ -16,7 +16,12 @@
 #define TRAJECTORY_STEPS 6000
 #define TRAJECTORY_STEP_TIME 0.033f
 #define PREVIOUS_POSITIONS 1000
-#define TEXTURE_SCALE 1.2
+#define TEXTURE_SCALE 2.7
+#define GRID_SPACING 1e2
+#define GRID_LINE_WIDTH 100
+
+#define TRAIL_COLOUR \
+    CLITERAL(Color) { 255, 255, 255, 255 }
 
 #define GRID_COLOUR \
     CLITERAL(Color) { 255, 255, 255, 50 }
@@ -287,6 +292,11 @@ void spawnRocketOnBody(Ship *ship, Body *planet)
     ship->velocity = planet->velocity;
 }
 
+float calculateOrbitalSpeed(float mass, float radius)
+{
+    return (float){sqrtf((G * mass) / radius)};
+}
+
 QuadTreeNode *createNode(Rectangle bounds)
 {
     QuadTreeNode *node = (QuadTreeNode *)malloc(sizeof(QuadTreeNode));
@@ -369,11 +379,11 @@ QuadTreeNode *buildQuadTree(CelestialBody **bodies, int numBodies)
         minY = fmin(minY, bodies[i]->position.y);
         maxY = fmax(maxY, bodies[i]->position.y);
     }
-    float padding = 10.0f;
-    minX -= padding;
-    maxX += padding;
-    minY -= padding;
-    maxY += padding;
+    // float padding = 10.0f;
+    // minX -= padding;
+    // maxX += padding;
+    // minY -= padding;
+    // maxY += padding;
     float width = maxX - minX, height = maxY - minY;
     if (width > height)
         minY -= (width - height) / 2;
@@ -448,8 +458,9 @@ void detectCollisions(CelestialBody **bodies, int numBodies, QuadTreeNode *node,
             if (body->type == TYPE_SHIP)
             {
                 // Reset ship (example handling)
-                body->position = (Vector2){0, -10000}; // Arbitrary reset position
-                body->velocity = (Vector2){0.8f, 0};
+                body->position = Vector2Add(bodies[1]->position, (Vector2){1e4, 0});
+                Vector2 relVel = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, 1e4)};
+                body->velocity = Vector2Add(bodies[1]->velocity, relVel);
             }
         }
         return;
@@ -461,11 +472,6 @@ void detectCollisions(CelestialBody **bodies, int numBodies, QuadTreeNode *node,
             detectCollisions(bodies, numBodies, node->children[i], body);
         }
     }
-}
-
-float calculateOrbitalSpeed(float mass, float radius)
-{
-    return (float){sqrtf((G * mass) / radius)};
 }
 
 CelestialBody **initBodies(int *numBodies, Texture2D **starTextures, Texture2D **planetTextures, Texture2D **moonTextures, Texture2D **shipTextures)
@@ -557,23 +563,11 @@ CelestialBody **initBodies(int *numBodies, Texture2D **starTextures, Texture2D *
 
 void drawBodies(CelestialBody **bodies, int numBodies)
 {
-    // for (int i = 0; i < numBodies; i++)
-    // {
-    //     Color color = (bodies[i]->type == TYPE_STAR)     ? YELLOW
-    //                   : (bodies[i]->type == TYPE_PLANET) ? BLUE
-    //                   : (bodies[i]->type == TYPE_MOON)   ? GRAY
-    //                                                      : RED;
-    //     DrawCircleV(bodies[i]->position, bodies[i]->radius, color);
-    // }
-
     for (int i = 0; i < numBodies; i++)
     {
 
-        // Draw Body collider for debug
-        // DrawCircle(solSystem[i].position.x, solSystem[i].position.y, solSystem[i].radius, WHITE);
-        // float scale = ((bodies[i]->radius * 2) / bodies[i]->texture->width) * TEXTURE_SCALE;
-        // Vector2 pos = (Vector2){bodies[i]->position.x - (bodies[i]->radius * TEXTURE_SCALE), bodies[i]->position.y - (bodies[i]->radius * TEXTURE_SCALE)};
-        // DrawTextureEx(*bodies[i]->texture, pos, bodies[i]->rotation, scale, WHITE);
+        // Draw collider for debug
+        // DrawCircle(bodies[i]->position.x, bodies[i]->position.y, bodies[i]->radius, WHITE);
 
         float scale = ((bodies[i]->radius * 2) / bodies[i]->texture->width) * TEXTURE_SCALE;
         // Source rectangle (part of the texture to use for drawing i.e. the whole texture)
@@ -582,18 +576,20 @@ void drawBodies(CelestialBody **bodies, int numBodies)
             0,
             (float)bodies[i]->texture->width,
             (float)bodies[i]->texture->height};
+
         // Destination rectangle (Screen rectangle locating where to draw the texture)
-        // TODO: Scale texture by relevant amount by subtracting from star positions and adding to end positions
-        float scaleParam = (bodies[i]->texture->width * scale / 2);
+        float widthScale = (bodies[i]->texture->width * scale / 2);
+        float heightScale = (bodies[i]->texture->height * scale / 2);
         Rectangle dest = {
             bodies[i]->position.x,
             bodies[i]->position.y,
-            (float)bodies[i]->texture->width,
-            (float)bodies[i]->texture->height};
+            (float)bodies[i]->texture->width + widthScale,
+            (float)bodies[i]->texture->height + heightScale};
+
         // Origin of the texture for rotation and scaling - centre for our purpose
         Vector2 origin = {
-            (float)bodies[i]->texture->width / 2,
-            (float)bodies[i]->texture->height / 2};
+            (float)((bodies[i]->texture->width + widthScale) / 2),
+            (float)((bodies[i]->texture->height + heightScale) / 2)};
         DrawTexturePro(*bodies[i]->texture, source, dest, origin, bodies[i]->rotation, WHITE);
     }
 }
@@ -620,7 +616,35 @@ void drawPreviousPositions(CelestialBody **bodies, int numBodies)
     {
         for (int j = 0; j < PREVIOUS_POSITIONS; j++)
         {
-            DrawPixelV(bodies[i]->previousPositions[j], (Color){255, 255, 255, 255});
+            DrawPixelV(bodies[i]->previousPositions[j], TRAIL_COLOUR);
+
+            // N
+            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){0, -1}), TRAIL_COLOUR);
+            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){0, -2}), TRAIL_COLOUR);
+
+            // NE
+            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){1, -1}), TRAIL_COLOUR);
+
+            // E
+            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){1, 0}), TRAIL_COLOUR);
+            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){2, 0}), TRAIL_COLOUR);
+
+            // SE
+            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){1, 1}), TRAIL_COLOUR);
+
+            // S
+            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){0, 1}), TRAIL_COLOUR);
+            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){0, 2}), TRAIL_COLOUR);
+
+            // SW
+            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){-1, 1}), TRAIL_COLOUR);
+
+            // W
+            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){-1, 0}), TRAIL_COLOUR);
+            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){-2, 0}), TRAIL_COLOUR);
+
+            // NW
+            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){-1, -1}), TRAIL_COLOUR);
         }
     }
 }
@@ -641,7 +665,7 @@ void drawPlayerHUD(HUD *playerHUD, float *shipRotation, int *screenWidth, int *s
     DrawTexturePro(playerHUD->arrowTexture, arrowSource, arrowDest, arrowOrigin, *shipRotation, WHITE);
 }
 
-void drawCelestialGrid(float zoomLevel, int numQuadrants)
+void drawStaticGrid(float zoomLevel, int numQuadrants)
 {
     int numLines = sqrt(numQuadrants) - 1;
 
@@ -662,6 +686,44 @@ void drawCelestialGrid(float zoomLevel, int numQuadrants)
         int verticalWidth = screenWidth * (i + 1) / (numLines + 1);
         DrawLine(verticalWidth, -screenHeight, verticalWidth, screenHeight, GRID_COLOUR);
     }
+}
+
+void drawCelestialGrid(CelestialBody **bodies, int numBodies, Camera2D camera)
+{
+    /*
+        Draws a grid with origin (0, 0) to the edges of visible space
+        The grid should scale with the camera to demonstrate distance and velocity
+    */
+    int screenWidth = GetScreenWidth();
+    int screenHeight = GetScreenHeight();
+
+    int gridSpacing = round((GRID_SPACING / camera.zoom) / 1e4) * 1e4; // TODO: Clamp this to levels instead of continuous sizing
+
+    // Calculate visible world-space bounds
+    Vector2 topLeft = GetScreenToWorld2D((Vector2){0, 0}, camera);
+    Vector2 bottomRight = GetScreenToWorld2D((Vector2){screenWidth, screenHeight}, camera);
+
+    // Snap grid bounds to the nearest gridSpacing multiple
+    float startX = floorf(topLeft.x / gridSpacing) * gridSpacing;
+    float startY = floorf(topLeft.y / gridSpacing) * gridSpacing;
+    float endX = ceilf(bottomRight.x / gridSpacing) * gridSpacing;
+    float endY = ceilf(bottomRight.y / gridSpacing) * gridSpacing;
+
+    // Draw vertical lines
+    for (float x = startX; x <= endX; x += gridSpacing)
+    {
+        DrawLineV((Vector2){x, startY}, (Vector2){x, endY}, GRID_COLOUR);
+    }
+
+    // Draw horizontal lines
+    for (float y = startY; y <= endY; y += gridSpacing)
+    {
+        DrawLineV((Vector2){startX, y}, (Vector2){endX, y}, GRID_COLOUR);
+    }
+
+    // Highlight the origin (0, 0) with thicker lines
+    // DrawLineV((Vector2){0, startY}, (Vector2){0, endY}, RED); // Vertical axis
+    // DrawLineV((Vector2){startX, 0}, (Vector2){endX, 0}, RED); //
 }
 
 // GameTextures loadGameTextures()
