@@ -1,19 +1,19 @@
 ## Next Steps
 
-1. [ ] Finish orbit and size scaling - Objects are moving too fast now and we're getting weird interactions - scale the system down
+1. [x] Finish orbit and size scaling - Objects are moving too fast now and we're getting weird interactions - scale the system down
 2. [ ] Focus on player movement
-3. [ ] Add back textures
+3. [x] Add back textures
 4. [ ] Add game mechanics
 
 ## TODO
 
-- [ ] Refactor CelestialGrid to be fixed in game space instead of rendered on the screen
 - [ ] Take-off/landing system
+- [ ] Space stations
+- [ ] Add more planets, moons, and other star systems
 - [ ] Ship Customisation
 - [ ] KSP-style nav ball (nav circle for 2D)
 - [ ] Death state
 - [ ] Controls pop-out
-- [ ] Body rotation (need to rework the way bodies are rendered to set the rotation origin)
 - [ ] Planet type (volcanic, ice, gas etc.)
 - [ ] Star types - standard, red dwarf, white dwarf, black hole, pulsar, etc.
 - [ ] Function to load texture based on planet type - or, just render a specific texture - tbc
@@ -56,3 +56,5 @@
 - [x] Pause screen
 - [x] Universe grid to show scale
 - [x] Scale all masses, radius, and forces to be semi-realistic
+- [x] Body rotation (need to rework the way bodies are rendered to set the rotation origin)
+- [x] Refactor CelestialGrid to be fixed in game space instead of rendered on the screen
