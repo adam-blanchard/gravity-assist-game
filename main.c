@@ -60,8 +60,8 @@ int main(void)
     GameTextures gameTextures = {
         .numStarTextures = 1,
         .starTextures = malloc(sizeof(Texture2D *) * (1)),
-        .numPlanetTextures = 2,
-        .planetTextures = malloc(sizeof(Texture2D *) * (2)),
+        .numPlanetTextures = 3,
+        .planetTextures = malloc(sizeof(Texture2D *) * (3)),
         .numMoonTextures = 1,
         .moonTextures = malloc(sizeof(Texture2D *) * (1)),
         .numShipTextures = 2,
@@ -71,8 +71,10 @@ int main(void)
 
     Texture2D planetTexture1 = LoadTexture("./textures/planet/planet_1.png");
     Texture2D planetTexture2 = LoadTexture("./textures/planet/planet_2.png");
+    Texture2D planetTexture3 = LoadTexture("./textures/planet/planet_3.png");
     gameTextures.planetTextures[0] = &planetTexture1;
     gameTextures.planetTextures[1] = &planetTexture2;
+    gameTextures.planetTextures[2] = &planetTexture3;
 
     Texture2D moonTexture1 = LoadTexture("./textures/moon/moon_1.png");
     gameTextures.moonTextures[0] = &moonTexture1;
@@ -94,7 +96,7 @@ int main(void)
                 if (!bodies)
                 {
                     bodies = initBodies(&numBodies, &gameTextures);
-                    playerShip = bodies[3];
+                    playerShip = bodies[5];
                 }
                 gameState = GAME_RUNNING;
             }
@@ -245,7 +247,7 @@ int main(void)
 
             // Right
             DrawFPS(screenWidth - 100, 10);
-            DrawText(TextFormat("Camera locked to: body %i", cameraLock), screenWidth - 280, 40, 20, DARKGRAY);
+            DrawText(TextFormat("Camera locked to: %s", bodies[cameraLock]->name), screenWidth - 280, 40, 20, DARKGRAY);
             DrawText(TextFormat("Time Scale: %.1fx", timeScale.val), screenWidth - 200, 70, 20, DARKGRAY);
             DrawText(TextFormat("Zoom Level: %.3fx", calculateNormalisedZoom(&cameraSettings, camera.zoom)), screenWidth - 200, 100, 20, DARKGRAY);
 

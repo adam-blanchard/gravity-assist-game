@@ -405,7 +405,7 @@ void detectCollisions(CelestialBody **bodies, int numBodies, QuadTreeNode *node,
 
 CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
 {
-    *numBodies = 4;
+    *numBodies = 6;
     CelestialBody **bodies = malloc(sizeof(CelestialBody *) * (*numBodies));
 
     // Star
@@ -420,7 +420,7 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .rotation = 0.0f,
                                  .texture = gameTextures->starTextures[0]};
 
-    // Planet orbiting Star
+    // Planet orbiting Star - Earth
     float orbitalRadius = calculateOrbitalRadius(24 * 60 * 60, bodies[0]->mass);
     bodies[1] = malloc(sizeof(CelestialBody));
     *bodies[1] = (CelestialBody){.type = TYPE_PLANET,
@@ -438,7 +438,7 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
     orbitalRadius = calculateOrbitalRadius(12 * 60 * 60, bodies[1]->mass);
     bodies[2] = malloc(sizeof(CelestialBody));
     *bodies[2] = (CelestialBody){.type = TYPE_MOON,
-                                 .name = strdup("Moon1"),
+                                 .name = strdup("The Moon"),
                                  .position = {bodies[1]->position.x + orbitalRadius, 0},
                                  .velocity = {0, 0},
                                  .mass = 1e7,
@@ -449,10 +449,38 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
     Vector2 relVel = (Vector2){0, -calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
     bodies[2]->velocity = Vector2Add(bodies[1]->velocity, relVel);
 
+    // Planet orbiting Star - Mercury
+    orbitalRadius = calculateOrbitalRadius(0.39f * 24 * 60 * 60, bodies[0]->mass);
+    bodies[3] = malloc(sizeof(CelestialBody));
+    *bodies[3] = (CelestialBody){.type = TYPE_PLANET,
+                                 .name = strdup("Mercury"),
+                                 .position = {bodies[0]->position.x + orbitalRadius, 0},
+                                 .velocity = {0, 0},
+                                 .mass = 1e9 * 0.0553f,
+                                 .radius = 3.2e3f * 0.383f,
+                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+                                 .rotation = 0.0f,
+                                 .texture = gameTextures->planetTextures[1]};
+    bodies[3]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[0]->mass, orbitalRadius)};
+
+    // Planet orbiting Star - Venus
+    orbitalRadius = calculateOrbitalRadius(0.723f * 24 * 60 * 60, bodies[0]->mass);
+    bodies[4] = malloc(sizeof(CelestialBody));
+    *bodies[4] = (CelestialBody){.type = TYPE_PLANET,
+                                 .name = strdup("Venus"),
+                                 .position = {bodies[0]->position.x + orbitalRadius, 0},
+                                 .velocity = {0, 0},
+                                 .mass = 1e9 * 0.815f,
+                                 .radius = 3.2e3f * 0.949f,
+                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+                                 .rotation = 0.0f,
+                                 .texture = gameTextures->planetTextures[2]};
+    bodies[4]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[0]->mass, orbitalRadius)};
+
     // Ship
     // Ship texture is 64x64
-    bodies[3] = malloc(sizeof(CelestialBody));
-    *bodies[3] = (CelestialBody){.type = TYPE_SHIP,
+    bodies[5] = malloc(sizeof(CelestialBody));
+    *bodies[5] = (CelestialBody){.type = TYPE_SHIP,
                                  .name = strdup("Ship"),
                                  .position = {0, 0},
                                  .velocity = {0, 0},
@@ -470,9 +498,9 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                      .landedBody = NULL,
                                      .landingPosition = {0}},
                                  .texture = gameTextures->shipTextures[0]};
-    bodies[3]->position = Vector2Add(bodies[1]->position, (Vector2){1e4, 0});
+    bodies[5]->position = Vector2Add(bodies[1]->position, (Vector2){1e4, 0});
     relVel = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, 1e4)};
-    bodies[3]->velocity = Vector2Add(bodies[1]->velocity, relVel);
+    bodies[5]->velocity = Vector2Add(bodies[1]->velocity, relVel);
 
     return bodies;
 }
