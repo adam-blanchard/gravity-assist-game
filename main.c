@@ -6,6 +6,8 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
+void DrawGame(void);
+
 int main(void)
 {
     int screenWidth = 1280;
@@ -42,6 +44,10 @@ int main(void)
         .compassTexture = LoadTexture("./textures/hud/compass.png"),
         .arrowTexture = LoadTexture("./textures/hud/arrow_2.png")};
 
+    PlayerStats playerStats = {
+        .money = 0,
+        .miningXP = 0};
+
     int numBodies = 0;
     CelestialBody **bodies = NULL;
     CelestialBody *playerShip = NULL;
@@ -49,7 +55,7 @@ int main(void)
     int trailIndex = 0;
     QuadTreeNode *root = NULL;
 
-    int cameraLock = 1;
+    int cameraLock = 0;
     Vector2 *cameraLockPosition = NULL;
     camera.target = (Vector2){0, 0};
     camera.offset = (Vector2){wMid, hMid}; // Offset from camera target
@@ -57,30 +63,35 @@ int main(void)
     int velocityLock = -1;
     CelestialBody *velocityTarget = NULL;
 
-    GameTextures gameTextures = {
-        .numStarTextures = 1,
-        .starTextures = malloc(sizeof(Texture2D *) * (1)),
-        .numPlanetTextures = 3,
-        .planetTextures = malloc(sizeof(Texture2D *) * (3)),
-        .numMoonTextures = 1,
-        .moonTextures = malloc(sizeof(Texture2D *) * (1)),
-        .numShipTextures = 2,
-        .shipTextures = malloc(sizeof(Texture2D *) * (2))};
+    GameTextures gameTextures = {0};
+
     Texture2D starTexture1 = LoadTexture("./textures/star/sun.png");
+    gameTextures.numStarTextures = 1;
+    gameTextures.starTextures = malloc(sizeof(Texture2D *) * (gameTextures.numStarTextures));
     gameTextures.starTextures[0] = &starTexture1;
 
     Texture2D planetTexture1 = LoadTexture("./textures/planet/planet_1.png");
     Texture2D planetTexture2 = LoadTexture("./textures/planet/planet_2.png");
     Texture2D planetTexture3 = LoadTexture("./textures/planet/planet_3.png");
+    Texture2D planetTexture4 = LoadTexture("./textures/planet/planet_4.png");
+    Texture2D planetTexture5 = LoadTexture("./textures/planet/planet_5.png");
+    gameTextures.numPlanetTextures = 5;
+    gameTextures.planetTextures = malloc(sizeof(Texture2D *) * (gameTextures.numPlanetTextures));
     gameTextures.planetTextures[0] = &planetTexture1;
     gameTextures.planetTextures[1] = &planetTexture2;
     gameTextures.planetTextures[2] = &planetTexture3;
+    gameTextures.planetTextures[3] = &planetTexture4;
+    gameTextures.planetTextures[4] = &planetTexture5;
 
     Texture2D moonTexture1 = LoadTexture("./textures/moon/moon_1.png");
+    gameTextures.numMoonTextures = 1;
+    gameTextures.moonTextures = malloc(sizeof(Texture2D *) * (gameTextures.numMoonTextures));
     gameTextures.moonTextures[0] = &moonTexture1;
 
     Texture2D shipTexture = LoadTexture("./textures/ship/ship_1.png");
     Texture2D shipThrustTexture = LoadTexture("./textures/ship/ship_1_thrust.png");
+    gameTextures.numShipTextures = 2;
+    gameTextures.shipTextures = malloc(sizeof(Texture2D *) * (gameTextures.numShipTextures));
     gameTextures.shipTextures[0] = &shipTexture;
     gameTextures.shipTextures[1] = &shipThrustTexture;
 
@@ -96,7 +107,7 @@ int main(void)
                 if (!bodies)
                 {
                     bodies = initBodies(&numBodies, &gameTextures);
-                    playerShip = bodies[5];
+                    playerShip = bodies[0];
                 }
                 gameState = GAME_RUNNING;
             }
@@ -154,6 +165,10 @@ int main(void)
             playerShip->texture = gameTextures.shipTextures[0];
             if (IsKeyDown(KEY_W))
             {
+                if (playerShip->shipSettings.state == SHIP_LANDED)
+                {
+                    takeoffShip(playerShip);
+                }
                 // Convert rotation to radians for vector calculations
                 float radians = playerShip->rotation * PI / 180.0f;
                 Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
@@ -165,11 +180,6 @@ int main(void)
 
             camera.zoom += (float)GetMouseWheelMove() * (1e-5f + camera.zoom * (camera.zoom / 4.0f));
             camera.zoom = Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
-
-            if (IsKeyPressed(KEY_W) && playerShip->shipSettings.state == SHIP_LANDED)
-            {
-                takeoffShip(playerShip);
-            }
 
             // Build QuadTree
             root = buildQuadTree(bodies, numBodies);
@@ -204,6 +214,8 @@ int main(void)
             {
                 playerHUD.speed = calculateRelativeSpeed(playerShip, velocityTarget);
             }
+            playerHUD.playerRotation = playerShip->rotation;
+            playerHUD.velocityTarget = velocityTarget;
             break;
 
         case GAME_PAUSED:
@@ -233,19 +245,17 @@ int main(void)
         {
             BeginMode2D(camera);
             drawCelestialGrid(bodies, numBodies, camera);
-            drawPreviousPositions(bodies, numBodies);
+            // drawPreviousPositions(bodies, numBodies);
             drawBodies(bodies, numBodies);
 
             EndMode2D();
 
             // GUI
-            // Left
             DrawText("Press ESC to pause & view controls", 10, 10, 20, DARKGRAY);
 
-            // Centre
-            drawPlayerHUD(&playerHUD, &playerShip->rotation, velocityTarget);
+            drawPlayerHUD(&playerHUD);
+            drawPlayerStats(&playerStats);
 
-            // Right
             DrawFPS(screenWidth - 100, 10);
             DrawText(TextFormat("Camera locked to: %s", bodies[cameraLock]->name), screenWidth - 280, 40, 20, DARKGRAY);
             DrawText(TextFormat("Time Scale: %.1fx", timeScale.val), screenWidth - 200, 70, 20, DARKGRAY);
@@ -273,3 +283,10 @@ int main(void)
     CloseWindow();
     return 0;
 }
+
+// void DrawGame(void) {
+//     BeginDrawing();
+
+//     ClearBackground(SPACE_COLOUR);
+
+// }

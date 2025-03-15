@@ -1,13 +1,5 @@
-## Next Steps
-
-1. [x] Finish orbit and size scaling - Objects are moving too fast now and we're getting weird interactions - scale the system down
-2. [ ] Focus on player movement
-3. [x] Add back textures
-4. [ ] Add game mechanics
-
 ## TODO
 
-- [ ] Take-off/landing system
 - [ ] Space stations
 - [ ] Add more planets, moons, and other star systems
 - [ ] Ship Customisation
@@ -59,3 +51,4 @@
 - [x] Body rotation (need to rework the way bodies are rendered to set the rotation origin)
 - [x] Refactor CelestialGrid to be fixed in game space instead of rendered on the screen
 - [x] Add back relative speed indicator
+- [x] Take-off/landing system
