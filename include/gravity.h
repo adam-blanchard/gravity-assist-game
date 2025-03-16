@@ -16,6 +16,8 @@
 #define TRAJECTORY_STEPS 6000
 #define TRAJECTORY_STEP_TIME 0.033f
 #define PREVIOUS_POSITIONS 1000
+#define FUTURE_POSITIONS 1000
+#define FUTURE_STEP_TIME 0.1f
 #define TEXTURE_SCALE 2.8
 #define GRID_SPACING 1e2
 #define GRID_LINE_WIDTH 100
@@ -30,6 +32,9 @@
 
 #define SPACE_COLOUR \
     CLITERAL(Color) { 10, 10, 10, 255 }
+
+#define GUI_BACKGROUND \
+    CLITERAL(Color) { 255, 255, 255, 200 }
 
 typedef enum
 {
@@ -85,6 +90,7 @@ typedef struct CelestialBody
     float radius;
     float colliderRadius;
     Vector2 *previousPositions;
+    Vector2 *futurePositions;
     float rotation;
     ShipSettings shipSettings;
     Texture2D *texture;
@@ -144,7 +150,10 @@ typedef struct PlayerStats
 typedef struct PlayerInventory
 {
     int size;
-
+    int iron;
+    int copper;
+    int gold;
+    int ice;
 } PlayerInventory;
 
 float calculateOrbitalVelocity(float mass, float radius)
@@ -442,6 +451,7 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .radius = 32.0f,
                                  .colliderRadius = 50.0f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+                                 //  .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
                                  .rotation = 0.0f,
                                  .shipSettings = (ShipSettings){
                                      .thrust = 4e0f,
@@ -821,6 +831,8 @@ void freeCelestialBodies(CelestialBody **bodies, int numBodies)
         {
             free(bodies[i]->name);
             free(bodies[i]->previousPositions);
+            if (bodies[i]->futurePositions)
+                free(bodies[i]->futurePositions);
             free(bodies[i]);
         }
         free(bodies);
@@ -829,5 +841,24 @@ void freeCelestialBodies(CelestialBody **bodies, int numBodies)
 
 void drawPlayerStats(PlayerStats *playerStats)
 {
-    DrawText(TextFormat("Money: %i$", playerStats->money), 10, 40, 16, WHITE);
+    int roundedMoney;
+    switch (playerStats->money)
+    {
+    case playerStats->money >= 1e3f:
+        /* code */
+        break;
+
+    default:
+        break;
+    }
+    DrawText("Money:", 10, 40, 16, WHITE);
+    DrawText(TextFormat("%i$", playerStats->money), 125 - MeasureText(TextFormat("%i$", playerStats->money), 16), 40, 16, WHITE);
+}
+
+void drawPlayerInventory(PlayerInventory *playerInventory)
+{
+    DrawText(TextFormat("Ice: %it", playerInventory->ice), 100 - MeasureText(TextFormat("Ice: %it", playerInventory->ice), 16), 70, 16, WHITE);
+    DrawText(TextFormat("Copper: %it", playerInventory->copper), 10, 100, 16, WHITE);
+    DrawText(TextFormat("Iron: %it", playerInventory->iron), 10, 130, 16, WHITE);
+    DrawText(TextFormat("Gold: %it", playerInventory->gold), 10, 160, 16, WHITE);
 }

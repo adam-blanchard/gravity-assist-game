@@ -48,6 +48,9 @@ int main(void)
         .money = 0,
         .miningXP = 0};
 
+    PlayerInventory playerInventory = {0};
+    int showPlayerInventory = 0;
+
     int numBodies = 0;
     CelestialBody **bodies = NULL;
     CelestialBody *playerShip = NULL;
@@ -108,6 +111,8 @@ int main(void)
                 {
                     bodies = initBodies(&numBodies, &gameTextures);
                     playerShip = bodies[0];
+                    landShip(playerShip, bodies[2]);
+                    playerShip->rotation = 90.0f;
                 }
                 gameState = GAME_RUNNING;
             }
@@ -152,6 +157,16 @@ int main(void)
                 {
                     velocityTarget = bodies[velocityLock];
                 }
+            }
+
+            if (IsKeyPressed(KEY_F))
+            {
+                if (showPlayerInventory == 0)
+                {
+                    showPlayerInventory = 1;
+                    break;
+                }
+                showPlayerInventory = 0;
             }
 
             // Apply rotation
@@ -216,6 +231,7 @@ int main(void)
             }
             playerHUD.playerRotation = playerShip->rotation;
             playerHUD.velocityTarget = velocityTarget;
+            playerStats.money++;
             break;
 
         case GAME_PAUSED:
@@ -255,6 +271,7 @@ int main(void)
 
             drawPlayerHUD(&playerHUD);
             drawPlayerStats(&playerStats);
+            drawPlayerInventory(&playerInventory);
 
             DrawFPS(screenWidth - 100, 10);
             DrawText(TextFormat("Camera locked to: %s", bodies[cameraLock]->name), screenWidth - 280, 40, 20, DARKGRAY);
