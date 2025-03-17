@@ -67,6 +67,7 @@ typedef enum
 } Mineral;
 
 typedef struct CelestialBody CelestialBody;
+typedef struct Resource Resource;
 
 typedef struct ShipSettings
 {
@@ -94,6 +95,7 @@ typedef struct CelestialBody
     float rotation;
     ShipSettings shipSettings;
     Texture2D *texture;
+    Resource *resources;
 } CelestialBody;
 
 typedef struct GameTextures
@@ -155,6 +157,12 @@ typedef struct PlayerInventory
     int gold;
     int ice;
 } PlayerInventory;
+
+typedef struct Resource
+{
+    int amount;
+    Mineral mineral;
+} Resource;
 
 float calculateOrbitalVelocity(float mass, float radius)
 {
@@ -489,7 +497,8 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .colliderRadius = 3.2e3f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f,
-                                 .texture = gameTextures->planetTextures[0]};
+                                 .texture = gameTextures->planetTextures[0],
+                                 .resources = NULL};
     bodies[2]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
 
     // Determine Ship's initial velocity once orbiting body has been initialised
@@ -509,9 +518,11 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .colliderRadius = 3.2e2f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f,
-                                 .texture = gameTextures->moonTextures[0]};
+                                 .texture = gameTextures->moonTextures[0],
+                                 .resources = (Resource *)malloc(sizeof(Resource) * 1)};
     relVel = (Vector2){0, -calculateOrbitalSpeed(bodies[2]->mass, orbitalRadius)};
     bodies[3]->velocity = Vector2Add(bodies[2]->velocity, relVel);
+    bodies[3]->resources[0] = (Resource){.amount = 9999, .mineral = MINERAL_WATERICE};
 
     // Planet orbiting Star - Mercury
     orbitalRadius = calculateOrbitalRadius(0.39f * 24 * 60 * 60, bodies[1]->mass);
@@ -833,6 +844,8 @@ void freeCelestialBodies(CelestialBody **bodies, int numBodies)
             free(bodies[i]->previousPositions);
             if (bodies[i]->futurePositions)
                 free(bodies[i]->futurePositions);
+            if (bodies[i]->resources)
+                free(bodies[i]->resources);
             free(bodies[i]);
         }
         free(bodies);
@@ -841,24 +854,28 @@ void freeCelestialBodies(CelestialBody **bodies, int numBodies)
 
 void drawPlayerStats(PlayerStats *playerStats)
 {
-    int roundedMoney;
-    switch (playerStats->money)
-    {
-    case playerStats->money >= 1e3f:
-        /* code */
-        break;
-
-    default:
-        break;
-    }
     DrawText("Money:", 10, 40, 16, WHITE);
     DrawText(TextFormat("%i$", playerStats->money), 125 - MeasureText(TextFormat("%i$", playerStats->money), 16), 40, 16, WHITE);
 }
 
 void drawPlayerInventory(PlayerInventory *playerInventory)
 {
-    DrawText(TextFormat("Ice: %it", playerInventory->ice), 100 - MeasureText(TextFormat("Ice: %it", playerInventory->ice), 16), 70, 16, WHITE);
-    DrawText(TextFormat("Copper: %it", playerInventory->copper), 10, 100, 16, WHITE);
-    DrawText(TextFormat("Iron: %it", playerInventory->iron), 10, 130, 16, WHITE);
-    DrawText(TextFormat("Gold: %it", playerInventory->gold), 10, 160, 16, WHITE);
+    DrawText("Ice:", 10, 70, 16, WHITE);
+    DrawText(TextFormat("%it", playerInventory->ice), 125 - MeasureText(TextFormat("%it", playerInventory->ice), 16), 70, 16, WHITE);
+    DrawText("Copper:", 10, 100, 16, WHITE);
+    DrawText(TextFormat("%it", playerInventory->copper), 125 - MeasureText(TextFormat("%it", playerInventory->copper), 16), 100, 16, WHITE);
+    DrawText("Iron:", 10, 130, 16, WHITE);
+    DrawText(TextFormat("%it", playerInventory->iron), 125 - MeasureText(TextFormat("%it", playerInventory->iron), 16), 130, 16, WHITE);
+    DrawText("Gold:", 10, 160, 16, WHITE);
+    DrawText(TextFormat("%it", playerInventory->gold), 125 - MeasureText(TextFormat("%it", playerInventory->gold), 16), 160, 16, WHITE);
+}
+
+void mineResources(CelestialBody *playerShip, PlayerInventory *playerInventory)
+{
+    if (playerShip->shipSettings.landedBody == NULL)
+        return;
+    for (int i = 0; i < playerShip->shipSettings.landedBody->resources; i++)
+    {
+        // Subtract minerals from body and add them to player inventory
+    }
 }

@@ -231,7 +231,6 @@ int main(void)
             }
             playerHUD.playerRotation = playerShip->rotation;
             playerHUD.velocityTarget = velocityTarget;
-            playerStats.money++;
             break;
 
         case GAME_PAUSED:

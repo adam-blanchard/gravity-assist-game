@@ -1,5 +1,7 @@
 ## TODO
 
+- [ ] Finish mining capability
+- [ ] Add exploration capability and track progress of explored bodies
 - [ ] Space stations
 - [ ] Add more planets, moons, and other star systems
 - [ ] Ship Customisation
