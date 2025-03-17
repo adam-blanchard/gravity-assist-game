@@ -23,7 +23,7 @@
 #define GRID_LINE_WIDTH 100
 #define HUD_ARROW_SCALE 0.01
 #define MAX_LANDING_SPEED 50
-#define NUM_MINERALS 4 // Number of different minerals available to mine
+#define MAX_CAPACITY 100
 
 #define TRAIL_COLOUR \
     CLITERAL(Color) { 255, 255, 255, 255 }
@@ -61,14 +61,16 @@ typedef enum
 
 typedef enum
 {
-    MINERAL_IRONORE,
-    MINERAL_COPPERORE,
-    MINERAL_GOLDORE,
-    MINERAL_WATERICE
-} Mineral;
+    RESOURCE_WATER_ICE = 0,
+    RESOURCE_COPPER_ORE,
+    RESOURCE_IRON_ORE,
+    RESOURCE_GOLD_ORE,
+    RESOURCE_COUNT // This tracks the number of resources and simplifies future additions
+} ResourceType;
 
 typedef struct CelestialBody CelestialBody;
 typedef struct Resource Resource;
+typedef struct InventoryResource InventoryResource;
 
 typedef struct ShipSettings
 {
@@ -80,6 +82,9 @@ typedef struct ShipSettings
     ShipState state;
     CelestialBody *landedBody;
     Vector2 landingPosition;
+    float maxCapacity;
+    float currentCapacity;
+    InventoryResource inventory[RESOURCE_COUNT];
 } ShipSettings;
 
 typedef struct CelestialBody
@@ -96,8 +101,8 @@ typedef struct CelestialBody
     float rotation;
     ShipSettings shipSettings;
     Texture2D *texture;
-    int numResources;
-    Resource *resources;
+    InventoryResource resources[RESOURCE_COUNT]; // Array of resources on the planet
+    int resourceCount;                           // Number of resource types present
 } CelestialBody;
 
 typedef struct GameTextures
@@ -151,24 +156,19 @@ typedef struct PlayerStats
     uint32_t miningXP;
 } PlayerStats;
 
-typedef struct PlayerInventory
+typedef struct
 {
-    int size;
-    int numResources;
-    Resource *resources;
-} PlayerInventory;
-
-// typedef struct Mineral
-// {
-//     char *name;
-//     float weight; // Kg per unit
-// } Mineral;
-
-typedef struct Resource
-{
-    int amount;
-    Mineral mineral;
+    ResourceType type;
+    char name[32]; // Name of the resource (e.g., "Water Ice")
+    float weight;  // Weight per unit (e.g., for ship capacity limits)
+    int value;     // Value for trading or crafting
 } Resource;
+
+typedef struct InventoryResource
+{
+    int resourceId; // Corresponds to ResourceType
+    int quantity;   // Amount available on the CelestialBody
+} InventoryResource;
 
 float calculateOrbitalVelocity(float mass, float radius)
 {
@@ -475,8 +475,15 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                      .thrustTexture = gameTextures->shipTextures[1],
                                      .state = SHIP_FLYING,
                                      .landedBody = NULL,
-                                     .landingPosition = {0}},
+                                     .landingPosition = {0},
+                                     .maxCapacity = MAX_CAPACITY,
+                                     .currentCapacity = 0},
                                  .texture = gameTextures->shipTextures[0]};
+
+    for (int i = 0; i < RESOURCE_COUNT; i++)
+    {
+        bodies[0]->shipSettings.inventory[i] = (InventoryResource){i, 0};
+    }
 
     // Star
     bodies[1] = malloc(sizeof(CelestialBody));
@@ -503,8 +510,7 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .colliderRadius = 3.2e3f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f,
-                                 .texture = gameTextures->planetTextures[0],
-                                 .resources = NULL};
+                                 .texture = gameTextures->planetTextures[0]};
     bodies[2]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
 
     // Determine Ship's initial velocity once orbiting body has been initialised
@@ -515,21 +521,24 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
     // Moon orbiting Planet
     orbitalRadius = calculateOrbitalRadius(12 * 60 * 60, bodies[2]->mass);
     bodies[3] = malloc(sizeof(CelestialBody));
-    *bodies[3] = (CelestialBody){.type = TYPE_MOON,
-                                 .name = strdup("Earth's Moon"),
-                                 .position = {bodies[2]->position.x + orbitalRadius, 0},
-                                 .velocity = {0, 0},
-                                 .mass = 1e7,
-                                 .radius = 3.2e2f,
-                                 .colliderRadius = 3.2e2f,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-                                 .rotation = 0.0f,
-                                 .texture = gameTextures->moonTextures[0],
-                                 .numResources = 1,
-                                 .resources = (Resource *)malloc(sizeof(Resource) * 1)};
+    *bodies[3] = (CelestialBody){
+        .type = TYPE_MOON,
+        .name = strdup("Earth's Moon"),
+        .position = {bodies[2]->position.x + orbitalRadius, 0},
+        .velocity = {0, 0},
+        .mass = 1e7,
+        .radius = 3.2e2f,
+        .colliderRadius = 3.2e2f,
+        .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+        .rotation = 0.0f,
+        .texture = gameTextures->moonTextures[0],
+        .resourceCount = 4,
+        .resources[RESOURCE_WATER_ICE] = (InventoryResource){RESOURCE_WATER_ICE, 1000},
+        .resources[RESOURCE_COPPER_ORE] = (InventoryResource){RESOURCE_COPPER_ORE, 500},
+        .resources[RESOURCE_IRON_ORE] = (InventoryResource){RESOURCE_IRON_ORE, 700},
+        .resources[RESOURCE_GOLD_ORE] = (InventoryResource){RESOURCE_GOLD_ORE, 200}};
     relVel = (Vector2){0, -calculateOrbitalSpeed(bodies[2]->mass, orbitalRadius)};
     bodies[3]->velocity = Vector2Add(bodies[2]->velocity, relVel);
-    bodies[3]->resources[0] = (Resource){.amount = 9999, .mineral = MINERAL_WATERICE};
 
     // Planet orbiting Star - Mercury
     orbitalRadius = calculateOrbitalRadius(0.39f * 24 * 60 * 60, bodies[1]->mass);
@@ -865,49 +874,50 @@ void drawPlayerStats(PlayerStats *playerStats)
     DrawText(TextFormat("%i$", playerStats->money), 125 - MeasureText(TextFormat("%i$", playerStats->money), 16), 40, 16, WHITE);
 }
 
-void drawPlayerInventory(PlayerInventory *playerInventory)
+void drawPlayerInventory(CelestialBody *playerShip, Resource *resourceDefinitions)
 {
     int initialHeight = 70;
     int heightStep = 30;
     int fontSize = 16;
-    for (int i = 0; i < playerInventory->numResources; i++)
+    for (int i = 0; i < RESOURCE_COUNT; i++)
     {
         // Currently renders the associated enum integer of each mineral
         // Possibly need to change mineral to be a struct so we can store a name (char array)
-        DrawText(TextFormat("%i:", playerInventory->resources[i].mineral), 10, (initialHeight + (heightStep * i)), fontSize, WHITE);
-        DrawText(TextFormat("%it", playerInventory->resources[i].amount), 125 - MeasureText(TextFormat("%it", playerInventory->resources[i].amount), fontSize), (initialHeight + (heightStep * i)), fontSize, WHITE);
+        DrawText(TextFormat("%s:", resourceDefinitions[i].name), 10, (initialHeight + (heightStep * i)), fontSize, WHITE);
+        DrawText(TextFormat("%it", playerShip->shipSettings.inventory[i].quantity), 125 - MeasureText(TextFormat("%it", playerShip->shipSettings.inventory[i].quantity), fontSize), (initialHeight + (heightStep * i)), fontSize, WHITE);
     }
 }
 
-void initialisePlayerInventory(PlayerInventory *playerInventory)
+bool mineResource(CelestialBody *body, CelestialBody *playerShip, Resource *resourceDefinitions, ResourceType type, int amount)
 {
-    playerInventory->numResources = NUM_MINERALS;
-    playerInventory->resources = (Resource *)malloc(sizeof(Resource) * NUM_MINERALS);
-    for (int i = 0; i < NUM_MINERALS; i++)
+    // Check if planet has enough of the resource
+    if (body->resources[type].quantity < amount)
     {
-        playerInventory->resources[i] = (Resource){
-            .amount = 0,
-            .mineral = i};
+        return false; // Not enough resources
     }
+
+    // Calculate weight of the requested amount
+    float weight_to_add = resourceDefinitions[type].weight * amount;
+    if (playerShip->shipSettings.currentCapacity + weight_to_add > playerShip->shipSettings.maxCapacity)
+    {
+        return false; // Ship can't carry more
+    }
+
+    // Update planet and ship
+    body->resources[type].quantity -= amount;
+    playerShip->shipSettings.inventory[type].quantity += amount;
+    playerShip->shipSettings.currentCapacity += weight_to_add;
+
+    return true;
 }
 
-// void mineResources(CelestialBody *playerShip, PlayerInventory *playerInventory)
-// {
-//     if (playerShip->shipSettings.state != SHIP_LANDED || playerShip->shipSettings.landedBody == NULL)
-//         return;
-//     for (int i = 0; i < playerShip->shipSettings.landedBody->resources; i++)
-//     {
-//         // Subtract minerals from body and add them to player inventory
-//         Mineral currentMineral = playerShip->shipSettings.landedBody->resources[i].mineral;
-//         playerInventory->resources[currentMineral].amount++;
-//         playerShip->shipSettings.landedBody->resources[currentMineral].amount--;
-//     }
-// }
-
-void freePlayerInventory(PlayerInventory *playerInventory)
+Resource *initResources()
 {
-    if (playerInventory->resources)
-    {
-        free(playerInventory->resources);
-    }
-}
+    Resource resourceDefinitions[RESOURCE_COUNT] = {
+        {.type = RESOURCE_WATER_ICE, .name = "Water Ice", .weight = 1.0f, .value = 10},
+        {.type = RESOURCE_COPPER_ORE, .name = "Copper Ore", .weight = 2.0f, .value = 20},
+        {.type = RESOURCE_IRON_ORE, .name = "Iron Ore", .weight = 2.5f, .value = 25},
+        {.type = RESOURCE_GOLD_ORE, .name = "Gold Ore", .weight = 3.0f, .value = 100}};
+
+    return resourceDefinitions;
+};

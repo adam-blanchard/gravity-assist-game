@@ -48,8 +48,7 @@ int main(void)
         .money = 0,
         .miningXP = 0};
 
-    PlayerInventory playerInventory = {0};
-    int showPlayerInventory = 0;
+    Resource *globalResources = initResources();
 
     int numBodies = 0;
     CelestialBody **bodies = NULL;
@@ -113,7 +112,6 @@ int main(void)
                     playerShip = bodies[0];
                     landShip(playerShip, bodies[2]);
                     playerShip->rotation = 90.0f;
-                    initialisePlayerInventory(&playerInventory);
                 }
                 gameState = GAME_RUNNING;
             }
@@ -160,14 +158,9 @@ int main(void)
                 }
             }
 
-            if (IsKeyPressed(KEY_F))
+            if (IsKeyPressed(KEY_M) && playerShip->shipSettings.landedBody != NULL)
             {
-                if (showPlayerInventory == 0)
-                {
-                    showPlayerInventory = 1;
-                    break;
-                }
-                showPlayerInventory = 0;
+                mineResource(playerShip->shipSettings.landedBody, playerShip, globalResources, RESOURCE_WATER_ICE, 1);
             }
 
             // Apply rotation
@@ -271,7 +264,6 @@ int main(void)
 
             drawPlayerHUD(&playerHUD);
             drawPlayerStats(&playerStats);
-            drawPlayerInventory(&playerInventory);
 
             DrawFPS(screenWidth - 100, 10);
             DrawText(TextFormat("Camera locked to: %s", bodies[cameraLock]->name), screenWidth - 280, 40, 20, DARKGRAY);
@@ -296,7 +288,6 @@ int main(void)
 
     freeCelestialBodies(bodies, numBodies);
     freeGameTextures(gameTextures);
-    freePlayerInventory(&playerInventory);
 
     CloseWindow();
     return 0;
