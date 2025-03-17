@@ -113,6 +113,7 @@ int main(void)
                     playerShip = bodies[0];
                     landShip(playerShip, bodies[2]);
                     playerShip->rotation = 90.0f;
+                    initialisePlayerInventory(&playerInventory);
                 }
                 gameState = GAME_RUNNING;
             }
@@ -295,6 +296,7 @@ int main(void)
 
     freeCelestialBodies(bodies, numBodies);
     freeGameTextures(gameTextures);
+    freePlayerInventory(&playerInventory);
 
     CloseWindow();
     return 0;

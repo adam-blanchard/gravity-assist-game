@@ -23,6 +23,7 @@
 #define GRID_LINE_WIDTH 100
 #define HUD_ARROW_SCALE 0.01
 #define MAX_LANDING_SPEED 50
+#define NUM_MINERALS 4 // Number of different minerals available to mine
 
 #define TRAIL_COLOUR \
     CLITERAL(Color) { 255, 255, 255, 255 }
@@ -95,6 +96,7 @@ typedef struct CelestialBody
     float rotation;
     ShipSettings shipSettings;
     Texture2D *texture;
+    int numResources;
     Resource *resources;
 } CelestialBody;
 
@@ -152,11 +154,15 @@ typedef struct PlayerStats
 typedef struct PlayerInventory
 {
     int size;
-    int iron;
-    int copper;
-    int gold;
-    int ice;
+    int numResources;
+    Resource *resources;
 } PlayerInventory;
+
+// typedef struct Mineral
+// {
+//     char *name;
+//     float weight; // Kg per unit
+// } Mineral;
 
 typedef struct Resource
 {
@@ -519,6 +525,7 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f,
                                  .texture = gameTextures->moonTextures[0],
+                                 .numResources = 1,
                                  .resources = (Resource *)malloc(sizeof(Resource) * 1)};
     relVel = (Vector2){0, -calculateOrbitalSpeed(bodies[2]->mass, orbitalRadius)};
     bodies[3]->velocity = Vector2Add(bodies[2]->velocity, relVel);
@@ -844,8 +851,8 @@ void freeCelestialBodies(CelestialBody **bodies, int numBodies)
             free(bodies[i]->previousPositions);
             if (bodies[i]->futurePositions)
                 free(bodies[i]->futurePositions);
-            if (bodies[i]->resources)
-                free(bodies[i]->resources);
+            // if (bodies[i]->resources)
+            //     free(bodies[i]->resources);
             free(bodies[i]);
         }
         free(bodies);
@@ -860,22 +867,47 @@ void drawPlayerStats(PlayerStats *playerStats)
 
 void drawPlayerInventory(PlayerInventory *playerInventory)
 {
-    DrawText("Ice:", 10, 70, 16, WHITE);
-    DrawText(TextFormat("%it", playerInventory->ice), 125 - MeasureText(TextFormat("%it", playerInventory->ice), 16), 70, 16, WHITE);
-    DrawText("Copper:", 10, 100, 16, WHITE);
-    DrawText(TextFormat("%it", playerInventory->copper), 125 - MeasureText(TextFormat("%it", playerInventory->copper), 16), 100, 16, WHITE);
-    DrawText("Iron:", 10, 130, 16, WHITE);
-    DrawText(TextFormat("%it", playerInventory->iron), 125 - MeasureText(TextFormat("%it", playerInventory->iron), 16), 130, 16, WHITE);
-    DrawText("Gold:", 10, 160, 16, WHITE);
-    DrawText(TextFormat("%it", playerInventory->gold), 125 - MeasureText(TextFormat("%it", playerInventory->gold), 16), 160, 16, WHITE);
+    int initialHeight = 70;
+    int heightStep = 30;
+    int fontSize = 16;
+    for (int i = 0; i < playerInventory->numResources; i++)
+    {
+        // Currently renders the associated enum integer of each mineral
+        // Possibly need to change mineral to be a struct so we can store a name (char array)
+        DrawText(TextFormat("%i:", playerInventory->resources[i].mineral), 10, (initialHeight + (heightStep * i)), fontSize, WHITE);
+        DrawText(TextFormat("%it", playerInventory->resources[i].amount), 125 - MeasureText(TextFormat("%it", playerInventory->resources[i].amount), fontSize), (initialHeight + (heightStep * i)), fontSize, WHITE);
+    }
 }
 
-void mineResources(CelestialBody *playerShip, PlayerInventory *playerInventory)
+void initialisePlayerInventory(PlayerInventory *playerInventory)
 {
-    if (playerShip->shipSettings.landedBody == NULL)
-        return;
-    for (int i = 0; i < playerShip->shipSettings.landedBody->resources; i++)
+    playerInventory->numResources = NUM_MINERALS;
+    playerInventory->resources = (Resource *)malloc(sizeof(Resource) * NUM_MINERALS);
+    for (int i = 0; i < NUM_MINERALS; i++)
     {
-        // Subtract minerals from body and add them to player inventory
+        playerInventory->resources[i] = (Resource){
+            .amount = 0,
+            .mineral = i};
+    }
+}
+
+// void mineResources(CelestialBody *playerShip, PlayerInventory *playerInventory)
+// {
+//     if (playerShip->shipSettings.state != SHIP_LANDED || playerShip->shipSettings.landedBody == NULL)
+//         return;
+//     for (int i = 0; i < playerShip->shipSettings.landedBody->resources; i++)
+//     {
+//         // Subtract minerals from body and add them to player inventory
+//         Mineral currentMineral = playerShip->shipSettings.landedBody->resources[i].mineral;
+//         playerInventory->resources[currentMineral].amount++;
+//         playerShip->shipSettings.landedBody->resources[currentMineral].amount--;
+//     }
+// }
+
+void freePlayerInventory(PlayerInventory *playerInventory)
+{
+    if (playerInventory->resources)
+    {
+        free(playerInventory->resources);
     }
 }
