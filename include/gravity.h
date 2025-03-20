@@ -24,6 +24,7 @@
 #define HUD_ARROW_SCALE 0.01
 #define MAX_LANDING_SPEED 50
 #define MAX_CAPACITY 100
+#define HUD_FONT_SIZE 16
 
 #define TRAIL_COLOUR \
     CLITERAL(Color) { 255, 255, 255, 255 }
@@ -69,8 +70,20 @@ typedef enum
 } ResourceType;
 
 typedef struct CelestialBody CelestialBody;
-typedef struct Resource Resource;
-typedef struct InventoryResource InventoryResource;
+
+typedef struct
+{
+    ResourceType type;
+    char name[32]; // Name of the resource (e.g., "Water Ice")
+    float weight;  // Weight per unit (e.g., for ship capacity limits)
+    int value;     // Value for trading or crafting
+} Resource;
+
+typedef struct InventoryResource
+{
+    int resourceId; // Corresponds to ResourceType
+    int quantity;   // Amount available on the CelestialBody
+} InventoryResource;
 
 typedef struct ShipSettings
 {
@@ -155,20 +168,6 @@ typedef struct PlayerStats
     int money;
     uint32_t miningXP;
 } PlayerStats;
-
-typedef struct
-{
-    ResourceType type;
-    char name[32]; // Name of the resource (e.g., "Water Ice")
-    float weight;  // Weight per unit (e.g., for ship capacity limits)
-    int value;     // Value for trading or crafting
-} Resource;
-
-typedef struct InventoryResource
-{
-    int resourceId; // Corresponds to ResourceType
-    int quantity;   // Amount available on the CelestialBody
-} InventoryResource;
 
 float calculateOrbitalVelocity(float mass, float radius)
 {
@@ -870,21 +869,20 @@ void freeCelestialBodies(CelestialBody **bodies, int numBodies)
 
 void drawPlayerStats(PlayerStats *playerStats)
 {
-    DrawText("Money:", 10, 40, 16, WHITE);
-    DrawText(TextFormat("%i$", playerStats->money), 125 - MeasureText(TextFormat("%i$", playerStats->money), 16), 40, 16, WHITE);
+    DrawText("Money:", 10, 40, HUD_FONT_SIZE, WHITE);
+    DrawText(TextFormat("%i$", playerStats->money), 150 - MeasureText(TextFormat("%i$", playerStats->money), HUD_FONT_SIZE), 40, HUD_FONT_SIZE, WHITE);
 }
 
 void drawPlayerInventory(CelestialBody *playerShip, Resource *resourceDefinitions)
 {
     int initialHeight = 70;
     int heightStep = 30;
-    int fontSize = 16;
     for (int i = 0; i < RESOURCE_COUNT; i++)
     {
         // Currently renders the associated enum integer of each mineral
         // Possibly need to change mineral to be a struct so we can store a name (char array)
-        DrawText(TextFormat("%s:", resourceDefinitions[i].name), 10, (initialHeight + (heightStep * i)), fontSize, WHITE);
-        DrawText(TextFormat("%it", playerShip->shipSettings.inventory[i].quantity), 125 - MeasureText(TextFormat("%it", playerShip->shipSettings.inventory[i].quantity), fontSize), (initialHeight + (heightStep * i)), fontSize, WHITE);
+        DrawText(TextFormat("%s:", resourceDefinitions[i].name), 10, (initialHeight + (heightStep * i)), HUD_FONT_SIZE, WHITE);
+        DrawText(TextFormat("%it", playerShip->shipSettings.inventory[i].quantity), 150 - MeasureText(TextFormat("%it", playerShip->shipSettings.inventory[i].quantity), HUD_FONT_SIZE), (initialHeight + (heightStep * i)), HUD_FONT_SIZE, WHITE);
     }
 }
 
@@ -910,14 +908,3 @@ bool mineResource(CelestialBody *body, CelestialBody *playerShip, Resource *reso
 
     return true;
 }
-
-Resource *initResources()
-{
-    Resource resourceDefinitions[RESOURCE_COUNT] = {
-        {.type = RESOURCE_WATER_ICE, .name = "Water Ice", .weight = 1.0f, .value = 10},
-        {.type = RESOURCE_COPPER_ORE, .name = "Copper Ore", .weight = 2.0f, .value = 20},
-        {.type = RESOURCE_IRON_ORE, .name = "Iron Ore", .weight = 2.5f, .value = 25},
-        {.type = RESOURCE_GOLD_ORE, .name = "Gold Ore", .weight = 3.0f, .value = 100}};
-
-    return resourceDefinitions;
-};

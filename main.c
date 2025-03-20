@@ -48,7 +48,11 @@ int main(void)
         .money = 0,
         .miningXP = 0};
 
-    Resource *globalResources = initResources();
+    Resource globalResources[RESOURCE_COUNT] = {
+        {.type = RESOURCE_WATER_ICE, .name = "Water Ice", .weight = 1.0f, .value = 10},
+        {.type = RESOURCE_COPPER_ORE, .name = "Copper Ore", .weight = 2.0f, .value = 20},
+        {.type = RESOURCE_IRON_ORE, .name = "Iron Ore", .weight = 2.5f, .value = 25},
+        {.type = RESOURCE_GOLD_ORE, .name = "Gold Ore", .weight = 3.0f, .value = 100}};
 
     int numBodies = 0;
     CelestialBody **bodies = NULL;
@@ -160,7 +164,7 @@ int main(void)
 
             if (IsKeyPressed(KEY_M) && playerShip->shipSettings.landedBody != NULL)
             {
-                mineResource(playerShip->shipSettings.landedBody, playerShip, globalResources, RESOURCE_WATER_ICE, 1);
+                mineResource(playerShip->shipSettings.landedBody, playerShip, globalResources, RESOURCE_GOLD_ORE, 1);
             }
 
             // Apply rotation
@@ -264,6 +268,7 @@ int main(void)
 
             drawPlayerHUD(&playerHUD);
             drawPlayerStats(&playerStats);
+            drawPlayerInventory(playerShip, globalResources);
 
             DrawFPS(screenWidth - 100, 10);
             DrawText(TextFormat("Camera locked to: %s", bodies[cameraLock]->name), screenWidth - 280, 40, 20, DARKGRAY);
