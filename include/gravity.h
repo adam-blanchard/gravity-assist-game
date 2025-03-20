@@ -18,7 +18,6 @@
 #define PREVIOUS_POSITIONS 1000
 #define FUTURE_POSITIONS 1000
 #define FUTURE_STEP_TIME 0.1f
-#define TEXTURE_SCALE 2.8
 #define GRID_SPACING 1e2
 #define GRID_LINE_WIDTH 100
 #define HUD_ARROW_SCALE 0.01
@@ -108,12 +107,12 @@ typedef struct CelestialBody
     Vector2 velocity;
     float mass; // Kg
     float radius;
-    float colliderRadius;
     Vector2 *previousPositions;
     Vector2 *futurePositions;
     float rotation;
     ShipSettings shipSettings;
     Texture2D *texture;
+    float textureScale;
     InventoryResource resources[RESOURCE_COUNT]; // Array of resources on the planet
     int resourceCount;                           // Number of resource types present
 } CelestialBody;
@@ -257,12 +256,12 @@ void takeoffShip(CelestialBody *ship)
     ship->shipSettings.state = SHIP_FLYING;
 
     // Calculate takeoff direction (normal to surface)
-    Vector2 direction = Vector2Normalize(ship->shipSettings.landingPosition);
-    float takeoffSpeed = calculateEscapeVelocity(ship->shipSettings.landedBody->mass, ship->shipSettings.landedBody->radius) * 0.8f; // Slightly less than escape velocity
-    Vector2 takeoffVelocity = Vector2Scale(direction, takeoffSpeed);
+    // Vector2 direction = Vector2Normalize(ship->shipSettings.landingPosition);
+    // float takeoffSpeed = calculateEscapeVelocity(ship->shipSettings.landedBody->mass, ship->shipSettings.landedBody->radius) * 0.8f; // Slightly less than escape velocity
+    // Vector2 takeoffVelocity = Vector2Scale(direction, takeoffSpeed);
 
-    // Set velocity relative to the body's velocity
-    ship->velocity = Vector2Add(ship->shipSettings.landedBody->velocity, takeoffVelocity);
+    // // Set velocity relative to the body's velocity
+    // ship->velocity = Vector2Add(ship->shipSettings.landedBody->velocity, takeoffVelocity);
 
     // Clear landed body reference
     ship->shipSettings.landedBody = NULL;
@@ -462,12 +461,11 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .velocity = {0, 0},
                                  .mass = 1e1f,
                                  .radius = 32.0f,
-                                 .colliderRadius = 50.0f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  //  .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
                                  .rotation = 0.0f,
                                  .shipSettings = (ShipSettings){
-                                     .thrust = 4e0f,
+                                     .thrust = 1e0f,
                                      .fuel = 100.0f,
                                      .fuelConsumption = 0.0f,
                                      .isSelected = true,
@@ -477,7 +475,8 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                      .landingPosition = {0},
                                      .maxCapacity = MAX_CAPACITY,
                                      .currentCapacity = 0},
-                                 .texture = gameTextures->shipTextures[0]};
+                                 .texture = gameTextures->shipTextures[0],
+                                 .textureScale = 1.5f};
 
     for (int i = 0; i < RESOURCE_COUNT; i++)
     {
@@ -492,10 +491,10 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .velocity = {0, 0},
                                  .mass = 1e15f,
                                  .radius = 3.2e5,
-                                 .colliderRadius = 3.2e5,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f,
-                                 .texture = gameTextures->starTextures[0]};
+                                 .texture = gameTextures->starTextures[0],
+                                 .textureScale = 2.8f};
 
     // Planet orbiting Star - Earth
     float orbitalRadius = calculateOrbitalRadius(24 * 60 * 60, bodies[1]->mass);
@@ -506,10 +505,10 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .velocity = {0, 0},
                                  .mass = 1e9,
                                  .radius = 3.2e3f,
-                                 .colliderRadius = 3.2e3f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f,
-                                 .texture = gameTextures->planetTextures[0]};
+                                 .texture = gameTextures->planetTextures[0],
+                                 .textureScale = 3.1f};
     bodies[2]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
 
     // Determine Ship's initial velocity once orbiting body has been initialised
@@ -527,10 +526,10 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
         .velocity = {0, 0},
         .mass = 1e7,
         .radius = 3.2e2f,
-        .colliderRadius = 3.2e2f,
         .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
         .rotation = 0.0f,
         .texture = gameTextures->moonTextures[0],
+        .textureScale = 2.7f,
         .resourceCount = 4,
         .resources[RESOURCE_WATER_ICE] = (InventoryResource){RESOURCE_WATER_ICE, 1000},
         .resources[RESOURCE_COPPER_ORE] = (InventoryResource){RESOURCE_COPPER_ORE, 500},
@@ -548,10 +547,10 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .velocity = {0, 0},
                                  .mass = 1e9 * 0.0553f,
                                  .radius = 3.2e3f * 0.383f,
-                                 .colliderRadius = 3.2e3f * 0.383f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f,
-                                 .texture = gameTextures->planetTextures[1]};
+                                 .texture = gameTextures->planetTextures[1],
+                                 .textureScale = 3.1f};
     bodies[4]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
 
     // Planet orbiting Star - Venus
@@ -563,10 +562,10 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .velocity = {0, 0},
                                  .mass = 1e9 * 0.815f,
                                  .radius = 3.2e3f * 0.949f,
-                                 .colliderRadius = 3.2e3f * 0.949f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f,
-                                 .texture = gameTextures->planetTextures[2]};
+                                 .texture = gameTextures->planetTextures[2],
+                                 .textureScale = 2.5f};
     bodies[5]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
 
     // Planet orbiting Star - Mars
@@ -578,25 +577,25 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .velocity = {0, 0},
                                  .mass = 1e9 * 0.107f,
                                  .radius = 3.2e3f * 0.532f,
-                                 .colliderRadius = 3.2e3f * 0.532f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f,
-                                 .texture = gameTextures->planetTextures[3]};
+                                 .texture = gameTextures->planetTextures[3],
+                                 .textureScale = 3.1f};
     bodies[6]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
 
     // Planet orbiting Star - Jupiter
     orbitalRadius = calculateOrbitalRadius(5.20f * 24 * 60 * 60, bodies[1]->mass);
     bodies[7] = malloc(sizeof(CelestialBody));
     *bodies[7] = (CelestialBody){.type = TYPE_PLANET,
-                                 .name = strdup("Mars"),
+                                 .name = strdup("Jupiter"),
                                  .position = {bodies[1]->position.x + orbitalRadius, 0},
                                  .velocity = {0, 0},
                                  .mass = 1e9 * 317.8f,
                                  .radius = 3.2e3f * 11.21f,
-                                 .colliderRadius = 3.2e3f * 11.21f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
                                  .rotation = 0.0f,
-                                 .texture = gameTextures->planetTextures[4]};
+                                 .texture = gameTextures->planetTextures[4],
+                                 .textureScale = 2.6f};
     bodies[7]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
 
     return bodies;
@@ -606,11 +605,7 @@ void drawBodies(CelestialBody **bodies, int numBodies)
 {
     for (int i = numBodies - 1; i >= 0; i--)
     {
-
-        // Draw collider for debug
-        // DrawCircle(bodies[i]->position.x, bodies[i]->position.y, bodies[i]->radius, WHITE);
-
-        float scale = ((bodies[i]->radius * 2) / bodies[i]->texture->width) * TEXTURE_SCALE;
+        float scale = ((bodies[i]->radius * 2) / bodies[i]->texture->width) * bodies[i]->textureScale;
         // Source rectangle (part of the texture to use for drawing i.e. the whole texture)
         Rectangle source = {
             0,
@@ -632,6 +627,9 @@ void drawBodies(CelestialBody **bodies, int numBodies)
             (float)((bodies[i]->texture->width + widthScale) / 2),
             (float)((bodies[i]->texture->height + heightScale) / 2)};
         DrawTexturePro(*bodies[i]->texture, source, dest, origin, bodies[i]->rotation, WHITE);
+
+        // Draw collider for debug
+        // DrawCircle(bodies[i]->position.x, bodies[i]->position.y, bodies[i]->radius, WHITE);
     }
 }
 

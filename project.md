@@ -24,6 +24,8 @@
 - [ ] Ship upgrades - engines, fuel capacity, maneuverability, etc.
 - [ ] Asteroid mining
 - [ ] Universe map
+- [ ] Smooth transition between camera lock
+- [ ] Lock camera to celestial body when ship is landed
 
 - [x] Render sun and planets
 - [x] Render ship

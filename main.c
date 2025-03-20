@@ -6,8 +6,6 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
-void DrawGame(void);
-
 int main(void)
 {
     int screenWidth = 1280;
@@ -43,6 +41,8 @@ int main(void)
         .speed = 0.0f,
         .compassTexture = LoadTexture("./textures/hud/compass.png"),
         .arrowTexture = LoadTexture("./textures/hud/arrow_2.png")};
+
+    float gameTime = 0;
 
     PlayerStats playerStats = {
         .money = 0,
