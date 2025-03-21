@@ -17,7 +17,7 @@
 #define TRAJECTORY_STEP_TIME 0.033f
 #define PREVIOUS_POSITIONS 1000
 #define FUTURE_POSITIONS 1000
-#define FUTURE_STEP_TIME 0.1f
+#define FUTURE_STEP_TIME 0.01f
 #define GRID_SPACING 1e2
 #define GRID_LINE_WIDTH 100
 #define HUD_ARROW_SCALE 0.01
@@ -462,7 +462,7 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .mass = 1e1f,
                                  .radius = 32.0f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-                                 //  .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
+                                 .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
                                  .rotation = 0.0f,
                                  .shipSettings = (ShipSettings){
                                      .thrust = 1e0f,
@@ -905,4 +905,121 @@ bool mineResource(CelestialBody *body, CelestialBody *playerShip, Resource *reso
     playerShip->shipSettings.currentCapacity += weight_to_add;
 
     return true;
+}
+
+CelestialBody **copyCelestialBodies(CelestialBody **original, int numBodies)
+{
+    // Step 1: Allocate memory for the new array of pointers
+    CelestialBody **copy = (CelestialBody **)malloc(numBodies * sizeof(CelestialBody *));
+    if (copy == NULL)
+    {
+        // Handle memory allocation failure
+        return NULL;
+    }
+
+    // Step 2: Copy each CelestialBody
+    for (int i = 0; i < numBodies; i++)
+    {
+        // Allocate memory for the new CelestialBody
+        copy[i] = (CelestialBody *)malloc(sizeof(CelestialBody));
+        if (copy[i] == NULL)
+        {
+            // Handle memory allocation failure and clean up
+            for (int j = 0; j < i; j++)
+            {
+                free(copy[j]);
+            }
+            free(copy);
+            return NULL;
+        }
+
+        // Step 3: Copy the data from the original to the new body
+        memcpy(copy[i], original[i], sizeof(CelestialBody));
+    }
+
+    return copy;
+}
+
+void predictPositions(CelestialBody **bodies, int numBodies, WarpController *timeScale, float *theta)
+{
+    // Prediction is working, but it's not accurate!!
+
+    // Make a copy of the current state of the system to simulate on
+    CelestialBody **workingBodies = copyCelestialBodies(bodies, numBodies);
+
+    for (int i = 0; i < FUTURE_POSITIONS; i++)
+    {
+        QuadTreeNode *root = buildQuadTree(workingBodies, numBodies);
+
+        // Update physics
+        float scaledDt = FUTURE_STEP_TIME * timeScale->val;
+
+        // This loop is causing a segfault :(
+        for (int j = 0; j < numBodies; j++)
+        {
+            if (workingBodies[j]->type == TYPE_SHIP && workingBodies[j]->shipSettings.state == SHIP_LANDED)
+            {
+                continue;
+            }
+
+            Vector2 force = computeForce(root, workingBodies[j], *theta);
+            Vector2 accel = Vector2Scale(force, 1.0f / workingBodies[j]->mass);
+            workingBodies[j]->velocity = Vector2Add(workingBodies[j]->velocity, Vector2Scale(accel, scaledDt));
+            workingBodies[j]->position = Vector2Add(workingBodies[j]->position, Vector2Scale(workingBodies[j]->velocity, scaledDt));
+
+            if (bodies[j]->type == TYPE_SHIP)
+            {
+                bodies[j]->futurePositions[i] = workingBodies[j]->position;
+            }
+        }
+        free(root);
+    }
+
+    for (int i = 0; i < numBodies; i++)
+    {
+        free(workingBodies[i]);
+    }
+    free(workingBodies);
+}
+
+void drawFuturePositions(CelestialBody **bodies, int numBodies)
+{
+    for (int i = 0; i < numBodies; i++)
+    {
+        if (bodies[i]->futurePositions == NULL)
+            continue;
+
+        for (int j = 0; j < FUTURE_POSITIONS; j++)
+        {
+            DrawPixelV(bodies[i]->futurePositions[j], TRAIL_COLOUR);
+
+            // N
+            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){0, -1}), TRAIL_COLOUR);
+            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){0, -2}), TRAIL_COLOUR);
+
+            // NE
+            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){1, -1}), TRAIL_COLOUR);
+
+            // E
+            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){1, 0}), TRAIL_COLOUR);
+            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){2, 0}), TRAIL_COLOUR);
+
+            // SE
+            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){1, 1}), TRAIL_COLOUR);
+
+            // S
+            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){0, 1}), TRAIL_COLOUR);
+            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){0, 2}), TRAIL_COLOUR);
+
+            // SW
+            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){-1, 1}), TRAIL_COLOUR);
+
+            // W
+            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){-1, 0}), TRAIL_COLOUR);
+            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){-2, 0}), TRAIL_COLOUR);
+
+            // NW
+            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){-1, -1}), TRAIL_COLOUR);
+        }
+    }
 }

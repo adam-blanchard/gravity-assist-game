@@ -58,7 +58,7 @@ int main(void)
     CelestialBody **bodies = NULL;
     CelestialBody *playerShip = NULL;
     float theta = 0.0f; // Barnes-Hut threshold - usually 0.5
-    int trailIndex = 0;
+    // int trailIndex = 0;
     QuadTreeNode *root = NULL;
 
     int cameraLock = 0;
@@ -212,10 +212,11 @@ int main(void)
                 bodies[i]->velocity = Vector2Add(bodies[i]->velocity, Vector2Scale(accel, scaledDt));
                 bodies[i]->position = Vector2Add(bodies[i]->position, Vector2Scale(bodies[i]->velocity, scaledDt));
                 detectCollisions(bodies, numBodies, root, bodies[i]);
-                bodies[i]->previousPositions[trailIndex] = bodies[i]->position;
+                // bodies[i]->previousPositions[trailIndex] = bodies[i]->position;
             }
-            trailIndex += 1;
-            trailIndex = trailIndex % PREVIOUS_POSITIONS;
+
+            // trailIndex += 1;
+            // trailIndex = trailIndex % PREVIOUS_POSITIONS;
 
             updateShipPosition(playerShip);
 
@@ -229,6 +230,9 @@ int main(void)
             }
             playerHUD.playerRotation = playerShip->rotation;
             playerHUD.velocityTarget = velocityTarget;
+
+            predictPositions(bodies, numBodies, &timeScale, &theta);
+
             break;
 
         case GAME_PAUSED:
@@ -259,6 +263,7 @@ int main(void)
             BeginMode2D(camera);
             drawCelestialGrid(bodies, numBodies, camera);
             // drawPreviousPositions(bodies, numBodies);
+            drawFuturePositions(bodies, numBodies);
             drawBodies(bodies, numBodies);
 
             EndMode2D();
