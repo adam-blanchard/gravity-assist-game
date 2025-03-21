@@ -215,7 +215,7 @@ int main(void)
                 // bodies[i]->previousPositions[trailIndex] = bodies[i]->position;
             }
 
-            predictPositions(bodies, numBodies, &timeScale, &theta);
+            // predictPositions(bodies, numBodies, &timeScale, &theta);
 
             // trailIndex += 1;
             // trailIndex = trailIndex % PREVIOUS_POSITIONS;
@@ -265,7 +265,7 @@ int main(void)
             drawCelestialGrid(bodies, numBodies, camera);
             // drawPreviousPositions(bodies, numBodies);
             drawBodies(bodies, numBodies);
-            drawFuturePositions(bodies, numBodies);
+            // drawFuturePositions(bodies, numBodies);
 
             EndMode2D();
 

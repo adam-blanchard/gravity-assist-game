@@ -1,6 +1,6 @@
 ## TODO
 
-- [ ] Add relative orbit instead of absolute - all bodies are flying through space so the orbit line of a ship around the planet is lost
+- [ ] Reduce computation cost of trajectory prediction. Can I learn any lessons from KSP?
 - [ ] Finish mining capability
 - [ ] Add exploration capability and track progress of explored bodies
 - [ ] Space stations
@@ -57,3 +57,4 @@
 - [x] Refactor CelestialGrid to be fixed in game space instead of rendered on the screen
 - [x] Add back relative speed indicator
 - [x] Take-off/landing system
+- [x] Add relative orbit instead of absolute - all bodies are flying through space so the orbit line of a ship around the planet is lost

@@ -13,11 +13,9 @@
 #ifndef G
 #define G 6.67430e-5
 #endif
-#define TRAJECTORY_STEPS 6000
-#define TRAJECTORY_STEP_TIME 0.033f
 #define PREVIOUS_POSITIONS 1000
-#define FUTURE_POSITIONS 1000
-#define FUTURE_STEP_TIME 0.001f
+#define FUTURE_POSITIONS 360
+#define FUTURE_STEP_TIME 1.0f
 #define GRID_SPACING 1e2
 #define GRID_LINE_WIDTH 100
 #define HUD_ARROW_SCALE 0.01
@@ -465,7 +463,7 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
                                  .rotation = 0.0f,
                                  .shipSettings = (ShipSettings){
-                                     .thrust = 1e0f,
+                                     .thrust = 1e1f,
                                      .fuel = 100.0f,
                                      .fuelConsumption = 0.0f,
                                      .isSelected = true,
@@ -948,6 +946,7 @@ CelestialBody **copyCelestialBodies(CelestialBody **original, int numBodies)
 
 void predictPositions(CelestialBody **bodies, int numBodies, WarpController *timeScale, float *theta)
 {
+    // Whole-system simulation is computationally expensive, can we make this more lightweight?
 
     // Make a copy of the current state of the system to simulate on
     CelestialBody **workingBodies = copyCelestialBodies(bodies, numBodies);
@@ -988,42 +987,44 @@ void predictPositions(CelestialBody **bodies, int numBodies, WarpController *tim
 
 void drawFuturePositions(CelestialBody **bodies, int numBodies)
 {
-    for (int i = 0; i < numBodies; i++)
+
+    for (int j = 0; j < FUTURE_POSITIONS; j++)
     {
-        if (bodies[i]->futurePositions == NULL)
-            continue;
+        // Calculate the ship's position relative to the planet at each timestep
+        Vector2 planetPos = bodies[2]->futurePositions[j];
+        Vector2 shipPos = bodies[0]->futurePositions[j];
+        Vector2 relativePos = Vector2Subtract(shipPos, planetPos);
 
-        for (int j = 0; j < FUTURE_POSITIONS; j++)
-        {
-            DrawPixelV(bodies[i]->futurePositions[j], TRAIL_COLOUR);
+        // Draw the relative position offset from the planet's current position
+        Vector2 drawPos = Vector2Add(bodies[2]->position, relativePos);
+        DrawPixelV(drawPos, TRAIL_COLOUR);
 
-            // N
-            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){0, -1}), TRAIL_COLOUR);
-            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){0, -2}), TRAIL_COLOUR);
+        // N
+        DrawPixelV(Vector2Add(drawPos, (Vector2){0, -1}), TRAIL_COLOUR);
+        DrawPixelV(Vector2Add(drawPos, (Vector2){0, -2}), TRAIL_COLOUR);
 
-            // NE
-            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){1, -1}), TRAIL_COLOUR);
+        // NE
+        DrawPixelV(Vector2Add(drawPos, (Vector2){1, -1}), TRAIL_COLOUR);
 
-            // E
-            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){1, 0}), TRAIL_COLOUR);
-            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){2, 0}), TRAIL_COLOUR);
+        // E
+        DrawPixelV(Vector2Add(drawPos, (Vector2){1, 0}), TRAIL_COLOUR);
+        DrawPixelV(Vector2Add(drawPos, (Vector2){2, 0}), TRAIL_COLOUR);
 
-            // SE
-            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){1, 1}), TRAIL_COLOUR);
+        // SE
+        DrawPixelV(Vector2Add(drawPos, (Vector2){1, 1}), TRAIL_COLOUR);
 
-            // S
-            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){0, 1}), TRAIL_COLOUR);
-            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){0, 2}), TRAIL_COLOUR);
+        // S
+        DrawPixelV(Vector2Add(drawPos, (Vector2){0, 1}), TRAIL_COLOUR);
+        DrawPixelV(Vector2Add(drawPos, (Vector2){0, 2}), TRAIL_COLOUR);
 
-            // SW
-            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){-1, 1}), TRAIL_COLOUR);
+        // SW
+        DrawPixelV(Vector2Add(drawPos, (Vector2){-1, 1}), TRAIL_COLOUR);
 
-            // W
-            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){-1, 0}), TRAIL_COLOUR);
-            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){-2, 0}), TRAIL_COLOUR);
+        // W
+        DrawPixelV(Vector2Add(drawPos, (Vector2){-1, 0}), TRAIL_COLOUR);
+        DrawPixelV(Vector2Add(drawPos, (Vector2){-2, 0}), TRAIL_COLOUR);
 
-            // NW
-            DrawPixelV(Vector2Add(bodies[i]->futurePositions[j], (Vector2){-1, -1}), TRAIL_COLOUR);
-        }
+        // NW
+        DrawPixelV(Vector2Add(drawPos, (Vector2){-1, -1}), TRAIL_COLOUR);
     }
 }
