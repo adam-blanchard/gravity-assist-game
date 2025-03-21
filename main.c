@@ -215,9 +215,12 @@ int main(void)
                 // bodies[i]->previousPositions[trailIndex] = bodies[i]->position;
             }
 
+            predictPositions(bodies, numBodies, &timeScale, &theta);
+
             // trailIndex += 1;
             // trailIndex = trailIndex % PREVIOUS_POSITIONS;
 
+            // If the ship is landed, lock its position to the landed body
             updateShipPosition(playerShip);
 
             if (velocityLock == -1)
@@ -230,8 +233,6 @@ int main(void)
             }
             playerHUD.playerRotation = playerShip->rotation;
             playerHUD.velocityTarget = velocityTarget;
-
-            predictPositions(bodies, numBodies, &timeScale, &theta);
 
             break;
 
@@ -263,8 +264,8 @@ int main(void)
             BeginMode2D(camera);
             drawCelestialGrid(bodies, numBodies, camera);
             // drawPreviousPositions(bodies, numBodies);
-            drawFuturePositions(bodies, numBodies);
             drawBodies(bodies, numBodies);
+            drawFuturePositions(bodies, numBodies);
 
             EndMode2D();
 

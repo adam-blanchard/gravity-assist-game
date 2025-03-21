@@ -17,7 +17,7 @@
 #define TRAJECTORY_STEP_TIME 0.033f
 #define PREVIOUS_POSITIONS 1000
 #define FUTURE_POSITIONS 1000
-#define FUTURE_STEP_TIME 0.01f
+#define FUTURE_STEP_TIME 0.001f
 #define GRID_SPACING 1e2
 #define GRID_LINE_WIDTH 100
 #define HUD_ARROW_SCALE 0.01
@@ -506,6 +506,7 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .mass = 1e9,
                                  .radius = 3.2e3f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+                                 .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
                                  .rotation = 0.0f,
                                  .texture = gameTextures->planetTextures[0],
                                  .textureScale = 3.1f};
@@ -527,6 +528,7 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
         .mass = 1e7,
         .radius = 3.2e2f,
         .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+        .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
         .rotation = 0.0f,
         .texture = gameTextures->moonTextures[0],
         .textureScale = 2.7f,
@@ -548,6 +550,7 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .mass = 1e9 * 0.0553f,
                                  .radius = 3.2e3f * 0.383f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+                                 .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
                                  .rotation = 0.0f,
                                  .texture = gameTextures->planetTextures[1],
                                  .textureScale = 3.1f};
@@ -563,6 +566,7 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .mass = 1e9 * 0.815f,
                                  .radius = 3.2e3f * 0.949f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+                                 .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
                                  .rotation = 0.0f,
                                  .texture = gameTextures->planetTextures[2],
                                  .textureScale = 2.5f};
@@ -578,6 +582,7 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .mass = 1e9 * 0.107f,
                                  .radius = 3.2e3f * 0.532f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+                                 .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
                                  .rotation = 0.0f,
                                  .texture = gameTextures->planetTextures[3],
                                  .textureScale = 3.1f};
@@ -593,6 +598,7 @@ CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
                                  .mass = 1e9 * 317.8f,
                                  .radius = 3.2e3f * 11.21f,
                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+                                 .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
                                  .rotation = 0.0f,
                                  .texture = gameTextures->planetTextures[4],
                                  .textureScale = 2.6f};
@@ -942,7 +948,6 @@ CelestialBody **copyCelestialBodies(CelestialBody **original, int numBodies)
 
 void predictPositions(CelestialBody **bodies, int numBodies, WarpController *timeScale, float *theta)
 {
-    // Prediction is working, but it's not accurate!!
 
     // Make a copy of the current state of the system to simulate on
     CelestialBody **workingBodies = copyCelestialBodies(bodies, numBodies);
@@ -954,7 +959,6 @@ void predictPositions(CelestialBody **bodies, int numBodies, WarpController *tim
         // Update physics
         float scaledDt = FUTURE_STEP_TIME * timeScale->val;
 
-        // This loop is causing a segfault :(
         for (int j = 0; j < numBodies; j++)
         {
             if (workingBodies[j]->type == TYPE_SHIP && workingBodies[j]->shipSettings.state == SHIP_LANDED)
@@ -967,7 +971,7 @@ void predictPositions(CelestialBody **bodies, int numBodies, WarpController *tim
             workingBodies[j]->velocity = Vector2Add(workingBodies[j]->velocity, Vector2Scale(accel, scaledDt));
             workingBodies[j]->position = Vector2Add(workingBodies[j]->position, Vector2Scale(workingBodies[j]->velocity, scaledDt));
 
-            if (bodies[j]->type == TYPE_SHIP)
+            if (bodies[j]->type != TYPE_STAR)
             {
                 bodies[j]->futurePositions[i] = workingBodies[j]->position;
             }

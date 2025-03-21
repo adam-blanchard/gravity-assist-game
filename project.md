@@ -1,5 +1,6 @@
 ## TODO
 
+- [ ] Add relative orbit instead of absolute - all bodies are flying through space so the orbit line of a ship around the planet is lost
 - [ ] Finish mining capability
 - [ ] Add exploration capability and track progress of explored bodies
 - [ ] Space stations
