@@ -1,5 +1,10 @@
 ## TODO
 
+- [ ] Refactor stars, planets, and moons to use simple tree-based orbits
+- [ ] Only implement physics for player-controlled bodies
+- [ ] Implement whole-orbit visualisation for planets and moons - these will be easy to predict and stable
+- [ ] Implement trajectory prediction for player-controlled bodies 60 seconds into the future
+
 - [ ] Reduce computation cost of trajectory prediction. Can I learn any lessons from KSP?
 - [ ] Finish mining capability
 - [ ] Add exploration capability and track progress of explored bodies
