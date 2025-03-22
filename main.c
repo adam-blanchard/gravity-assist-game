@@ -23,7 +23,7 @@ int main(void)
     GameState gameState = GAME_HOME;
 
     CameraSettings cameraSettings = {
-        .defaultZoom = 3e-2f,
+        .defaultZoom = 1e-2f,
         .minZoom = 1e-6f,
         .maxZoom = 1.0f};
 
@@ -56,6 +56,9 @@ int main(void)
 
     int numBodies = 0;
     CelestialBody **bodies = NULL;
+
+    int numShips = 0;
+    Ship **ships = NULL;
     // CelestialBody *playerShip = NULL;
     // float theta = 0.0f; // Barnes-Hut threshold - usually 0.5
     // int trailIndex = 0;
@@ -114,6 +117,10 @@ int main(void)
                 {
                     bodies = initBodies(&numBodies);
                 }
+                if (!ships)
+                {
+                    ships = initShips(&numShips);
+                }
                 gameState = GAME_RUNNING;
             }
             if (IsKeyPressed(KEY_Q))
@@ -142,16 +149,56 @@ int main(void)
             camera.zoom = Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
 
             updateCelestialPositions(bodies, numBodies, gameTime);
+            updateShipPositions(ships, numShips, bodies, numBodies, scaledDt);
 
-            // cameraLockPosition = &bodies[cameraLock]->position;
-            // camera.target = *cameraLockPosition;
+            cameraLockPosition = &ships[cameraLock]->position;
+            camera.target = *cameraLockPosition;
 
-            // if (IsKeyPressed(KEY_C))
-            // {
-            //     cameraLock++;
-            //     cameraLock = cameraLock % numBodies;
-            //     cameraLockPosition = &bodies[cameraLock]->position;
-            // }
+            if (IsKeyPressed(KEY_C))
+            {
+                cameraLock++;
+                cameraLock = cameraLock % numShips;
+                cameraLockPosition = &ships[cameraLock]->position;
+            }
+
+            if (IsKeyDown(KEY_D))
+            {
+                for (int i = 0; i < numShips; i++)
+                {
+                    if (ships[i]->isSelected)
+                    {
+                        ships[i]->rotation += 180.0f * scaledDt; // Rotate right
+                        ships[i]->rotation = fmod(ships[i]->rotation + 360.0f, 360.0f);
+                    }
+                }
+            }
+            if (IsKeyDown(KEY_A))
+            {
+                for (int i = 0; i < numShips; i++)
+                {
+                    if (ships[i]->isSelected)
+                    {
+                        ships[i]->rotation -= 180.0f * scaledDt; // Rotate left
+                        ships[i]->rotation = fmod(ships[i]->rotation + 360.0f, 360.0f);
+                    }
+                }
+            }
+
+            if (IsKeyDown(KEY_W))
+            {
+                for (int i = 0; i < numShips; i++)
+                {
+                    if (ships[i]->isSelected)
+                    {
+                        // Convert rotation to radians for vector calculations
+                        float radians = ships[i]->rotation * PI / 180.0f;
+                        Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
+                        Vector2 thrust = Vector2Scale(thrustDirection, ships[i]->thrust * scaledDt);
+                        ships[i]->velocity = Vector2Add(ships[i]->velocity, thrust);
+                        ships[i]->fuel -= ships[i]->fuelConsumption;
+                    }
+                }
+            }
 
             // if (IsKeyPressed(KEY_V))
             // {
@@ -171,12 +218,6 @@ int main(void)
             // {
             //     mineResource(playerShip->shipSettings.landedBody, playerShip, globalResources, RESOURCE_GOLD_ORE, 1);
             // }
-
-            // // Apply rotation
-            // if (IsKeyDown(KEY_D))
-            //     playerShip->rotation += 180.0f * dt; // Rotate right
-            // if (IsKeyDown(KEY_A))
-            //     playerShip->rotation -= 180.0f * dt; // Rotate left
 
             // // Normalize rotation to keep it within 0-360 degrees
             // playerShip->rotation = fmod(playerShip->rotation + 360.0f, 360.0f);
@@ -198,9 +239,6 @@ int main(void)
 
             // Build QuadTree
             // root = buildQuadTree(bodies, numBodies);
-
-            // // Update physics
-            // float scaledDt = dt * timeScale.val;
 
             // for (int i = 0; i < numBodies; i++)
             // {
@@ -268,6 +306,7 @@ int main(void)
             // drawPreviousPositions(bodies, numBodies);
             drawOrbits(bodies, numBodies);
             drawBodies(bodies, numBodies);
+            drawShips(ships, numShips);
             // drawFuturePositions(bodies, numBodies);
 
             EndMode2D();
