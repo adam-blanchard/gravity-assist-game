@@ -14,8 +14,8 @@
 #define G 6.67430e-5
 #endif
 #define PREVIOUS_POSITIONS 1000
-#define FUTURE_POSITIONS 3600
-#define FUTURE_STEP_TIME 1.0f
+#define FUTURE_POSITIONS 1000
+#define FUTURE_STEP_TIME 0.1f
 #define GRID_SPACING 1e2
 #define GRID_LINE_WIDTH 100
 #define HUD_ARROW_SCALE 0.01
@@ -99,6 +99,7 @@ typedef struct Ship
     ShipState state;
     CelestialBody *landedBody;
     Vector2 landingPosition;
+    Vector2 *futurePositions;
 } Ship;
 
 typedef struct CelestialBody
@@ -526,7 +527,8 @@ Ship **initShips(int *numShips)
         .rotation = 0,
         .thrust = 1e2,
         .state = SHIP_FLYING,
-        .isSelected = true};
+        .isSelected = true,
+        .futurePositions = malloc(sizeof(Vector2) * FUTURE_POSITIONS)};
 
     return ships;
 }
@@ -572,6 +574,68 @@ void updateCelestialPositions(CelestialBody **bodies, int numBodies, float time)
     }
 }
 
+void calculateShipFuturePositions(Ship **ships, int numShips, CelestialBody **bodies, int numBodies, float gameTime)
+{
+    for (int i = 0; i < numShips; i++)
+    {
+        if (ships[i]->state == SHIP_LANDED)
+        {
+            // If landed, future positions remain static at the landing spot
+            for (int j = 0; j < FUTURE_POSITIONS; j++)
+            {
+                ships[i]->futurePositions[j] = ships[i]->position;
+            }
+            continue;
+        }
+
+        // Working copy of ship's state
+        Vector2 currentPos = ships[i]->position;
+        Vector2 currentVel = ships[i]->velocity;
+        float shipMass = ships[i]->mass;
+
+        // Simulate future positions
+        for (int j = 0; j < FUTURE_POSITIONS; j++)
+        {
+            float futureTime = gameTime + (j * FUTURE_STEP_TIME);
+
+            // Update celestial body positions at this future time
+            for (int k = 0; k < numBodies; k++)
+            {
+                if (bodies[k]->orbitalRadius > 0 && bodies[k]->parentBody != NULL)
+                {
+                    float angle = fmod(bodies[k]->initialAngle + bodies[k]->angularSpeed * futureTime, 2 * PI);
+                    bodies[k]->position = (Vector2){
+                        bodies[k]->parentBody->position.x + bodies[k]->orbitalRadius * cosf(angle),
+                        bodies[k]->parentBody->position.y + bodies[k]->orbitalRadius * sinf(angle)};
+                }
+            }
+
+            // Compute gravitational force on the ship at this step
+            Vector2 force = {0, 0};
+            for (int k = 0; k < numBodies; k++)
+            {
+                Vector2 dir = Vector2Subtract(bodies[k]->position, currentPos);
+                float dist = Vector2Length(dir);
+                if (dist < 1e-5f)
+                    dist = 1e-5f; // Avoid division by zero
+                float mag = (G * shipMass * bodies[k]->mass) / (dist * dist);
+                force = Vector2Add(force, Vector2Scale(Vector2Normalize(dir), mag));
+            }
+
+            // Update velocity and position using semi-implicit Euler
+            Vector2 accel = Vector2Scale(force, 1.0f / shipMass);
+            currentVel = Vector2Add(currentVel, Vector2Scale(accel, FUTURE_STEP_TIME));
+            currentPos = Vector2Add(currentPos, Vector2Scale(currentVel, FUTURE_STEP_TIME));
+
+            // Store the predicted position
+            ships[i]->futurePositions[j] = currentPos;
+        }
+
+        // Restore original celestial positions (since we modified them for simulation)
+        updateCelestialPositions(bodies, numBodies, gameTime);
+    }
+}
+
 void drawBodies(CelestialBody **bodies, int numBodies)
 {
     Color bodyColour;
@@ -608,6 +672,18 @@ void drawOrbits(CelestialBody **bodies, int numBodies)
         if (bodies[i]->orbitalRadius > 0 && bodies[i]->parentBody != NULL)
         {
             DrawCircleLinesV(bodies[i]->parentBody->position, bodies[i]->orbitalRadius, ORBIT_COLOUR);
+        }
+    }
+}
+
+void drawTrajectories(Ship **ships, int numShips)
+{
+    for (int i = 0; i < numShips; i++)
+    {
+        for (int j = 0; j < FUTURE_POSITIONS; j++)
+        {
+            if (j > 0)
+                DrawLineV(ships[i]->futurePositions[j - 1], ships[i]->futurePositions[j], ORBIT_COLOUR);
         }
     }
 }

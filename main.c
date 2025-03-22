@@ -200,6 +200,8 @@ int main(void)
                 }
             }
 
+            calculateShipFuturePositions(ships, numShips, bodies, numBodies, gameTime);
+
             // if (IsKeyPressed(KEY_V))
             // {
             //     velocityLock++;
@@ -305,6 +307,7 @@ int main(void)
             drawCelestialGrid(bodies, numBodies, camera);
             // drawPreviousPositions(bodies, numBodies);
             drawOrbits(bodies, numBodies);
+            drawTrajectories(ships, numShips);
             drawBodies(bodies, numBodies);
             drawShips(ships, numShips);
             // drawFuturePositions(bodies, numBodies);
