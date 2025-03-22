@@ -42,24 +42,24 @@ int main(void)
         .compassTexture = LoadTexture("./textures/hud/compass.png"),
         .arrowTexture = LoadTexture("./textures/hud/arrow_2.png")};
 
-    float gameTime = 0;
+    float gameTime = 0.0f;
 
     PlayerStats playerStats = {
         .money = 0,
         .miningXP = 0};
 
-    Resource globalResources[RESOURCE_COUNT] = {
-        {.type = RESOURCE_WATER_ICE, .name = "Water Ice", .weight = 1.0f, .value = 10},
-        {.type = RESOURCE_COPPER_ORE, .name = "Copper Ore", .weight = 2.0f, .value = 20},
-        {.type = RESOURCE_IRON_ORE, .name = "Iron Ore", .weight = 2.5f, .value = 25},
-        {.type = RESOURCE_GOLD_ORE, .name = "Gold Ore", .weight = 3.0f, .value = 100}};
+    // Resource globalResources[RESOURCE_COUNT] = {
+    //     {.type = RESOURCE_WATER_ICE, .name = "Water Ice", .weight = 1.0f, .value = 10},
+    //     {.type = RESOURCE_COPPER_ORE, .name = "Copper Ore", .weight = 2.0f, .value = 20},
+    //     {.type = RESOURCE_IRON_ORE, .name = "Iron Ore", .weight = 2.5f, .value = 25},
+    //     {.type = RESOURCE_GOLD_ORE, .name = "Gold Ore", .weight = 3.0f, .value = 100}};
 
     int numBodies = 0;
     CelestialBody **bodies = NULL;
-    CelestialBody *playerShip = NULL;
-    float theta = 0.0f; // Barnes-Hut threshold - usually 0.5
+    // CelestialBody *playerShip = NULL;
+    // float theta = 0.0f; // Barnes-Hut threshold - usually 0.5
     // int trailIndex = 0;
-    QuadTreeNode *root = NULL;
+    // QuadTreeNode *root = NULL;
 
     int cameraLock = 0;
     Vector2 *cameraLockPosition = NULL;
@@ -69,37 +69,37 @@ int main(void)
     int velocityLock = -1;
     CelestialBody *velocityTarget = NULL;
 
-    GameTextures gameTextures = {0};
+    // GameTextures gameTextures = {0};
 
-    Texture2D starTexture1 = LoadTexture("./textures/star/sun.png");
-    gameTextures.numStarTextures = 1;
-    gameTextures.starTextures = malloc(sizeof(Texture2D *) * (gameTextures.numStarTextures));
-    gameTextures.starTextures[0] = &starTexture1;
+    // Texture2D starTexture1 = LoadTexture("./textures/star/sun.png");
+    // gameTextures.numStarTextures = 1;
+    // gameTextures.starTextures = malloc(sizeof(Texture2D *) * (gameTextures.numStarTextures));
+    // gameTextures.starTextures[0] = &starTexture1;
 
-    Texture2D planetTexture1 = LoadTexture("./textures/planet/planet_1.png");
-    Texture2D planetTexture2 = LoadTexture("./textures/planet/planet_2.png");
-    Texture2D planetTexture3 = LoadTexture("./textures/planet/planet_3.png");
-    Texture2D planetTexture4 = LoadTexture("./textures/planet/planet_4.png");
-    Texture2D planetTexture5 = LoadTexture("./textures/planet/planet_5.png");
-    gameTextures.numPlanetTextures = 5;
-    gameTextures.planetTextures = malloc(sizeof(Texture2D *) * (gameTextures.numPlanetTextures));
-    gameTextures.planetTextures[0] = &planetTexture1;
-    gameTextures.planetTextures[1] = &planetTexture2;
-    gameTextures.planetTextures[2] = &planetTexture3;
-    gameTextures.planetTextures[3] = &planetTexture4;
-    gameTextures.planetTextures[4] = &planetTexture5;
+    // Texture2D planetTexture1 = LoadTexture("./textures/planet/planet_1.png");
+    // Texture2D planetTexture2 = LoadTexture("./textures/planet/planet_2.png");
+    // Texture2D planetTexture3 = LoadTexture("./textures/planet/planet_3.png");
+    // Texture2D planetTexture4 = LoadTexture("./textures/planet/planet_4.png");
+    // Texture2D planetTexture5 = LoadTexture("./textures/planet/planet_5.png");
+    // gameTextures.numPlanetTextures = 5;
+    // gameTextures.planetTextures = malloc(sizeof(Texture2D *) * (gameTextures.numPlanetTextures));
+    // gameTextures.planetTextures[0] = &planetTexture1;
+    // gameTextures.planetTextures[1] = &planetTexture2;
+    // gameTextures.planetTextures[2] = &planetTexture3;
+    // gameTextures.planetTextures[3] = &planetTexture4;
+    // gameTextures.planetTextures[4] = &planetTexture5;
 
-    Texture2D moonTexture1 = LoadTexture("./textures/moon/moon_1.png");
-    gameTextures.numMoonTextures = 1;
-    gameTextures.moonTextures = malloc(sizeof(Texture2D *) * (gameTextures.numMoonTextures));
-    gameTextures.moonTextures[0] = &moonTexture1;
+    // Texture2D moonTexture1 = LoadTexture("./textures/moon/moon_1.png");
+    // gameTextures.numMoonTextures = 1;
+    // gameTextures.moonTextures = malloc(sizeof(Texture2D *) * (gameTextures.numMoonTextures));
+    // gameTextures.moonTextures[0] = &moonTexture1;
 
-    Texture2D shipTexture = LoadTexture("./textures/ship/ship_1.png");
-    Texture2D shipThrustTexture = LoadTexture("./textures/ship/ship_1_thrust.png");
-    gameTextures.numShipTextures = 2;
-    gameTextures.shipTextures = malloc(sizeof(Texture2D *) * (gameTextures.numShipTextures));
-    gameTextures.shipTextures[0] = &shipTexture;
-    gameTextures.shipTextures[1] = &shipThrustTexture;
+    // Texture2D shipTexture = LoadTexture("./textures/ship/ship_1.png");
+    // Texture2D shipThrustTexture = LoadTexture("./textures/ship/ship_1_thrust.png");
+    // gameTextures.numShipTextures = 2;
+    // gameTextures.shipTextures = malloc(sizeof(Texture2D *) * (gameTextures.numShipTextures));
+    // gameTextures.shipTextures[0] = &shipTexture;
+    // gameTextures.shipTextures[1] = &shipThrustTexture;
 
     while (!WindowShouldClose())
     {
@@ -112,10 +112,7 @@ int main(void)
             {
                 if (!bodies)
                 {
-                    bodies = initBodies(&numBodies, &gameTextures);
-                    playerShip = bodies[0];
-                    landShip(playerShip, bodies[2]);
-                    playerShip->rotation = 90.0f;
+                    bodies = initBodies(&numBodies);
                 }
                 gameState = GAME_RUNNING;
             }
@@ -127,93 +124,98 @@ int main(void)
             break;
 
         case GAME_RUNNING:
-            if (IsKeyPressed(KEY_ESCAPE))
-            {
-                gameState = GAME_PAUSED;
-            }
-
-            cameraLockPosition = &bodies[cameraLock]->position;
-            camera.target = *cameraLockPosition;
-
-            // Handle input
             if (IsKeyDown(KEY_E))
                 incrementWarp(&timeScale, dt);
             if (IsKeyDown(KEY_Q))
                 decrementWarp(&timeScale, dt);
 
-            if (IsKeyPressed(KEY_C))
-            {
-                cameraLock++;
-                cameraLock = cameraLock % numBodies;
-                cameraLockPosition = &bodies[cameraLock]->position;
-            }
+            float scaledDt = dt * timeScale.val;
 
-            if (IsKeyPressed(KEY_V))
-            {
-                velocityLock++;
-                if (velocityLock >= numBodies)
-                {
-                    velocityLock = -1;
-                    velocityTarget = NULL;
-                }
-                else
-                {
-                    velocityTarget = bodies[velocityLock];
-                }
-            }
+            gameTime += scaledDt;
 
-            if (IsKeyPressed(KEY_M) && playerShip->shipSettings.landedBody != NULL)
+            if (IsKeyPressed(KEY_ESCAPE))
             {
-                mineResource(playerShip->shipSettings.landedBody, playerShip, globalResources, RESOURCE_GOLD_ORE, 1);
-            }
-
-            // Apply rotation
-            if (IsKeyDown(KEY_D))
-                playerShip->rotation += 180.0f * dt; // Rotate right
-            if (IsKeyDown(KEY_A))
-                playerShip->rotation -= 180.0f * dt; // Rotate left
-
-            // Normalize rotation to keep it within 0-360 degrees
-            playerShip->rotation = fmod(playerShip->rotation + 360.0f, 360.0f);
-            playerShip->texture = gameTextures.shipTextures[0];
-            if (IsKeyDown(KEY_W))
-            {
-                if (playerShip->shipSettings.state == SHIP_LANDED)
-                {
-                    takeoffShip(playerShip);
-                }
-                // Convert rotation to radians for vector calculations
-                float radians = playerShip->rotation * PI / 180.0f;
-                Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
-                Vector2 thrust = Vector2Scale(thrustDirection, playerShip->shipSettings.thrust * dt);
-                playerShip->velocity = Vector2Add(playerShip->velocity, thrust);
-                playerShip->texture = gameTextures.shipTextures[1];
-                playerShip->shipSettings.fuel -= playerShip->shipSettings.fuelConsumption;
+                gameState = GAME_PAUSED;
             }
 
             camera.zoom += (float)GetMouseWheelMove() * (1e-5f + camera.zoom * (camera.zoom / 4.0f));
             camera.zoom = Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
 
+            updateCelestialPositions(bodies, numBodies, gameTime);
+
+            // cameraLockPosition = &bodies[cameraLock]->position;
+            // camera.target = *cameraLockPosition;
+
+            // if (IsKeyPressed(KEY_C))
+            // {
+            //     cameraLock++;
+            //     cameraLock = cameraLock % numBodies;
+            //     cameraLockPosition = &bodies[cameraLock]->position;
+            // }
+
+            // if (IsKeyPressed(KEY_V))
+            // {
+            //     velocityLock++;
+            //     if (velocityLock >= numBodies)
+            //     {
+            //         velocityLock = -1;
+            //         velocityTarget = NULL;
+            //     }
+            //     else
+            //     {
+            //         velocityTarget = bodies[velocityLock];
+            //     }
+            // }
+
+            // if (IsKeyPressed(KEY_M) && playerShip->shipSettings.landedBody != NULL)
+            // {
+            //     mineResource(playerShip->shipSettings.landedBody, playerShip, globalResources, RESOURCE_GOLD_ORE, 1);
+            // }
+
+            // // Apply rotation
+            // if (IsKeyDown(KEY_D))
+            //     playerShip->rotation += 180.0f * dt; // Rotate right
+            // if (IsKeyDown(KEY_A))
+            //     playerShip->rotation -= 180.0f * dt; // Rotate left
+
+            // // Normalize rotation to keep it within 0-360 degrees
+            // playerShip->rotation = fmod(playerShip->rotation + 360.0f, 360.0f);
+            // playerShip->texture = gameTextures.shipTextures[0];
+            // if (IsKeyDown(KEY_W))
+            // {
+            //     if (playerShip->shipSettings.state == SHIP_LANDED)
+            //     {
+            //         takeoffShip(playerShip);
+            //     }
+            //     // Convert rotation to radians for vector calculations
+            //     float radians = playerShip->rotation * PI / 180.0f;
+            //     Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
+            //     Vector2 thrust = Vector2Scale(thrustDirection, playerShip->shipSettings.thrust * dt);
+            //     playerShip->velocity = Vector2Add(playerShip->velocity, thrust);
+            //     playerShip->texture = gameTextures.shipTextures[1];
+            //     playerShip->shipSettings.fuel -= playerShip->shipSettings.fuelConsumption;
+            // }
+
             // Build QuadTree
-            root = buildQuadTree(bodies, numBodies);
+            // root = buildQuadTree(bodies, numBodies);
 
-            // Update physics
-            float scaledDt = dt * timeScale.val;
+            // // Update physics
+            // float scaledDt = dt * timeScale.val;
 
-            for (int i = 0; i < numBodies; i++)
-            {
-                // bodies[i]->rotation += 0.1f;
-                if (bodies[i]->type == TYPE_SHIP && bodies[i]->shipSettings.state == SHIP_LANDED)
-                {
-                    continue;
-                }
-                Vector2 force = computeForce(root, bodies[i], theta);
-                Vector2 accel = Vector2Scale(force, 1.0f / bodies[i]->mass);
-                bodies[i]->velocity = Vector2Add(bodies[i]->velocity, Vector2Scale(accel, scaledDt));
-                bodies[i]->position = Vector2Add(bodies[i]->position, Vector2Scale(bodies[i]->velocity, scaledDt));
-                detectCollisions(bodies, numBodies, root, bodies[i]);
-                // bodies[i]->previousPositions[trailIndex] = bodies[i]->position;
-            }
+            // for (int i = 0; i < numBodies; i++)
+            // {
+            //     // bodies[i]->rotation += 0.1f;
+            //     if (bodies[i]->type == TYPE_SHIP && bodies[i]->shipSettings.state == SHIP_LANDED)
+            //     {
+            //         continue;
+            //     }
+            //     Vector2 force = computeForce(root, bodies[i], theta);
+            //     Vector2 accel = Vector2Scale(force, 1.0f / bodies[i]->mass);
+            //     bodies[i]->velocity = Vector2Add(bodies[i]->velocity, Vector2Scale(accel, scaledDt));
+            //     bodies[i]->position = Vector2Add(bodies[i]->position, Vector2Scale(bodies[i]->velocity, scaledDt));
+            //     detectCollisions(bodies, numBodies, root, bodies[i]);
+            //     // bodies[i]->previousPositions[trailIndex] = bodies[i]->position;
+            // }
 
             // predictPositions(bodies, numBodies, &timeScale, &theta);
 
@@ -221,18 +223,18 @@ int main(void)
             // trailIndex = trailIndex % PREVIOUS_POSITIONS;
 
             // If the ship is landed, lock its position to the landed body
-            updateShipPosition(playerShip);
+            // updateShipPosition(playerShip);
 
-            if (velocityLock == -1)
-            {
-                playerHUD.speed = calculateAbsoluteSpeed(playerShip);
-            }
-            else
-            {
-                playerHUD.speed = calculateRelativeSpeed(playerShip, velocityTarget);
-            }
-            playerHUD.playerRotation = playerShip->rotation;
-            playerHUD.velocityTarget = velocityTarget;
+            // if (velocityLock == -1)
+            // {
+            //     playerHUD.speed = calculateAbsoluteSpeed(playerShip);
+            // }
+            // else
+            // {
+            //     playerHUD.speed = calculateRelativeSpeed(playerShip, velocityTarget);
+            // }
+            // playerHUD.playerRotation = playerShip->rotation;
+            // playerHUD.velocityTarget = velocityTarget;
 
             break;
 
@@ -264,6 +266,7 @@ int main(void)
             BeginMode2D(camera);
             drawCelestialGrid(bodies, numBodies, camera);
             // drawPreviousPositions(bodies, numBodies);
+            drawOrbits(bodies, numBodies);
             drawBodies(bodies, numBodies);
             // drawFuturePositions(bodies, numBodies);
 
@@ -272,14 +275,14 @@ int main(void)
             // GUI
             DrawText("Press ESC to pause & view controls", 10, 10, 20, DARKGRAY);
 
-            drawPlayerHUD(&playerHUD);
-            drawPlayerStats(&playerStats);
-            drawPlayerInventory(playerShip, globalResources);
+            // drawPlayerHUD(&playerHUD);
+            // drawPlayerStats(&playerStats);
+            // drawPlayerInventory(playerShip, globalResources);
 
             DrawFPS(screenWidth - 100, 10);
-            DrawText(TextFormat("Camera locked to: %s", bodies[cameraLock]->name), screenWidth - 280, 40, 20, DARKGRAY);
-            DrawText(TextFormat("Time Scale: %.1fx", timeScale.val), screenWidth - 200, 70, 20, DARKGRAY);
-            DrawText(TextFormat("Zoom Level: %.3fx", calculateNormalisedZoom(&cameraSettings, camera.zoom)), screenWidth - 200, 100, 20, DARKGRAY);
+            // DrawText(TextFormat("Camera locked to: %s", bodies[cameraLock]->name), screenWidth - 280, 40, 20, DARKGRAY);
+            // DrawText(TextFormat("Time Scale: %.1fx", timeScale.val), screenWidth - 200, 70, 20, DARKGRAY);
+            // DrawText(TextFormat("Zoom Level: %.3fx", calculateNormalisedZoom(&cameraSettings, camera.zoom)), screenWidth - 200, 100, 20, DARKGRAY);
 
             if (gameState == GAME_PAUSED)
             {
@@ -298,7 +301,7 @@ int main(void)
     }
 
     freeCelestialBodies(bodies, numBodies);
-    freeGameTextures(gameTextures);
+    // freeGameTextures(gameTextures);
 
     CloseWindow();
     return 0;

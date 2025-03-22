@@ -102,17 +102,15 @@ typedef struct CelestialBody
     CelestialType type;
     char *name;
     Vector2 position;
-    Vector2 velocity;
     float mass; // Kg
     float radius;
-    Vector2 *previousPositions;
-    Vector2 *futurePositions;
     float rotation;
-    ShipSettings shipSettings;
     Texture2D *texture;
     float textureScale;
-    InventoryResource resources[RESOURCE_COUNT]; // Array of resources on the planet
-    int resourceCount;                           // Number of resource types present
+    CelestialBody *parentBody;
+    float orbitalRadius; // Distance from center for orbits (0 for black hole/ship)
+    float angularSpeed;  // Radians per second (0 for black hole/ship)
+    float initialAngle;  // Starting angle for orbit
 } CelestialBody;
 
 typedef struct GameTextures
@@ -209,61 +207,61 @@ void decrementWarp(WarpController *timeScale, float dt)
     timeScale->val = Clamp(timeScale->val, timeScale->min, timeScale->max);
 }
 
-float calculateRelativeSpeed(CelestialBody *body1, CelestialBody *body2)
-{
-    Vector2 relativeVelocity = Vector2Subtract(body1->velocity, body2->velocity);
-    return sqrtf((relativeVelocity.x * relativeVelocity.x) + (relativeVelocity.y * relativeVelocity.y));
-}
+// float calculateRelativeSpeed(CelestialBody *body1, CelestialBody *body2)
+// {
+//     Vector2 relativeVelocity = Vector2Subtract(body1->velocity, body2->velocity);
+//     return sqrtf((relativeVelocity.x * relativeVelocity.x) + (relativeVelocity.y * relativeVelocity.y));
+// }
 
-float calculateAbsoluteSpeed(CelestialBody *body)
-{
-    return sqrtf((body->velocity.x * body->velocity.x) + (body->velocity.y * body->velocity.y));
-}
+// float calculateAbsoluteSpeed(CelestialBody *body)
+// {
+//     return sqrtf((body->velocity.x * body->velocity.x) + (body->velocity.y * body->velocity.y));
+// }
 
 float calculateOrbitalSpeed(float mass, float radius)
 {
     return (float){sqrtf((G * mass) / radius)};
 }
 
-void landShip(CelestialBody *ship, CelestialBody *body)
-{
-    if (ship->type != TYPE_SHIP || ship->shipSettings.state == SHIP_LANDED)
-        return;
+// void landShip(CelestialBody *ship, CelestialBody *body)
+// {
+//     if (ship->type != TYPE_SHIP || ship->shipSettings.state == SHIP_LANDED)
+//         return;
 
-    // Set landing state
-    ship->shipSettings.state = SHIP_LANDED;
-    ship->shipSettings.landedBody = body;
-    ship->velocity = body->velocity; // Match velocity to the body
+//     // Set landing state
+//     ship->shipSettings.state = SHIP_LANDED;
+//     ship->shipSettings.landedBody = body;
+//     ship->velocity = body->velocity; // Match velocity to the body
 
-    Vector2 direction = Vector2Subtract(ship->position, body->position);
-    float distance = Vector2Length(direction);
-    direction = Vector2Normalize(direction);
+//     Vector2 direction = Vector2Subtract(ship->position, body->position);
+//     float distance = Vector2Length(direction);
+//     direction = Vector2Normalize(direction);
 
-    // Position ship on the surface and store landing position
-    Vector2 surfacePosition = Vector2Scale(direction, body->radius + ship->radius);
-    ship->position = Vector2Add(body->position, surfacePosition);
-    ship->shipSettings.landingPosition = surfacePosition; // Store relative position
-}
+//     // Position ship on the surface and store landing position
+//     Vector2 surfacePosition = Vector2Scale(direction, body->radius + ship->radius);
+//     ship->position = Vector2Add(body->position, surfacePosition);
+//     ship->shipSettings.landingPosition = surfacePosition; // Store relative position
+// }
 
-void takeoffShip(CelestialBody *ship)
-{
-    if (ship->type != TYPE_SHIP || ship->shipSettings.state != SHIP_LANDED || ship->shipSettings.landedBody == NULL)
-        return;
+// void takeoffShip(CelestialBody *ship)
+// {
+//     if (ship->type != TYPE_SHIP || ship->shipSettings.state != SHIP_LANDED || ship->shipSettings.landedBody == NULL)
+//         return;
 
-    // Set flying state
-    ship->shipSettings.state = SHIP_FLYING;
+//     // Set flying state
+//     ship->shipSettings.state = SHIP_FLYING;
 
-    // Calculate takeoff direction (normal to surface)
-    // Vector2 direction = Vector2Normalize(ship->shipSettings.landingPosition);
-    // float takeoffSpeed = calculateEscapeVelocity(ship->shipSettings.landedBody->mass, ship->shipSettings.landedBody->radius) * 0.8f; // Slightly less than escape velocity
-    // Vector2 takeoffVelocity = Vector2Scale(direction, takeoffSpeed);
+//     // Calculate takeoff direction (normal to surface)
+//     // Vector2 direction = Vector2Normalize(ship->shipSettings.landingPosition);
+//     // float takeoffSpeed = calculateEscapeVelocity(ship->shipSettings.landedBody->mass, ship->shipSettings.landedBody->radius) * 0.8f; // Slightly less than escape velocity
+//     // Vector2 takeoffVelocity = Vector2Scale(direction, takeoffSpeed);
 
-    // // Set velocity relative to the body's velocity
-    // ship->velocity = Vector2Add(ship->shipSettings.landedBody->velocity, takeoffVelocity);
+//     // // Set velocity relative to the body's velocity
+//     // ship->velocity = Vector2Add(ship->shipSettings.landedBody->velocity, takeoffVelocity);
 
-    // Clear landed body reference
-    ship->shipSettings.landedBody = NULL;
-}
+//     // Clear landed body reference
+//     ship->shipSettings.landedBody = NULL;
+// }
 
 QuadTreeNode *createNode(Rectangle bounds)
 {
@@ -408,234 +406,346 @@ void freeQuadTree(QuadTreeNode *node)
     free(node);
 }
 
-void detectCollisions(CelestialBody **bodies, int numBodies, QuadTreeNode *node, CelestialBody *body)
-{
-    if (!node || node->totalMass == 0)
-        return;
-    if (node->body && node->body != body)
-    {
-        float dist = Vector2Distance(body->position, node->body->position);
-        if (dist < (body->radius + node->body->radius))
-        {
-            // printf("Collision between %s and %s\n", body->name, node->body->name);
-            if (body->type == TYPE_SHIP && body->shipSettings.state != SHIP_LANDED)
-            {
-                float relVel = calculateRelativeSpeed(body, node->body);
-                if (relVel <= MAX_LANDING_SPEED)
-                {
-                    landShip(body, node->body);
-                }
-                else
-                {
-                    // Reset ship (example handling)
-                    body->position = Vector2Add(bodies[2]->position, (Vector2){1e4, 0});
-                    Vector2 relVel = (Vector2){0, calculateOrbitalSpeed(bodies[2]->mass, 1e4)};
-                    body->velocity = Vector2Add(bodies[2]->velocity, relVel);
-                }
-            }
-        }
-        return;
-    }
-    for (int i = 0; i < 4; i++)
-    {
-        if (node->children[i])
-        {
-            detectCollisions(bodies, numBodies, node->children[i], body);
-        }
-    }
-}
+// void detectCollisions(CelestialBody **bodies, int numBodies, QuadTreeNode *node, CelestialBody *body)
+// {
+//     if (!node || node->totalMass == 0)
+//         return;
+//     if (node->body && node->body != body)
+//     {
+//         float dist = Vector2Distance(body->position, node->body->position);
+//         if (dist < (body->radius + node->body->radius))
+//         {
+//             // printf("Collision between %s and %s\n", body->name, node->body->name);
+//             if (body->type == TYPE_SHIP && body->shipSettings.state != SHIP_LANDED)
+//             {
+//                 float relVel = calculateRelativeSpeed(body, node->body);
+//                 if (relVel <= MAX_LANDING_SPEED)
+//                 {
+//                     landShip(body, node->body);
+//                 }
+//                 else
+//                 {
+//                     // Reset ship (example handling)
+//                     body->position = Vector2Add(bodies[2]->position, (Vector2){1e4, 0});
+//                     Vector2 relVel = (Vector2){0, calculateOrbitalSpeed(bodies[2]->mass, 1e4)};
+//                     body->velocity = Vector2Add(bodies[2]->velocity, relVel);
+//                 }
+//             }
+//         }
+//         return;
+//     }
+//     for (int i = 0; i < 4; i++)
+//     {
+//         if (node->children[i])
+//         {
+//             detectCollisions(bodies, numBodies, node->children[i], body);
+//         }
+//     }
+// }
 
-CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
+// CelestialBody **initBodies(int *numBodies, GameTextures *gameTextures)
+// {
+//     *numBodies = 8;
+//     CelestialBody **bodies = malloc(sizeof(CelestialBody *) * (*numBodies));
+
+//     // Ship
+//     // Ship texture is 64x64
+//     bodies[0] = malloc(sizeof(CelestialBody));
+//     *bodies[0] = (CelestialBody){.type = TYPE_SHIP,
+//                                  .name = strdup("Ship"),
+//                                  .position = {0, 0},
+//                                  .velocity = {0, 0},
+//                                  .mass = 1e1f,
+//                                  .radius = 32.0f,
+//                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+//                                  .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
+//                                  .rotation = 0.0f,
+//                                  .shipSettings = (ShipSettings){
+//                                      .thrust = 1e1f,
+//                                      .fuel = 100.0f,
+//                                      .fuelConsumption = 0.0f,
+//                                      .isSelected = true,
+//                                      .thrustTexture = gameTextures->shipTextures[1],
+//                                      .state = SHIP_FLYING,
+//                                      .landedBody = NULL,
+//                                      .landingPosition = {0},
+//                                      .maxCapacity = MAX_CAPACITY,
+//                                      .currentCapacity = 0},
+//                                  .texture = gameTextures->shipTextures[0],
+//                                  .textureScale = 1.5f};
+
+//     for (int i = 0; i < RESOURCE_COUNT; i++)
+//     {
+//         bodies[0]->shipSettings.inventory[i] = (InventoryResource){i, 0};
+//     }
+
+//     // Star
+//     bodies[1] = malloc(sizeof(CelestialBody));
+//     *bodies[1] = (CelestialBody){.type = TYPE_STAR,
+//                                  .name = strdup("Sol"),
+//                                  .position = {100, 0},
+//                                  .velocity = {0, 0},
+//                                  .mass = 1e15f,
+//                                  .radius = 3.2e5,
+//                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+//                                  .rotation = 0.0f,
+//                                  .texture = gameTextures->starTextures[0],
+//                                  .textureScale = 2.8f};
+
+//     // Planet orbiting Star - Earth
+//     float orbitalRadius = calculateOrbitalRadius(24 * 60 * 60, bodies[1]->mass);
+//     bodies[2] = malloc(sizeof(CelestialBody));
+//     *bodies[2] = (CelestialBody){.type = TYPE_PLANET,
+//                                  .name = strdup("Earth"),
+//                                  .position = {bodies[1]->position.x + orbitalRadius, 0},
+//                                  .velocity = {0, 0},
+//                                  .mass = 1e9,
+//                                  .radius = 3.2e3f,
+//                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+//                                  .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
+//                                  .rotation = 0.0f,
+//                                  .texture = gameTextures->planetTextures[0],
+//                                  .textureScale = 3.1f};
+//     bodies[2]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
+
+//     // Determine Ship's initial velocity once orbiting body has been initialised
+//     bodies[0]->position = Vector2Add(bodies[2]->position, (Vector2){5e3, 0});
+//     Vector2 relVel = (Vector2){0, calculateOrbitalSpeed(bodies[2]->mass, 5e3)};
+//     bodies[0]->velocity = Vector2Add(bodies[2]->velocity, relVel);
+
+//     // Moon orbiting Planet
+//     orbitalRadius = calculateOrbitalRadius(12 * 60 * 60, bodies[2]->mass);
+//     bodies[3] = malloc(sizeof(CelestialBody));
+//     *bodies[3] = (CelestialBody){
+//         .type = TYPE_MOON,
+//         .name = strdup("Earth's Moon"),
+//         .position = {bodies[2]->position.x + orbitalRadius, 0},
+//         .velocity = {0, 0},
+//         .mass = 1e7,
+//         .radius = 3.2e2f,
+//         .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+//         .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
+//         .rotation = 0.0f,
+//         .texture = gameTextures->moonTextures[0],
+//         .textureScale = 2.7f,
+//         .resourceCount = 4,
+//         .resources[RESOURCE_WATER_ICE] = (InventoryResource){RESOURCE_WATER_ICE, 1000},
+//         .resources[RESOURCE_COPPER_ORE] = (InventoryResource){RESOURCE_COPPER_ORE, 500},
+//         .resources[RESOURCE_IRON_ORE] = (InventoryResource){RESOURCE_IRON_ORE, 700},
+//         .resources[RESOURCE_GOLD_ORE] = (InventoryResource){RESOURCE_GOLD_ORE, 200}};
+//     relVel = (Vector2){0, -calculateOrbitalSpeed(bodies[2]->mass, orbitalRadius)};
+//     bodies[3]->velocity = Vector2Add(bodies[2]->velocity, relVel);
+
+//     // Planet orbiting Star - Mercury
+//     orbitalRadius = calculateOrbitalRadius(0.39f * 24 * 60 * 60, bodies[1]->mass);
+//     bodies[4] = malloc(sizeof(CelestialBody));
+//     *bodies[4] = (CelestialBody){.type = TYPE_PLANET,
+//                                  .name = strdup("Mercury"),
+//                                  .position = {bodies[1]->position.x + orbitalRadius, 0},
+//                                  .velocity = {0, 0},
+//                                  .mass = 1e9 * 0.0553f,
+//                                  .radius = 3.2e3f * 0.383f,
+//                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+//                                  .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
+//                                  .rotation = 0.0f,
+//                                  .texture = gameTextures->planetTextures[1],
+//                                  .textureScale = 3.1f};
+//     bodies[4]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
+
+//     // Planet orbiting Star - Venus
+//     orbitalRadius = calculateOrbitalRadius(0.723f * 24 * 60 * 60, bodies[1]->mass);
+//     bodies[5] = malloc(sizeof(CelestialBody));
+//     *bodies[5] = (CelestialBody){.type = TYPE_PLANET,
+//                                  .name = strdup("Venus"),
+//                                  .position = {bodies[1]->position.x + orbitalRadius, 0},
+//                                  .velocity = {0, 0},
+//                                  .mass = 1e9 * 0.815f,
+//                                  .radius = 3.2e3f * 0.949f,
+//                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+//                                  .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
+//                                  .rotation = 0.0f,
+//                                  .texture = gameTextures->planetTextures[2],
+//                                  .textureScale = 2.5f};
+//     bodies[5]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
+
+//     // Planet orbiting Star - Mars
+//     orbitalRadius = calculateOrbitalRadius(1.52f * 24 * 60 * 60, bodies[1]->mass);
+//     bodies[6] = malloc(sizeof(CelestialBody));
+//     *bodies[6] = (CelestialBody){.type = TYPE_PLANET,
+//                                  .name = strdup("Mars"),
+//                                  .position = {bodies[1]->position.x + orbitalRadius, 0},
+//                                  .velocity = {0, 0},
+//                                  .mass = 1e9 * 0.107f,
+//                                  .radius = 3.2e3f * 0.532f,
+//                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+//                                  .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
+//                                  .rotation = 0.0f,
+//                                  .texture = gameTextures->planetTextures[3],
+//                                  .textureScale = 3.1f};
+//     bodies[6]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
+
+//     // Planet orbiting Star - Jupiter
+//     orbitalRadius = calculateOrbitalRadius(5.20f * 24 * 60 * 60, bodies[1]->mass);
+//     bodies[7] = malloc(sizeof(CelestialBody));
+//     *bodies[7] = (CelestialBody){.type = TYPE_PLANET,
+//                                  .name = strdup("Jupiter"),
+//                                  .position = {bodies[1]->position.x + orbitalRadius, 0},
+//                                  .velocity = {0, 0},
+//                                  .mass = 1e9 * 317.8f,
+//                                  .radius = 3.2e3f * 11.21f,
+//                                  .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
+//                                  .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
+//                                  .rotation = 0.0f,
+//                                  .texture = gameTextures->planetTextures[4],
+//                                  .textureScale = 2.6f};
+//     bodies[7]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
+
+//     return bodies;
+// }
+
+CelestialBody **initBodies(int *numBodies)
 {
-    *numBodies = 8;
+    *numBodies = 3;
     CelestialBody **bodies = malloc(sizeof(CelestialBody *) * (*numBodies));
 
-    // Ship
-    // Ship texture is 64x64
-    bodies[0] = malloc(sizeof(CelestialBody));
-    *bodies[0] = (CelestialBody){.type = TYPE_SHIP,
-                                 .name = strdup("Ship"),
-                                 .position = {0, 0},
-                                 .velocity = {0, 0},
-                                 .mass = 1e1f,
-                                 .radius = 32.0f,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-                                 .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
-                                 .rotation = 0.0f,
-                                 .shipSettings = (ShipSettings){
-                                     .thrust = 1e1f,
-                                     .fuel = 100.0f,
-                                     .fuelConsumption = 0.0f,
-                                     .isSelected = true,
-                                     .thrustTexture = gameTextures->shipTextures[1],
-                                     .state = SHIP_FLYING,
-                                     .landedBody = NULL,
-                                     .landingPosition = {0},
-                                     .maxCapacity = MAX_CAPACITY,
-                                     .currentCapacity = 0},
-                                 .texture = gameTextures->shipTextures[0],
-                                 .textureScale = 1.5f};
-
-    for (int i = 0; i < RESOURCE_COUNT; i++)
-    {
-        bodies[0]->shipSettings.inventory[i] = (InventoryResource){i, 0};
-    }
-
     // Star
-    bodies[1] = malloc(sizeof(CelestialBody));
-    *bodies[1] = (CelestialBody){.type = TYPE_STAR,
-                                 .name = strdup("Sol"),
-                                 .position = {100, 0},
-                                 .velocity = {0, 0},
-                                 .mass = 1e15f,
-                                 .radius = 3.2e5,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-                                 .rotation = 0.0f,
-                                 .texture = gameTextures->starTextures[0],
-                                 .textureScale = 2.8f};
+    bodies[0] = malloc(sizeof(CelestialBody));
+    *bodies[0] = (CelestialBody){
+        .type = TYPE_STAR,
+        .name = strdup("Sol"),
+        .position = {0, 0},
+        .mass = 1e15f,
+        .radius = 320,
+        .rotation = 0.0f,
+        .parentBody = NULL,
+        .angularSpeed = 0,
+        .initialAngle = 0,
+        .orbitalRadius = 0};
 
     // Planet orbiting Star - Earth
-    float orbitalRadius = calculateOrbitalRadius(24 * 60 * 60, bodies[1]->mass);
-    bodies[2] = malloc(sizeof(CelestialBody));
-    *bodies[2] = (CelestialBody){.type = TYPE_PLANET,
-                                 .name = strdup("Earth"),
-                                 .position = {bodies[1]->position.x + orbitalRadius, 0},
-                                 .velocity = {0, 0},
-                                 .mass = 1e9,
-                                 .radius = 3.2e3f,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-                                 .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
-                                 .rotation = 0.0f,
-                                 .texture = gameTextures->planetTextures[0],
-                                 .textureScale = 3.1f};
-    bodies[2]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
-
-    // Determine Ship's initial velocity once orbiting body has been initialised
-    bodies[0]->position = Vector2Add(bodies[2]->position, (Vector2){5e3, 0});
-    Vector2 relVel = (Vector2){0, calculateOrbitalSpeed(bodies[2]->mass, 5e3)};
-    bodies[0]->velocity = Vector2Add(bodies[2]->velocity, relVel);
+    bodies[1] = malloc(sizeof(CelestialBody));
+    *bodies[1] = (CelestialBody){
+        .type = TYPE_PLANET,
+        .name = strdup("Earth"),
+        .position = {0, 0},
+        .mass = 1e9,
+        .radius = 100.0f,
+        .rotation = 0.0f,
+        .parentBody = bodies[0],
+        .angularSpeed = 1,
+        .initialAngle = 90.0f,
+        .orbitalRadius = 2000};
 
     // Moon orbiting Planet
-    orbitalRadius = calculateOrbitalRadius(12 * 60 * 60, bodies[2]->mass);
-    bodies[3] = malloc(sizeof(CelestialBody));
-    *bodies[3] = (CelestialBody){
+    bodies[2] = malloc(sizeof(CelestialBody));
+    *bodies[2] = (CelestialBody){
         .type = TYPE_MOON,
         .name = strdup("Earth's Moon"),
-        .position = {bodies[2]->position.x + orbitalRadius, 0},
-        .velocity = {0, 0},
+        .position = {0, 0},
         .mass = 1e7,
-        .radius = 3.2e2f,
-        .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-        .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
+        .radius = 50.0f,
         .rotation = 0.0f,
-        .texture = gameTextures->moonTextures[0],
-        .textureScale = 2.7f,
-        .resourceCount = 4,
-        .resources[RESOURCE_WATER_ICE] = (InventoryResource){RESOURCE_WATER_ICE, 1000},
-        .resources[RESOURCE_COPPER_ORE] = (InventoryResource){RESOURCE_COPPER_ORE, 500},
-        .resources[RESOURCE_IRON_ORE] = (InventoryResource){RESOURCE_IRON_ORE, 700},
-        .resources[RESOURCE_GOLD_ORE] = (InventoryResource){RESOURCE_GOLD_ORE, 200}};
-    relVel = (Vector2){0, -calculateOrbitalSpeed(bodies[2]->mass, orbitalRadius)};
-    bodies[3]->velocity = Vector2Add(bodies[2]->velocity, relVel);
-
-    // Planet orbiting Star - Mercury
-    orbitalRadius = calculateOrbitalRadius(0.39f * 24 * 60 * 60, bodies[1]->mass);
-    bodies[4] = malloc(sizeof(CelestialBody));
-    *bodies[4] = (CelestialBody){.type = TYPE_PLANET,
-                                 .name = strdup("Mercury"),
-                                 .position = {bodies[1]->position.x + orbitalRadius, 0},
-                                 .velocity = {0, 0},
-                                 .mass = 1e9 * 0.0553f,
-                                 .radius = 3.2e3f * 0.383f,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-                                 .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
-                                 .rotation = 0.0f,
-                                 .texture = gameTextures->planetTextures[1],
-                                 .textureScale = 3.1f};
-    bodies[4]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
-
-    // Planet orbiting Star - Venus
-    orbitalRadius = calculateOrbitalRadius(0.723f * 24 * 60 * 60, bodies[1]->mass);
-    bodies[5] = malloc(sizeof(CelestialBody));
-    *bodies[5] = (CelestialBody){.type = TYPE_PLANET,
-                                 .name = strdup("Venus"),
-                                 .position = {bodies[1]->position.x + orbitalRadius, 0},
-                                 .velocity = {0, 0},
-                                 .mass = 1e9 * 0.815f,
-                                 .radius = 3.2e3f * 0.949f,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-                                 .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
-                                 .rotation = 0.0f,
-                                 .texture = gameTextures->planetTextures[2],
-                                 .textureScale = 2.5f};
-    bodies[5]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
-
-    // Planet orbiting Star - Mars
-    orbitalRadius = calculateOrbitalRadius(1.52f * 24 * 60 * 60, bodies[1]->mass);
-    bodies[6] = malloc(sizeof(CelestialBody));
-    *bodies[6] = (CelestialBody){.type = TYPE_PLANET,
-                                 .name = strdup("Mars"),
-                                 .position = {bodies[1]->position.x + orbitalRadius, 0},
-                                 .velocity = {0, 0},
-                                 .mass = 1e9 * 0.107f,
-                                 .radius = 3.2e3f * 0.532f,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-                                 .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
-                                 .rotation = 0.0f,
-                                 .texture = gameTextures->planetTextures[3],
-                                 .textureScale = 3.1f};
-    bodies[6]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
-
-    // Planet orbiting Star - Jupiter
-    orbitalRadius = calculateOrbitalRadius(5.20f * 24 * 60 * 60, bodies[1]->mass);
-    bodies[7] = malloc(sizeof(CelestialBody));
-    *bodies[7] = (CelestialBody){.type = TYPE_PLANET,
-                                 .name = strdup("Jupiter"),
-                                 .position = {bodies[1]->position.x + orbitalRadius, 0},
-                                 .velocity = {0, 0},
-                                 .mass = 1e9 * 317.8f,
-                                 .radius = 3.2e3f * 11.21f,
-                                 .previousPositions = (Vector2 *)malloc(sizeof(Vector2) * PREVIOUS_POSITIONS),
-                                 .futurePositions = (Vector2 *)malloc(sizeof(Vector2) * FUTURE_POSITIONS),
-                                 .rotation = 0.0f,
-                                 .texture = gameTextures->planetTextures[4],
-                                 .textureScale = 2.6f};
-    bodies[7]->velocity = (Vector2){0, calculateOrbitalSpeed(bodies[1]->mass, orbitalRadius)};
+        .parentBody = bodies[1],
+        .angularSpeed = 2,
+        .initialAngle = 90.0f,
+        .orbitalRadius = 1000};
 
     return bodies;
 }
 
-void drawBodies(CelestialBody **bodies, int numBodies)
+// Update celestial body positions (on rails)
+void updateCelestialPositions(CelestialBody **bodies, int numBodies, float time)
 {
-    for (int i = numBodies - 1; i >= 0; i--)
+    for (int i = 0; i < numBodies; i++)
     {
-        float scale = ((bodies[i]->radius * 2) / bodies[i]->texture->width) * bodies[i]->textureScale;
-        // Source rectangle (part of the texture to use for drawing i.e. the whole texture)
-        Rectangle source = {
-            0,
-            0,
-            (float)bodies[i]->texture->width,
-            (float)bodies[i]->texture->height};
-
-        // Destination rectangle (Screen rectangle locating where to draw the texture)
-        float widthScale = (bodies[i]->texture->width * scale / 2);
-        float heightScale = (bodies[i]->texture->height * scale / 2);
-        Rectangle dest = {
-            bodies[i]->position.x,
-            bodies[i]->position.y,
-            (float)bodies[i]->texture->width + widthScale,
-            (float)bodies[i]->texture->height + heightScale};
-
-        // Origin of the texture for rotation and scaling - centre for our purpose
-        Vector2 origin = {
-            (float)((bodies[i]->texture->width + widthScale) / 2),
-            (float)((bodies[i]->texture->height + heightScale) / 2)};
-        DrawTexturePro(*bodies[i]->texture, source, dest, origin, bodies[i]->rotation, WHITE);
-
-        // Draw collider for debug
-        // DrawCircle(bodies[i]->position.x, bodies[i]->position.y, bodies[i]->radius, WHITE);
+        if (bodies[i]->orbitalRadius > 0 && bodies[i]->parentBody != NULL)
+        { // Stars, planets, moons
+            float angle = bodies[i]->initialAngle + bodies[i]->angularSpeed * time;
+            bodies[i]->position = (Vector2){
+                bodies[i]->parentBody->position.x + bodies[i]->orbitalRadius * cosf(angle),
+                bodies[i]->parentBody->position.y + bodies[i]->orbitalRadius * sinf(angle)};
+        }
     }
 }
+
+void drawBodies(CelestialBody **bodies, int numBodies)
+{
+    Color bodyColour;
+    for (int i = numBodies - 1; i >= 0; i--)
+    {
+        if (bodies[i]->type == TYPE_STAR)
+        {
+            bodyColour = RED;
+        }
+        if (bodies[i]->type == TYPE_PLANET)
+        {
+            bodyColour = BLUE;
+        }
+        if (bodies[i]->type != TYPE_STAR && bodies[i]->type != TYPE_PLANET)
+        {
+            bodyColour = WHITE;
+        }
+        DrawCircle(bodies[i]->position.x, bodies[i]->position.y, bodies[i]->radius, bodyColour);
+    }
+}
+
+void drawOrbits(CelestialBody **bodies, int numBodies)
+{
+    for (int i = 0; i < numBodies; i++)
+    {
+        if (bodies[i]->orbitalRadius > 0 && bodies[i]->parentBody != NULL)
+        { // Exclude black hole and ship
+            Vector2 center = bodies[i]->parentBody->position;
+            float radius = bodies[i]->orbitalRadius;
+            Color color = (bodies[i]->type == TYPE_STAR) ? Fade(YELLOW, 0.5f) : (bodies[i]->type == TYPE_PLANET) ? Fade(BLUE, 0.5f)
+                                                                                                                 : Fade(GRAY, 0.5f); // Match body colors, semi-transparent
+
+            // Draw a dashed circle (approximated with segments)
+            int segments = 36; // Number of segments for smoothness
+            float angleStep = 2 * PI / segments;
+            for (int j = 0; j < segments; j += 2)
+            { // Skip every other segment for dashed effect
+                float startAngle = j * angleStep;
+                float endAngle = (j + 1) * angleStep;
+                Vector2 start = {center.x + radius * cosf(startAngle), center.y + radius * sinf(startAngle)};
+                Vector2 end = {center.x + radius * cosf(endAngle), center.y + radius * sinf(endAngle)};
+                DrawLineV(start, end, color);
+            }
+        }
+    }
+}
+
+// void drawBodies(CelestialBody **bodies, int numBodies)
+// {
+//     for (int i = numBodies - 1; i >= 0; i--)
+//     {
+//         float scale = ((bodies[i]->radius * 2) / bodies[i]->texture->width) * bodies[i]->textureScale;
+//         // Source rectangle (part of the texture to use for drawing i.e. the whole texture)
+//         Rectangle source = {
+//             0,
+//             0,
+//             (float)bodies[i]->texture->width,
+//             (float)bodies[i]->texture->height};
+
+//         // Destination rectangle (Screen rectangle locating where to draw the texture)
+//         float widthScale = (bodies[i]->texture->width * scale / 2);
+//         float heightScale = (bodies[i]->texture->height * scale / 2);
+//         Rectangle dest = {
+//             bodies[i]->position.x,
+//             bodies[i]->position.y,
+//             (float)bodies[i]->texture->width + widthScale,
+//             (float)bodies[i]->texture->height + heightScale};
+
+//         // Origin of the texture for rotation and scaling - centre for our purpose
+//         Vector2 origin = {
+//             (float)((bodies[i]->texture->width + widthScale) / 2),
+//             (float)((bodies[i]->texture->height + heightScale) / 2)};
+//         DrawTexturePro(*bodies[i]->texture, source, dest, origin, bodies[i]->rotation, WHITE);
+
+//         // Draw collider for debug
+//         // DrawCircle(bodies[i]->position.x, bodies[i]->position.y, bodies[i]->radius, WHITE);
+//     }
+// }
 
 void drawQuadtree(QuadTreeNode *node)
 {
@@ -653,44 +763,44 @@ void drawQuadtree(QuadTreeNode *node)
     }
 }
 
-void drawPreviousPositions(CelestialBody **bodies, int numBodies)
-{
-    for (int i = 0; i < numBodies; i++)
-    {
-        for (int j = 0; j < PREVIOUS_POSITIONS; j++)
-        {
-            DrawPixelV(bodies[i]->previousPositions[j], TRAIL_COLOUR);
+// void drawPreviousPositions(CelestialBody **bodies, int numBodies)
+// {
+//     for (int i = 0; i < numBodies; i++)
+//     {
+//         for (int j = 0; j < PREVIOUS_POSITIONS; j++)
+//         {
+//             DrawPixelV(bodies[i]->previousPositions[j], TRAIL_COLOUR);
 
-            // N
-            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){0, -1}), TRAIL_COLOUR);
-            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){0, -2}), TRAIL_COLOUR);
+//             // N
+//             DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){0, -1}), TRAIL_COLOUR);
+//             DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){0, -2}), TRAIL_COLOUR);
 
-            // NE
-            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){1, -1}), TRAIL_COLOUR);
+//             // NE
+//             DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){1, -1}), TRAIL_COLOUR);
 
-            // E
-            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){1, 0}), TRAIL_COLOUR);
-            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){2, 0}), TRAIL_COLOUR);
+//             // E
+//             DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){1, 0}), TRAIL_COLOUR);
+//             DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){2, 0}), TRAIL_COLOUR);
 
-            // SE
-            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){1, 1}), TRAIL_COLOUR);
+//             // SE
+//             DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){1, 1}), TRAIL_COLOUR);
 
-            // S
-            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){0, 1}), TRAIL_COLOUR);
-            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){0, 2}), TRAIL_COLOUR);
+//             // S
+//             DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){0, 1}), TRAIL_COLOUR);
+//             DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){0, 2}), TRAIL_COLOUR);
 
-            // SW
-            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){-1, 1}), TRAIL_COLOUR);
+//             // SW
+//             DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){-1, 1}), TRAIL_COLOUR);
 
-            // W
-            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){-1, 0}), TRAIL_COLOUR);
-            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){-2, 0}), TRAIL_COLOUR);
+//             // W
+//             DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){-1, 0}), TRAIL_COLOUR);
+//             DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){-2, 0}), TRAIL_COLOUR);
 
-            // NW
-            DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){-1, -1}), TRAIL_COLOUR);
-        }
-    }
-}
+//             // NW
+//             DrawPixelV(Vector2Add(bodies[i]->previousPositions[j], (Vector2){-1, -1}), TRAIL_COLOUR);
+//         }
+//     }
+// }
 
 float calculateNormalisedZoom(CameraSettings *settings, float currentZoom)
 {
@@ -806,50 +916,68 @@ void drawCelestialGrid(CelestialBody **bodies, int numBodies, Camera2D camera)
     }
 }
 
-void updateShipPosition(CelestialBody *ship)
-{
-    if (ship->type == TYPE_SHIP && ship->shipSettings.state == SHIP_LANDED && ship->shipSettings.landedBody != NULL)
-    {
-        // Keep ship positioned at the landing spot relative to the body
-        ship->position = Vector2Add(ship->shipSettings.landedBody->position, ship->shipSettings.landingPosition);
-        ship->velocity = ship->shipSettings.landedBody->velocity; // Sync velocity
-    }
-}
+// void updateShipPosition(CelestialBody *ship)
+// {
+//     if (ship->type == TYPE_SHIP && ship->shipSettings.state == SHIP_LANDED && ship->shipSettings.landedBody != NULL)
+//     {
+//         // Keep ship positioned at the landing spot relative to the body
+//         ship->position = Vector2Add(ship->shipSettings.landedBody->position, ship->shipSettings.landingPosition);
+//         ship->velocity = ship->shipSettings.landedBody->velocity; // Sync velocity
+//     }
+// }
 
-void freeGameTextures(GameTextures gameTextures)
-{
-    if (
-        gameTextures.numStarTextures > 0 || gameTextures.numPlanetTextures > 0 || gameTextures.numMoonTextures > 0 || gameTextures.numShipTextures > 0)
-    {
-        for (int i = 0; i < gameTextures.numStarTextures; i++)
-        {
-            UnloadTexture(*gameTextures.starTextures[i]);
-            free(gameTextures.starTextures[i]);
-        }
-        free(gameTextures.starTextures);
+// void freeGameTextures(GameTextures gameTextures)
+// {
+//     if (
+//         gameTextures.numStarTextures > 0 || gameTextures.numPlanetTextures > 0 || gameTextures.numMoonTextures > 0 || gameTextures.numShipTextures > 0)
+//     {
+//         for (int i = 0; i < gameTextures.numStarTextures; i++)
+//         {
+//             UnloadTexture(*gameTextures.starTextures[i]);
+//             free(gameTextures.starTextures[i]);
+//         }
+//         free(gameTextures.starTextures);
 
-        for (int i = 0; i < gameTextures.numPlanetTextures; i++)
-        {
-            UnloadTexture(*gameTextures.planetTextures[i]);
-            free(gameTextures.planetTextures[i]);
-        }
-        free(gameTextures.planetTextures);
+//         for (int i = 0; i < gameTextures.numPlanetTextures; i++)
+//         {
+//             UnloadTexture(*gameTextures.planetTextures[i]);
+//             free(gameTextures.planetTextures[i]);
+//         }
+//         free(gameTextures.planetTextures);
 
-        for (int i = 0; i < gameTextures.numMoonTextures; i++)
-        {
-            UnloadTexture(*gameTextures.moonTextures[i]);
-            free(gameTextures.moonTextures[i]);
-        }
-        free(gameTextures.moonTextures);
+//         for (int i = 0; i < gameTextures.numMoonTextures; i++)
+//         {
+//             UnloadTexture(*gameTextures.moonTextures[i]);
+//             free(gameTextures.moonTextures[i]);
+//         }
+//         free(gameTextures.moonTextures);
 
-        for (int i = 0; i < gameTextures.numShipTextures; i++)
-        {
-            UnloadTexture(*gameTextures.shipTextures[i]);
-            free(gameTextures.shipTextures[i]);
-        }
-        free(gameTextures.shipTextures);
-    }
-}
+//         for (int i = 0; i < gameTextures.numShipTextures; i++)
+//         {
+//             UnloadTexture(*gameTextures.shipTextures[i]);
+//             free(gameTextures.shipTextures[i]);
+//         }
+//         free(gameTextures.shipTextures);
+//     }
+// }
+
+// void freeCelestialBodies(CelestialBody **bodies, int numBodies)
+// {
+//     if (bodies)
+//     {
+//         for (int i = 0; i < numBodies; i++)
+//         {
+//             free(bodies[i]->name);
+//             free(bodies[i]->previousPositions);
+//             if (bodies[i]->futurePositions)
+//                 free(bodies[i]->futurePositions);
+//             // if (bodies[i]->resources)
+//             //     free(bodies[i]->resources);
+//             free(bodies[i]);
+//         }
+//         free(bodies);
+//     }
+// }
 
 void freeCelestialBodies(CelestialBody **bodies, int numBodies)
 {
@@ -858,9 +986,6 @@ void freeCelestialBodies(CelestialBody **bodies, int numBodies)
         for (int i = 0; i < numBodies; i++)
         {
             free(bodies[i]->name);
-            free(bodies[i]->previousPositions);
-            if (bodies[i]->futurePositions)
-                free(bodies[i]->futurePositions);
             // if (bodies[i]->resources)
             //     free(bodies[i]->resources);
             free(bodies[i]);
@@ -875,156 +1000,156 @@ void drawPlayerStats(PlayerStats *playerStats)
     DrawText(TextFormat("%i$", playerStats->money), 150 - MeasureText(TextFormat("%i$", playerStats->money), HUD_FONT_SIZE), 40, HUD_FONT_SIZE, WHITE);
 }
 
-void drawPlayerInventory(CelestialBody *playerShip, Resource *resourceDefinitions)
-{
-    int initialHeight = 70;
-    int heightStep = 30;
-    for (int i = 0; i < RESOURCE_COUNT; i++)
-    {
-        // Currently renders the associated enum integer of each mineral
-        // Possibly need to change mineral to be a struct so we can store a name (char array)
-        DrawText(TextFormat("%s:", resourceDefinitions[i].name), 10, (initialHeight + (heightStep * i)), HUD_FONT_SIZE, WHITE);
-        DrawText(TextFormat("%it", playerShip->shipSettings.inventory[i].quantity), 150 - MeasureText(TextFormat("%it", playerShip->shipSettings.inventory[i].quantity), HUD_FONT_SIZE), (initialHeight + (heightStep * i)), HUD_FONT_SIZE, WHITE);
-    }
-}
+// void drawPlayerInventory(CelestialBody *playerShip, Resource *resourceDefinitions)
+// {
+//     int initialHeight = 70;
+//     int heightStep = 30;
+//     for (int i = 0; i < RESOURCE_COUNT; i++)
+//     {
+//         // Currently renders the associated enum integer of each mineral
+//         // Possibly need to change mineral to be a struct so we can store a name (char array)
+//         DrawText(TextFormat("%s:", resourceDefinitions[i].name), 10, (initialHeight + (heightStep * i)), HUD_FONT_SIZE, WHITE);
+//         DrawText(TextFormat("%it", playerShip->shipSettings.inventory[i].quantity), 150 - MeasureText(TextFormat("%it", playerShip->shipSettings.inventory[i].quantity), HUD_FONT_SIZE), (initialHeight + (heightStep * i)), HUD_FONT_SIZE, WHITE);
+//     }
+// }
 
-bool mineResource(CelestialBody *body, CelestialBody *playerShip, Resource *resourceDefinitions, ResourceType type, int amount)
-{
-    // Check if planet has enough of the resource
-    if (body->resources[type].quantity < amount)
-    {
-        return false; // Not enough resources
-    }
+// bool mineResource(CelestialBody *body, CelestialBody *playerShip, Resource *resourceDefinitions, ResourceType type, int amount)
+// {
+//     // Check if planet has enough of the resource
+//     if (body->resources[type].quantity < amount)
+//     {
+//         return false; // Not enough resources
+//     }
 
-    // Calculate weight of the requested amount
-    float weight_to_add = resourceDefinitions[type].weight * amount;
-    if (playerShip->shipSettings.currentCapacity + weight_to_add > playerShip->shipSettings.maxCapacity)
-    {
-        return false; // Ship can't carry more
-    }
+//     // Calculate weight of the requested amount
+//     float weight_to_add = resourceDefinitions[type].weight * amount;
+//     if (playerShip->shipSettings.currentCapacity + weight_to_add > playerShip->shipSettings.maxCapacity)
+//     {
+//         return false; // Ship can't carry more
+//     }
 
-    // Update planet and ship
-    body->resources[type].quantity -= amount;
-    playerShip->shipSettings.inventory[type].quantity += amount;
-    playerShip->shipSettings.currentCapacity += weight_to_add;
+//     // Update planet and ship
+//     body->resources[type].quantity -= amount;
+//     playerShip->shipSettings.inventory[type].quantity += amount;
+//     playerShip->shipSettings.currentCapacity += weight_to_add;
 
-    return true;
-}
+//     return true;
+// }
 
-CelestialBody **copyCelestialBodies(CelestialBody **original, int numBodies)
-{
-    // Step 1: Allocate memory for the new array of pointers
-    CelestialBody **copy = (CelestialBody **)malloc(numBodies * sizeof(CelestialBody *));
-    if (copy == NULL)
-    {
-        // Handle memory allocation failure
-        return NULL;
-    }
+// CelestialBody **copyCelestialBodies(CelestialBody **original, int numBodies)
+// {
+//     // Step 1: Allocate memory for the new array of pointers
+//     CelestialBody **copy = (CelestialBody **)malloc(numBodies * sizeof(CelestialBody *));
+//     if (copy == NULL)
+//     {
+//         // Handle memory allocation failure
+//         return NULL;
+//     }
 
-    // Step 2: Copy each CelestialBody
-    for (int i = 0; i < numBodies; i++)
-    {
-        // Allocate memory for the new CelestialBody
-        copy[i] = (CelestialBody *)malloc(sizeof(CelestialBody));
-        if (copy[i] == NULL)
-        {
-            // Handle memory allocation failure and clean up
-            for (int j = 0; j < i; j++)
-            {
-                free(copy[j]);
-            }
-            free(copy);
-            return NULL;
-        }
+//     // Step 2: Copy each CelestialBody
+//     for (int i = 0; i < numBodies; i++)
+//     {
+//         // Allocate memory for the new CelestialBody
+//         copy[i] = (CelestialBody *)malloc(sizeof(CelestialBody));
+//         if (copy[i] == NULL)
+//         {
+//             // Handle memory allocation failure and clean up
+//             for (int j = 0; j < i; j++)
+//             {
+//                 free(copy[j]);
+//             }
+//             free(copy);
+//             return NULL;
+//         }
 
-        // Step 3: Copy the data from the original to the new body
-        memcpy(copy[i], original[i], sizeof(CelestialBody));
-    }
+//         // Step 3: Copy the data from the original to the new body
+//         memcpy(copy[i], original[i], sizeof(CelestialBody));
+//     }
 
-    return copy;
-}
+//     return copy;
+// }
 
-void predictPositions(CelestialBody **bodies, int numBodies, WarpController *timeScale, float *theta)
-{
-    // Whole-system simulation is computationally expensive, can we make this more lightweight?
+// void predictPositions(CelestialBody **bodies, int numBodies, WarpController *timeScale, float *theta)
+// {
+//     // Whole-system simulation is computationally expensive, can we make this more lightweight?
 
-    // Make a copy of the current state of the system to simulate on
-    CelestialBody **workingBodies = copyCelestialBodies(bodies, numBodies);
+//     // Make a copy of the current state of the system to simulate on
+//     CelestialBody **workingBodies = copyCelestialBodies(bodies, numBodies);
 
-    for (int i = 0; i < FUTURE_POSITIONS; i++)
-    {
-        QuadTreeNode *root = buildQuadTree(workingBodies, numBodies);
+//     for (int i = 0; i < FUTURE_POSITIONS; i++)
+//     {
+//         QuadTreeNode *root = buildQuadTree(workingBodies, numBodies);
 
-        // Update physics
-        float scaledDt = FUTURE_STEP_TIME * timeScale->val;
+//         // Update physics
+//         float scaledDt = FUTURE_STEP_TIME * timeScale->val;
 
-        for (int j = 0; j < numBodies; j++)
-        {
-            if (workingBodies[j]->type == TYPE_SHIP && workingBodies[j]->shipSettings.state == SHIP_LANDED)
-            {
-                continue;
-            }
+//         for (int j = 0; j < numBodies; j++)
+//         {
+//             if (workingBodies[j]->type == TYPE_SHIP && workingBodies[j]->shipSettings.state == SHIP_LANDED)
+//             {
+//                 continue;
+//             }
 
-            Vector2 force = computeForce(root, workingBodies[j], *theta);
-            Vector2 accel = Vector2Scale(force, 1.0f / workingBodies[j]->mass);
-            workingBodies[j]->velocity = Vector2Add(workingBodies[j]->velocity, Vector2Scale(accel, scaledDt));
-            workingBodies[j]->position = Vector2Add(workingBodies[j]->position, Vector2Scale(workingBodies[j]->velocity, scaledDt));
+//             Vector2 force = computeForce(root, workingBodies[j], *theta);
+//             Vector2 accel = Vector2Scale(force, 1.0f / workingBodies[j]->mass);
+//             workingBodies[j]->velocity = Vector2Add(workingBodies[j]->velocity, Vector2Scale(accel, scaledDt));
+//             workingBodies[j]->position = Vector2Add(workingBodies[j]->position, Vector2Scale(workingBodies[j]->velocity, scaledDt));
 
-            if (bodies[j]->type != TYPE_STAR)
-            {
-                bodies[j]->futurePositions[i] = workingBodies[j]->position;
-            }
-        }
-        free(root);
-    }
+//             if (bodies[j]->type != TYPE_STAR)
+//             {
+//                 bodies[j]->futurePositions[i] = workingBodies[j]->position;
+//             }
+//         }
+//         free(root);
+//     }
 
-    for (int i = 0; i < numBodies; i++)
-    {
-        free(workingBodies[i]);
-    }
-    free(workingBodies);
-}
+//     for (int i = 0; i < numBodies; i++)
+//     {
+//         free(workingBodies[i]);
+//     }
+//     free(workingBodies);
+// }
 
-void drawFuturePositions(CelestialBody **bodies, int numBodies)
-{
+// void drawFuturePositions(CelestialBody **bodies, int numBodies)
+// {
 
-    for (int j = 0; j < FUTURE_POSITIONS; j++)
-    {
-        // Calculate the ship's position relative to the planet at each timestep
-        Vector2 planetPos = bodies[2]->futurePositions[j];
-        Vector2 shipPos = bodies[0]->futurePositions[j];
-        Vector2 relativePos = Vector2Subtract(shipPos, planetPos);
+//     for (int j = 0; j < FUTURE_POSITIONS; j++)
+//     {
+//         // Calculate the ship's position relative to the planet at each timestep
+//         Vector2 planetPos = bodies[2]->futurePositions[j];
+//         Vector2 shipPos = bodies[0]->futurePositions[j];
+//         Vector2 relativePos = Vector2Subtract(shipPos, planetPos);
 
-        // Draw the relative position offset from the planet's current position
-        Vector2 drawPos = Vector2Add(bodies[2]->position, relativePos);
-        DrawPixelV(drawPos, TRAIL_COLOUR);
+//         // Draw the relative position offset from the planet's current position
+//         Vector2 drawPos = Vector2Add(bodies[2]->position, relativePos);
+//         DrawPixelV(drawPos, TRAIL_COLOUR);
 
-        // N
-        DrawPixelV(Vector2Add(drawPos, (Vector2){0, -1}), TRAIL_COLOUR);
-        DrawPixelV(Vector2Add(drawPos, (Vector2){0, -2}), TRAIL_COLOUR);
+//         // N
+//         DrawPixelV(Vector2Add(drawPos, (Vector2){0, -1}), TRAIL_COLOUR);
+//         DrawPixelV(Vector2Add(drawPos, (Vector2){0, -2}), TRAIL_COLOUR);
 
-        // NE
-        DrawPixelV(Vector2Add(drawPos, (Vector2){1, -1}), TRAIL_COLOUR);
+//         // NE
+//         DrawPixelV(Vector2Add(drawPos, (Vector2){1, -1}), TRAIL_COLOUR);
 
-        // E
-        DrawPixelV(Vector2Add(drawPos, (Vector2){1, 0}), TRAIL_COLOUR);
-        DrawPixelV(Vector2Add(drawPos, (Vector2){2, 0}), TRAIL_COLOUR);
+//         // E
+//         DrawPixelV(Vector2Add(drawPos, (Vector2){1, 0}), TRAIL_COLOUR);
+//         DrawPixelV(Vector2Add(drawPos, (Vector2){2, 0}), TRAIL_COLOUR);
 
-        // SE
-        DrawPixelV(Vector2Add(drawPos, (Vector2){1, 1}), TRAIL_COLOUR);
+//         // SE
+//         DrawPixelV(Vector2Add(drawPos, (Vector2){1, 1}), TRAIL_COLOUR);
 
-        // S
-        DrawPixelV(Vector2Add(drawPos, (Vector2){0, 1}), TRAIL_COLOUR);
-        DrawPixelV(Vector2Add(drawPos, (Vector2){0, 2}), TRAIL_COLOUR);
+//         // S
+//         DrawPixelV(Vector2Add(drawPos, (Vector2){0, 1}), TRAIL_COLOUR);
+//         DrawPixelV(Vector2Add(drawPos, (Vector2){0, 2}), TRAIL_COLOUR);
 
-        // SW
-        DrawPixelV(Vector2Add(drawPos, (Vector2){-1, 1}), TRAIL_COLOUR);
+//         // SW
+//         DrawPixelV(Vector2Add(drawPos, (Vector2){-1, 1}), TRAIL_COLOUR);
 
-        // W
-        DrawPixelV(Vector2Add(drawPos, (Vector2){-1, 0}), TRAIL_COLOUR);
-        DrawPixelV(Vector2Add(drawPos, (Vector2){-2, 0}), TRAIL_COLOUR);
+//         // W
+//         DrawPixelV(Vector2Add(drawPos, (Vector2){-1, 0}), TRAIL_COLOUR);
+//         DrawPixelV(Vector2Add(drawPos, (Vector2){-2, 0}), TRAIL_COLOUR);
 
-        // NW
-        DrawPixelV(Vector2Add(drawPos, (Vector2){-1, -1}), TRAIL_COLOUR);
-    }
-}
+//         // NW
+//         DrawPixelV(Vector2Add(drawPos, (Vector2){-1, -1}), TRAIL_COLOUR);
+//     }
+// }
