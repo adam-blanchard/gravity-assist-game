@@ -19,24 +19,24 @@
 #define GRID_SPACING 1e2
 #define GRID_LINE_WIDTH 100
 #define HUD_ARROW_SCALE 0.01
-#define MAX_LANDING_SPEED 50
+#define MAX_LANDING_SPEED 1e4
 #define MAX_CAPACITY 100
 #define HUD_FONT_SIZE 16
 
 #define TRAIL_COLOUR \
-    CLITERAL(Color) { 255, 255, 255, 255 }
+    CLITERAL(Color){255, 255, 255, 255}
 
 #define GRID_COLOUR \
-    CLITERAL(Color) { 255, 255, 255, 50 }
+    CLITERAL(Color){255, 255, 255, 50}
 
 #define SPACE_COLOUR \
-    CLITERAL(Color) { 10, 10, 10, 255 }
+    CLITERAL(Color){10, 10, 10, 255}
 
 #define GUI_BACKGROUND \
-    CLITERAL(Color) { 255, 255, 255, 200 }
+    CLITERAL(Color){255, 255, 255, 200}
 
 #define ORBIT_COLOUR \
-    CLITERAL(Color) { 255, 255, 255, 100 }
+    CLITERAL(Color){255, 255, 255, 100}
 
 typedef enum
 {
@@ -91,6 +91,7 @@ typedef struct Ship
     Vector2 velocity;
     float mass;
     float rotation;
+    float radius;
     float thrust;
     float fuel;
     float fuelConsumption;
@@ -228,11 +229,38 @@ float radsPerSecond(int orbitalPeriod)
     return deg2rad(deg);
 }
 
-// float calculateRelativeSpeed(CelestialBody *body1, CelestialBody *body2)
-// {
-//     Vector2 relativeVelocity = Vector2Subtract(body1->velocity, body2->velocity);
-//     return sqrtf((relativeVelocity.x * relativeVelocity.x) + (relativeVelocity.y * relativeVelocity.y));
-// }
+float getBodyAngle(CelestialBody *body, float gameTime)
+{
+    return fmod(body->initialAngle + body->angularSpeed * gameTime, 2 * PI);
+}
+
+Vector2 calculateBodyVelocity(CelestialBody *body, float gameTime);
+
+Vector2 calculateBodyVelocity(CelestialBody *body, float gameTime)
+{
+    // Recursive function to sum velocities of current body and its parents
+
+    // Early return for non-orbiting bodies
+    if (body->parentBody == NULL || body->orbitalRadius == 0)
+        return (Vector2){0, 0};
+
+    float angle = getBodyAngle(body, gameTime);
+    float orbitalVelocity = calculateOrbitalVelocity(body->parentBody->mass, body->orbitalRadius);
+    Vector2 velocity = (Vector2){
+        orbitalVelocity * cosf(angle),
+        orbitalVelocity * sinf(angle)};
+
+    Vector2 parentVelocity = calculateBodyVelocity(body->parentBody, gameTime);
+
+    return Vector2Add(velocity, parentVelocity);
+}
+
+float calculateRelativeSpeed(Ship *ship, CelestialBody *body, float gameTime)
+{
+    Vector2 bodyVelocity = calculateBodyVelocity(body, gameTime);
+    Vector2 relativeVelocity = Vector2Subtract(ship->velocity, bodyVelocity);
+    return sqrtf((relativeVelocity.x * relativeVelocity.x) + (relativeVelocity.y * relativeVelocity.y));
+}
 
 // float calculateAbsoluteSpeed(CelestialBody *body)
 // {
@@ -244,225 +272,34 @@ float calculateOrbitalSpeed(float mass, float radius)
     return (float){sqrtf((G * mass) / radius)};
 }
 
-// void landShip(CelestialBody *ship, CelestialBody *body)
-// {
-//     if (ship->type != TYPE_SHIP || ship->shipSettings.state == SHIP_LANDED)
-//         return;
-
-//     // Set landing state
-//     ship->shipSettings.state = SHIP_LANDED;
-//     ship->shipSettings.landedBody = body;
-//     ship->velocity = body->velocity; // Match velocity to the body
-
-//     Vector2 direction = Vector2Subtract(ship->position, body->position);
-//     float distance = Vector2Length(direction);
-//     direction = Vector2Normalize(direction);
-
-//     // Position ship on the surface and store landing position
-//     Vector2 surfacePosition = Vector2Scale(direction, body->radius + ship->radius);
-//     ship->position = Vector2Add(body->position, surfacePosition);
-//     ship->shipSettings.landingPosition = surfacePosition; // Store relative position
-// }
-
-// void takeoffShip(CelestialBody *ship)
-// {
-//     if (ship->type != TYPE_SHIP || ship->shipSettings.state != SHIP_LANDED || ship->shipSettings.landedBody == NULL)
-//         return;
-
-//     // Set flying state
-//     ship->shipSettings.state = SHIP_FLYING;
-
-//     // Calculate takeoff direction (normal to surface)
-//     // Vector2 direction = Vector2Normalize(ship->shipSettings.landingPosition);
-//     // float takeoffSpeed = calculateEscapeVelocity(ship->shipSettings.landedBody->mass, ship->shipSettings.landedBody->radius) * 0.8f; // Slightly less than escape velocity
-//     // Vector2 takeoffVelocity = Vector2Scale(direction, takeoffSpeed);
-
-//     // // Set velocity relative to the body's velocity
-//     // ship->velocity = Vector2Add(ship->shipSettings.landedBody->velocity, takeoffVelocity);
-
-//     // Clear landed body reference
-//     ship->shipSettings.landedBody = NULL;
-// }
-
-QuadTreeNode *createNode(Rectangle bounds)
+void landShip(Ship *ship, CelestialBody *body, float gameTime)
 {
-    QuadTreeNode *node = (QuadTreeNode *)malloc(sizeof(QuadTreeNode));
-    node->bounds = bounds;
-    node->centerOfMass = (Vector2){0, 0};
-    node->totalMass = 0.0f;
-    for (int i = 0; i < 4; i++)
-        node->children[i] = NULL;
-    node->body = NULL;
-    return node;
-}
-
-void subdivide(QuadTreeNode *node)
-{
-    float x = node->bounds.x;
-    float y = node->bounds.y;
-    float w = node->bounds.width / 2;
-    float h = node->bounds.height / 2;
-    node->children[0] = createNode((Rectangle){x, y, w, h});         // NW
-    node->children[1] = createNode((Rectangle){x + w, y, w, h});     // NE
-    node->children[2] = createNode((Rectangle){x, y + h, w, h});     // SW
-    node->children[3] = createNode((Rectangle){x + w, y + h, w, h}); // SE
-}
-
-void insertBody(QuadTreeNode *node, CelestialBody *body)
-{
-    if (node->body != NULL)
-    { // Leaf with a body
-        CelestialBody *existingBody = node->body;
-        subdivide(node);
-        // Insert existing body into appropriate child
-        int index = (existingBody->position.x < node->bounds.x + node->bounds.width / 2) ? (existingBody->position.y < node->bounds.y + node->bounds.height / 2 ? 0 : 2) : (existingBody->position.y < node->bounds.y + node->bounds.height / 2 ? 1 : 3);
-        insertBody(node->children[index], existingBody);
-        node->body = NULL;
-    }
-    if (node->children[0] == NULL)
-    { // Leaf node
-        node->body = body;
-        node->totalMass = body->mass;
-        node->centerOfMass = body->position;
-    }
-    else
-    { // Internal node
-        int index = (body->position.x < node->bounds.x + node->bounds.width / 2) ? (body->position.y < node->bounds.y + node->bounds.height / 2 ? 0 : 2) : (body->position.y < node->bounds.y + node->bounds.height / 2 ? 1 : 3);
-        insertBody(node->children[index], body);
-        // Update totalMass and centerOfMass
-        node->totalMass = 0;
-        node->centerOfMass = (Vector2){0, 0};
-        for (int i = 0; i < 4; i++)
-        {
-            if (node->children[i])
-            {
-                node->totalMass += node->children[i]->totalMass;
-                node->centerOfMass = Vector2Add(node->centerOfMass,
-                                                Vector2Scale(node->children[i]->centerOfMass, node->children[i]->totalMass));
-            }
-        }
-        if (node->totalMass > 0)
-        {
-            node->centerOfMass = Vector2Scale(node->centerOfMass, 1.0f / node->totalMass);
-        }
-    }
-}
-
-QuadTreeNode *buildQuadTree(CelestialBody **bodies, int numBodies)
-{
-    if (numBodies == 0)
-    {
-        printf("No bodies");
-        return NULL;
-    }
-
-    float minX = bodies[0]->position.x, maxX = minX;
-    float minY = bodies[0]->position.y, maxY = minY;
-
-    for (int i = 1; i < numBodies; i++)
-    {
-        minX = fmin(minX, bodies[i]->position.x);
-        maxX = fmax(maxX, bodies[i]->position.x);
-        minY = fmin(minY, bodies[i]->position.y);
-        maxY = fmax(maxY, bodies[i]->position.y);
-    }
-    float width = maxX - minX, height = maxY - minY;
-    if (width > height)
-        minY -= (width - height) / 2;
-    else
-        minX -= (height - width) / 2;
-    Rectangle bounds = {minX, minY, fmax(width, height), fmax(width, height)};
-    QuadTreeNode *root = createNode(bounds);
-    for (int i = 0; i < numBodies; i++)
-    {
-        insertBody(root, bodies[i]);
-    }
-    return root;
-}
-
-Vector2 computeForce(QuadTreeNode *node, CelestialBody *body, float theta)
-{
-    if (node->totalMass == 0)
-        return (Vector2){0, 0};
-    if (node->body != NULL)
-    {
-        if (node->body == body)
-            return (Vector2){0, 0}; // Skip self
-        Vector2 dir = Vector2Subtract(node->body->position, body->position);
-        float dist = Vector2Length(dir);
-        if (dist < 1e-5)
-            return (Vector2){0, 0}; // Avoid division by zero
-        float mag = (G * body->mass * node->body->mass) / (dist * dist);
-        return Vector2Scale(Vector2Normalize(dir), mag);
-    }
-    float dist = Vector2Distance(body->position, node->centerOfMass);
-    if (dist < 1e-5)
-        dist = 1e-5; // Prevent singularity
-    float size = node->bounds.width;
-    if (size / dist < theta)
-    { // Approximate as point mass
-        float mag = (G * body->mass * node->totalMass) / (dist * dist);
-        Vector2 dir = Vector2Normalize(Vector2Subtract(node->centerOfMass, body->position));
-        return Vector2Scale(dir, mag);
-    }
-    Vector2 force = {0, 0};
-    for (int i = 0; i < 4; i++)
-    {
-        if (node->children[i])
-        {
-            force = Vector2Add(force, computeForce(node->children[i], body, theta));
-        }
-    }
-    return force;
-}
-
-void freeQuadTree(QuadTreeNode *node)
-{
-    if (!node)
+    if (ship->state == SHIP_LANDED)
         return;
-    for (int i = 0; i < 4; i++)
-    {
-        freeQuadTree(node->children[i]);
-    }
-    free(node);
+
+    // Set landing state
+    ship->state = SHIP_LANDED;
+    ship->landedBody = body;
+    ship->velocity = calculateBodyVelocity(body, gameTime); // Match velocity to the body
+
+    Vector2 direction = Vector2Subtract(ship->position, body->position);
+    float distance = Vector2Length(direction);
+    direction = Vector2Normalize(direction);
+
+    // Position ship on the surface and store landing position
+    Vector2 surfacePosition = Vector2Scale(direction, body->radius + ship->radius);
+    ship->position = Vector2Add(body->position, surfacePosition);
+    ship->landingPosition = surfacePosition; // Store relative position
 }
 
-// void detectCollisions(CelestialBody **bodies, int numBodies, QuadTreeNode *node, CelestialBody *body)
-// {
-//     if (!node || node->totalMass == 0)
-//         return;
-//     if (node->body && node->body != body)
-//     {
-//         float dist = Vector2Distance(body->position, node->body->position);
-//         if (dist < (body->radius + node->body->radius))
-//         {
-//             // printf("Collision between %s and %s\n", body->name, node->body->name);
-//             if (body->type == TYPE_SHIP && body->shipSettings.state != SHIP_LANDED)
-//             {
-//                 float relVel = calculateRelativeSpeed(body, node->body);
-//                 if (relVel <= MAX_LANDING_SPEED)
-//                 {
-//                     landShip(body, node->body);
-//                 }
-//                 else
-//                 {
-//                     // Reset ship (example handling)
-//                     body->position = Vector2Add(bodies[2]->position, (Vector2){1e4, 0});
-//                     Vector2 relVel = (Vector2){0, calculateOrbitalSpeed(bodies[2]->mass, 1e4)};
-//                     body->velocity = Vector2Add(bodies[2]->velocity, relVel);
-//                 }
-//             }
-//         }
-//         return;
-//     }
-//     for (int i = 0; i < 4; i++)
-//     {
-//         if (node->children[i])
-//         {
-//             detectCollisions(bodies, numBodies, node->children[i], body);
-//         }
-//     }
-// }
+void takeoffShip(Ship *ship)
+{
+    if (ship->state != SHIP_LANDED || ship->landedBody == NULL)
+        return;
+
+    ship->state = SHIP_FLYING;
+    ship->landedBody = NULL;
+}
 
 CelestialBody **initBodies(int *numBodies)
 {
@@ -495,7 +332,7 @@ CelestialBody **initBodies(int *numBodies)
         .parentBody = bodies[0],
         .angularSpeed = radsPerSecond(365 * 24),
         .initialAngle = 0,
-        .orbitalRadius = 5e4};
+        .orbitalRadius = 9e4};
 
     // Moon orbiting Planet
     bodies[2] = malloc(sizeof(CelestialBody));
@@ -509,7 +346,7 @@ CelestialBody **initBodies(int *numBodies)
         .parentBody = bodies[1],
         .angularSpeed = radsPerSecond(28 * 24),
         .initialAngle = 0,
-        .orbitalRadius = 1e4};
+        .orbitalRadius = 2e4};
 
     return bodies;
 }
@@ -524,6 +361,7 @@ Ship **initShips(int *numShips)
         .position = (Vector2){3e4, 0},
         .velocity = (Vector2){0, 1.2e3},
         .mass = 1e3,
+        .radius = 32.0f,
         .rotation = 0,
         .thrust = 1e2,
         .state = SHIP_FLYING,
@@ -566,7 +404,7 @@ void updateCelestialPositions(CelestialBody **bodies, int numBodies, float time)
     {
         if (bodies[i]->orbitalRadius > 0 && bodies[i]->parentBody != NULL)
         { // Stars, planets, moons
-            float angle = fmod(bodies[i]->initialAngle + bodies[i]->angularSpeed * time, 2 * PI);
+            float angle = getBodyAngle(bodies[i], time);
             bodies[i]->position = (Vector2){
                 bodies[i]->parentBody->position.x + bodies[i]->orbitalRadius * cosf(angle),
                 bodies[i]->parentBody->position.y + bodies[i]->orbitalRadius * sinf(angle)};
@@ -574,65 +412,71 @@ void updateCelestialPositions(CelestialBody **bodies, int numBodies, float time)
     }
 }
 
-void calculateShipFuturePositions(Ship **ships, int numShips, CelestialBody **bodies, int numBodies, float gameTime)
+void detectCollisions(Ship **ships, int numShips, CelestialBody **bodies, int numBodies, float gameTime)
 {
     for (int i = 0; i < numShips; i++)
     {
-        if (ships[i]->state == SHIP_LANDED)
+        for (int j = 0; j < numBodies; j++)
         {
-            // If landed, future positions remain static at the landing spot
-            for (int j = 0; j < FUTURE_POSITIONS; j++)
+            float dist = Vector2Distance(ships[i]->position, bodies[j]->position);
+            if (dist < (ships[i]->radius + bodies[j]->radius))
             {
-                ships[i]->futurePositions[j] = ships[i]->position;
-            }
-            continue;
-        }
-
-        // Working copy of ship's state
-        Vector2 currentPos = ships[i]->position;
-        Vector2 currentVel = ships[i]->velocity;
-        float shipMass = ships[i]->mass;
-
-        // Simulate future positions
-        for (int j = 0; j < FUTURE_POSITIONS; j++)
-        {
-            float futureTime = gameTime + (j * FUTURE_STEP_TIME);
-
-            // Update celestial body positions at this future time
-            for (int k = 0; k < numBodies; k++)
-            {
-                if (bodies[k]->orbitalRadius > 0 && bodies[k]->parentBody != NULL)
+                printf("Collision between %s and Ship %i\n", bodies[j]->name, i);
+                if (ships[i]->state != SHIP_LANDED)
                 {
-                    float angle = fmod(bodies[k]->initialAngle + bodies[k]->angularSpeed * futureTime, 2 * PI);
-                    bodies[k]->position = (Vector2){
-                        bodies[k]->parentBody->position.x + bodies[k]->orbitalRadius * cosf(angle),
-                        bodies[k]->parentBody->position.y + bodies[k]->orbitalRadius * sinf(angle)};
+                    float relVel = calculateRelativeSpeed(ships[i], bodies[j], gameTime);
+                    if (relVel <= MAX_LANDING_SPEED)
+                    {
+                        // landShip()
+                        printf("Ship %i has landed on %s\n", i, bodies[j]->name);
+                        landShip(ships[i], bodies[j], gameTime);
+                    }
+                    else
+                    {
+                        printf("Ship %i has CRASHED into %s\n", i, bodies[j]->name);
+                    }
                 }
             }
-
-            // Compute gravitational force on the ship at this step
-            Vector2 force = {0, 0};
-            for (int k = 0; k < numBodies; k++)
-            {
-                Vector2 dir = Vector2Subtract(bodies[k]->position, currentPos);
-                float dist = Vector2Length(dir);
-                if (dist < 1e-5f)
-                    dist = 1e-5f; // Avoid division by zero
-                float mag = (G * shipMass * bodies[k]->mass) / (dist * dist);
-                force = Vector2Add(force, Vector2Scale(Vector2Normalize(dir), mag));
-            }
-
-            // Update velocity and position using semi-implicit Euler
-            Vector2 accel = Vector2Scale(force, 1.0f / shipMass);
-            currentVel = Vector2Add(currentVel, Vector2Scale(accel, FUTURE_STEP_TIME));
-            currentPos = Vector2Add(currentPos, Vector2Scale(currentVel, FUTURE_STEP_TIME));
-
-            // Store the predicted position
-            ships[i]->futurePositions[j] = currentPos;
         }
+    }
+}
 
-        // Restore original celestial positions (since we modified them for simulation)
-        updateCelestialPositions(bodies, numBodies, gameTime);
+void calculateShipFuturePositions(Ship **ships, int numShips, CelestialBody **bodies, int numBodies, float gameTime)
+{
+    Vector2 initialVelocities[numShips];
+    Vector2 initialPositions[numShips];
+
+    for (int i = 0; i < numShips; i++)
+    {
+        initialVelocities[i] = ships[i]->velocity;
+        initialPositions[i] = ships[i]->position;
+    }
+
+    for (int i = 0; i < FUTURE_POSITIONS; i++)
+    {
+        float futureTime = gameTime + (i * FUTURE_STEP_TIME);
+
+        // Update celestial body positions at this future time
+        updateCelestialPositions(bodies, numBodies, futureTime);
+
+        // Compute gravitational force on the ship at this step
+        updateShipPositions(ships, numShips, bodies, numBodies, FUTURE_STEP_TIME);
+
+        // Store the predicted position
+        for (int j = 0; j < numShips; j++)
+        {
+            if (ships[j]->state == SHIP_FLYING)
+                ships[j]->futurePositions[i] = ships[j]->position;
+            if (ships[j]->state == SHIP_LANDED)
+                ships[j]->futurePositions[i] = ships[j]->landedBody->position;
+        }
+    }
+
+    updateCelestialPositions(bodies, numBodies, gameTime);
+    for (int i = 0; i < numShips; i++)
+    {
+        ships[i]->velocity = initialVelocities[i];
+        ships[i]->position = initialPositions[i];
     }
 }
 
@@ -889,15 +733,18 @@ void drawCelestialGrid(CelestialBody **bodies, int numBodies, Camera2D camera)
     }
 }
 
-// void updateShipPosition(CelestialBody *ship)
-// {
-//     if (ship->type == TYPE_SHIP && ship->shipSettings.state == SHIP_LANDED && ship->shipSettings.landedBody != NULL)
-//     {
-//         // Keep ship positioned at the landing spot relative to the body
-//         ship->position = Vector2Add(ship->shipSettings.landedBody->position, ship->shipSettings.landingPosition);
-//         ship->velocity = ship->shipSettings.landedBody->velocity; // Sync velocity
-//     }
-// }
+void updateShipPosition(Ship **ships, int numShips, float gameTime)
+{
+    for (int i = 0; i < numShips; i++)
+    {
+        if (ships[i]->state == SHIP_LANDED && ships[i]->landedBody != NULL)
+        {
+            // Keep ship positioned at the landing spot relative to the body
+            ships[i]->position = Vector2Add(ships[i]->landedBody->position, ships[i]->landingPosition);
+            ships[i]->velocity = calculateBodyVelocity(ships[i]->landedBody, gameTime); // Sync velocity
+        }
+    }
+}
 
 // void freeGameTextures(GameTextures gameTextures)
 // {
@@ -1126,3 +973,146 @@ void drawPlayerStats(PlayerStats *playerStats)
 //         DrawPixelV(Vector2Add(drawPos, (Vector2){-1, -1}), TRAIL_COLOUR);
 //     }
 // }
+
+QuadTreeNode *createNode(Rectangle bounds)
+{
+    QuadTreeNode *node = (QuadTreeNode *)malloc(sizeof(QuadTreeNode));
+    node->bounds = bounds;
+    node->centerOfMass = (Vector2){0, 0};
+    node->totalMass = 0.0f;
+    for (int i = 0; i < 4; i++)
+        node->children[i] = NULL;
+    node->body = NULL;
+    return node;
+}
+
+void subdivide(QuadTreeNode *node)
+{
+    float x = node->bounds.x;
+    float y = node->bounds.y;
+    float w = node->bounds.width / 2;
+    float h = node->bounds.height / 2;
+    node->children[0] = createNode((Rectangle){x, y, w, h});         // NW
+    node->children[1] = createNode((Rectangle){x + w, y, w, h});     // NE
+    node->children[2] = createNode((Rectangle){x, y + h, w, h});     // SW
+    node->children[3] = createNode((Rectangle){x + w, y + h, w, h}); // SE
+}
+
+void insertBody(QuadTreeNode *node, CelestialBody *body)
+{
+    if (node->body != NULL)
+    { // Leaf with a body
+        CelestialBody *existingBody = node->body;
+        subdivide(node);
+        // Insert existing body into appropriate child
+        int index = (existingBody->position.x < node->bounds.x + node->bounds.width / 2) ? (existingBody->position.y < node->bounds.y + node->bounds.height / 2 ? 0 : 2) : (existingBody->position.y < node->bounds.y + node->bounds.height / 2 ? 1 : 3);
+        insertBody(node->children[index], existingBody);
+        node->body = NULL;
+    }
+    if (node->children[0] == NULL)
+    { // Leaf node
+        node->body = body;
+        node->totalMass = body->mass;
+        node->centerOfMass = body->position;
+    }
+    else
+    { // Internal node
+        int index = (body->position.x < node->bounds.x + node->bounds.width / 2) ? (body->position.y < node->bounds.y + node->bounds.height / 2 ? 0 : 2) : (body->position.y < node->bounds.y + node->bounds.height / 2 ? 1 : 3);
+        insertBody(node->children[index], body);
+        // Update totalMass and centerOfMass
+        node->totalMass = 0;
+        node->centerOfMass = (Vector2){0, 0};
+        for (int i = 0; i < 4; i++)
+        {
+            if (node->children[i])
+            {
+                node->totalMass += node->children[i]->totalMass;
+                node->centerOfMass = Vector2Add(node->centerOfMass,
+                                                Vector2Scale(node->children[i]->centerOfMass, node->children[i]->totalMass));
+            }
+        }
+        if (node->totalMass > 0)
+        {
+            node->centerOfMass = Vector2Scale(node->centerOfMass, 1.0f / node->totalMass);
+        }
+    }
+}
+
+QuadTreeNode *buildQuadTree(CelestialBody **bodies, int numBodies)
+{
+    if (numBodies == 0)
+    {
+        printf("No bodies");
+        return NULL;
+    }
+
+    float minX = bodies[0]->position.x, maxX = minX;
+    float minY = bodies[0]->position.y, maxY = minY;
+
+    for (int i = 1; i < numBodies; i++)
+    {
+        minX = fmin(minX, bodies[i]->position.x);
+        maxX = fmax(maxX, bodies[i]->position.x);
+        minY = fmin(minY, bodies[i]->position.y);
+        maxY = fmax(maxY, bodies[i]->position.y);
+    }
+    float width = maxX - minX, height = maxY - minY;
+    if (width > height)
+        minY -= (width - height) / 2;
+    else
+        minX -= (height - width) / 2;
+    Rectangle bounds = {minX, minY, fmax(width, height), fmax(width, height)};
+    QuadTreeNode *root = createNode(bounds);
+    for (int i = 0; i < numBodies; i++)
+    {
+        insertBody(root, bodies[i]);
+    }
+    return root;
+}
+
+Vector2 computeForce(QuadTreeNode *node, CelestialBody *body, float theta)
+{
+    if (node->totalMass == 0)
+        return (Vector2){0, 0};
+    if (node->body != NULL)
+    {
+        if (node->body == body)
+            return (Vector2){0, 0}; // Skip self
+        Vector2 dir = Vector2Subtract(node->body->position, body->position);
+        float dist = Vector2Length(dir);
+        if (dist < 1e-5)
+            return (Vector2){0, 0}; // Avoid division by zero
+        float mag = (G * body->mass * node->body->mass) / (dist * dist);
+        return Vector2Scale(Vector2Normalize(dir), mag);
+    }
+    float dist = Vector2Distance(body->position, node->centerOfMass);
+    if (dist < 1e-5)
+        dist = 1e-5; // Prevent singularity
+    float size = node->bounds.width;
+    if (size / dist < theta)
+    { // Approximate as point mass
+        float mag = (G * body->mass * node->totalMass) / (dist * dist);
+        Vector2 dir = Vector2Normalize(Vector2Subtract(node->centerOfMass, body->position));
+        return Vector2Scale(dir, mag);
+    }
+    Vector2 force = {0, 0};
+    for (int i = 0; i < 4; i++)
+    {
+        if (node->children[i])
+        {
+            force = Vector2Add(force, computeForce(node->children[i], body, theta));
+        }
+    }
+    return force;
+}
+
+void freeQuadTree(QuadTreeNode *node)
+{
+    if (!node)
+        return;
+    for (int i = 0; i < 4; i++)
+    {
+        freeQuadTree(node->children[i]);
+    }
+    free(node);
+}

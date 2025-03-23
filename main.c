@@ -11,7 +11,7 @@ int main(void)
     int screenWidth = 1280;
     int screenHeight = 720;
 
-    int targetFPS = 60;
+    int targetFPS = 144;
 
     InitWindow(screenWidth, screenHeight, "Gravity Assist");
     SetTargetFPS(targetFPS);
@@ -69,7 +69,7 @@ int main(void)
     camera.target = (Vector2){0, 0};
     camera.offset = (Vector2){wMid, hMid}; // Offset from camera target
 
-    int velocityLock = -1;
+    int velocityLock = 0;
     CelestialBody *velocityTarget = NULL;
 
     // GameTextures gameTextures = {0};
@@ -116,11 +116,13 @@ int main(void)
                 if (!bodies)
                 {
                     bodies = initBodies(&numBodies);
+                    velocityTarget = bodies[0];
                 }
                 if (!ships)
                 {
                     ships = initShips(&numShips);
                 }
+                landShip(ships[0], bodies[1], gameTime);
                 gameState = GAME_RUNNING;
             }
             if (IsKeyPressed(KEY_Q))
@@ -190,6 +192,10 @@ int main(void)
                 {
                     if (ships[i]->isSelected)
                     {
+                        if (ships[i]->state == SHIP_LANDED)
+                        {
+                            takeoffShip(ships[i]);
+                        }
                         // Convert rotation to radians for vector calculations
                         float radians = ships[i]->rotation * PI / 180.0f;
                         Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
@@ -200,21 +206,19 @@ int main(void)
                 }
             }
 
+            detectCollisions(ships, numShips, bodies, numBodies, gameTime);
+
             calculateShipFuturePositions(ships, numShips, bodies, numBodies, gameTime);
 
-            // if (IsKeyPressed(KEY_V))
-            // {
-            //     velocityLock++;
-            //     if (velocityLock >= numBodies)
-            //     {
-            //         velocityLock = -1;
-            //         velocityTarget = NULL;
-            //     }
-            //     else
-            //     {
-            //         velocityTarget = bodies[velocityLock];
-            //     }
-            // }
+            if (IsKeyPressed(KEY_V))
+            {
+                velocityLock++;
+                velocityLock = velocityLock % numBodies;
+                velocityTarget = bodies[velocityLock];
+            }
+
+            // Vector2 earthVelocity = calculateBodyVelocity(bodies[1], gameTime);
+            // printf("Earth velocity\nx: %.2f\ny: %.2f\n", earthVelocity.x, earthVelocity.y);
 
             // if (IsKeyPressed(KEY_M) && playerShip->shipSettings.landedBody != NULL)
             // {
@@ -257,24 +261,12 @@ int main(void)
             //     // bodies[i]->previousPositions[trailIndex] = bodies[i]->position;
             // }
 
-            // predictPositions(bodies, numBodies, &timeScale, &theta);
-
-            // trailIndex += 1;
-            // trailIndex = trailIndex % PREVIOUS_POSITIONS;
-
             // If the ship is landed, lock its position to the landed body
-            // updateShipPosition(playerShip);
+            updateShipPosition(ships, numShips, gameTime);
 
-            // if (velocityLock == -1)
-            // {
-            //     playerHUD.speed = calculateAbsoluteSpeed(playerShip);
-            // }
-            // else
-            // {
-            //     playerHUD.speed = calculateRelativeSpeed(playerShip, velocityTarget);
-            // }
-            // playerHUD.playerRotation = playerShip->rotation;
-            // playerHUD.velocityTarget = velocityTarget;
+            playerHUD.speed = calculateRelativeSpeed(ships[0], velocityTarget, gameTime);
+            playerHUD.playerRotation = ships[0]->rotation;
+            playerHUD.velocityTarget = velocityTarget;
 
             break;
 
@@ -305,19 +297,18 @@ int main(void)
         {
             BeginMode2D(camera);
             drawCelestialGrid(bodies, numBodies, camera);
-            // drawPreviousPositions(bodies, numBodies);
+
             drawOrbits(bodies, numBodies);
             drawTrajectories(ships, numShips);
             drawBodies(bodies, numBodies);
             drawShips(ships, numShips);
-            // drawFuturePositions(bodies, numBodies);
 
             EndMode2D();
 
             // GUI
             DrawText("Press ESC to pause & view controls", 10, 10, 20, DARKGRAY);
 
-            // drawPlayerHUD(&playerHUD);
+            drawPlayerHUD(&playerHUD);
             // drawPlayerStats(&playerStats);
             // drawPlayerInventory(playerShip, globalResources);
 
