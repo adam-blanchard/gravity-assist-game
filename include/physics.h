@@ -32,7 +32,7 @@ void updateShipPositions(struct Ship **ships, int numShips, struct CelestialBody
 
 void updateCelestialPositions(struct CelestialBody **bodies, int numBodies, float time);
 
-void updateShipPosition(struct Ship **ships, int numShips, float gameTime);
+void updateLandedShipPosition(struct Ship **ships, int numShips, float gameTime);
 
 void detectCollisions(struct Ship **ships, int numShips, struct CelestialBody **bodies, int numBodies, float gameTime);
 

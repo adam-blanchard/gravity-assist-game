@@ -65,10 +65,6 @@ int main(void)
 
     int numShips = 0;
     Ship **ships = NULL;
-    // CelestialBody *playerShip = NULL;
-    // float theta = 0.0f; // Barnes-Hut threshold - usually 0.5
-    // int trailIndex = 0;
-    // QuadTreeNode *root = NULL;
 
     int cameraLock = 0;
     Vector2 *cameraLockPosition = NULL;
@@ -231,44 +227,8 @@ int main(void)
             //     mineResource(playerShip->shipSettings.landedBody, playerShip, globalResources, RESOURCE_GOLD_ORE, 1);
             // }
 
-            // // Normalize rotation to keep it within 0-360 degrees
-            // playerShip->rotation = fmod(playerShip->rotation + 360.0f, 360.0f);
-            // playerShip->texture = gameTextures.shipTextures[0];
-            // if (IsKeyDown(KEY_W))
-            // {
-            //     if (playerShip->shipSettings.state == SHIP_LANDED)
-            //     {
-            //         takeoffShip(playerShip);
-            //     }
-            //     // Convert rotation to radians for vector calculations
-            //     float radians = playerShip->rotation * PI / 180.0f;
-            //     Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
-            //     Vector2 thrust = Vector2Scale(thrustDirection, playerShip->shipSettings.thrust * dt);
-            //     playerShip->velocity = Vector2Add(playerShip->velocity, thrust);
-            //     playerShip->texture = gameTextures.shipTextures[1];
-            //     playerShip->shipSettings.fuel -= playerShip->shipSettings.fuelConsumption;
-            // }
-
-            // Build QuadTree
-            // root = buildQuadTree(bodies, numBodies);
-
-            // for (int i = 0; i < numBodies; i++)
-            // {
-            //     // bodies[i]->rotation += 0.1f;
-            //     if (bodies[i]->type == TYPE_SHIP && bodies[i]->shipSettings.state == SHIP_LANDED)
-            //     {
-            //         continue;
-            //     }
-            //     Vector2 force = computeForce(root, bodies[i], theta);
-            //     Vector2 accel = Vector2Scale(force, 1.0f / bodies[i]->mass);
-            //     bodies[i]->velocity = Vector2Add(bodies[i]->velocity, Vector2Scale(accel, scaledDt));
-            //     bodies[i]->position = Vector2Add(bodies[i]->position, Vector2Scale(bodies[i]->velocity, scaledDt));
-            //     detectCollisions(bodies, numBodies, root, bodies[i]);
-            //     // bodies[i]->previousPositions[trailIndex] = bodies[i]->position;
-            // }
-
             // If the ship is landed, lock its position to the landed body
-            updateShipPosition(ships, numShips, gameTime);
+            updateLandedShipPosition(ships, numShips, gameTime);
 
             playerHUD.speed = calculateRelativeSpeed(ships[0], velocityTarget, gameTime);
             playerHUD.playerRotation = ships[0]->rotation;

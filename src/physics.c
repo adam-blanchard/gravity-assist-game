@@ -85,7 +85,7 @@ void updateCelestialPositions(CelestialBody **bodies, int numBodies, float time)
     }
 }
 
-void updateShipPosition(Ship **ships, int numShips, float gameTime)
+void updateLandedShipPosition(Ship **ships, int numShips, float gameTime)
 {
     for (int i = 0; i < numShips; i++)
     {
