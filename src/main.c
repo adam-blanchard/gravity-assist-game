@@ -1,7 +1,13 @@
-#include "raylib.h"
-#include "gravity.h"
 #include <math.h>
 #include <stdio.h>
+#include "body.h"
+#include "config.h"
+#include "game.h"
+#include "physics.h"
+#include "raylib.h"
+#include "rendering.h"
+#include "ship.h"
+#include "ui.h"
 
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
@@ -11,7 +17,7 @@ int main(void)
     int screenWidth = 1280;
     int screenHeight = 720;
 
-    int targetFPS = 144;
+    int targetFPS = 60;
 
     InitWindow(screenWidth, screenHeight, "Gravity Assist");
     SetTargetFPS(targetFPS);
