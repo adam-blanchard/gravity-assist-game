@@ -20,6 +20,7 @@ typedef struct Ship
     Vector2 velocity;
     float mass;
     float rotation;
+    float rotationSpeed; // Degrees per second
     float radius;
     float thrust;
     float fuel;

@@ -35,7 +35,8 @@ void drawOrbits(CelestialBody **bodies, int numBodies)
     {
         if (bodies[i]->orbitalRadius > 0 && bodies[i]->parentBody != NULL)
         {
-            DrawCircleLinesV(bodies[i]->parentBody->position, bodies[i]->orbitalRadius, ORBIT_COLOUR);
+            // DrawCircleLinesV(bodies[i]->parentBody->position, bodies[i]->orbitalRadius, ORBIT_COLOUR);
+            DrawEllipseLines(bodies[i]->parentBody->position.x, bodies[i]->parentBody->position.y, bodies[i]->orbitalRadius, bodies[i]->orbitalRadius, ORBIT_COLOUR);
         }
     }
 }
@@ -131,7 +132,7 @@ void drawPlayerHUD(HUD *playerHUD)
         // char text = "Velocity Lock: Absolute";
         DrawText("Velocity Lock: Absolute", screenWidth / 2 - MeasureText("Velocity Lock: Absolute", 16) / 2, screenHeight - 120, 16, WHITE);
     }
-    DrawText(TextFormat("%.1fkm/s", playerHUD->speed), screenWidth / 2 - MeasureText(TextFormat("%.1fkm/s", playerHUD->speed), 16) / 2, screenHeight - 100, 16, WHITE);
+    DrawText(TextFormat("%.1fm/s", playerHUD->speed), screenWidth / 2 - MeasureText(TextFormat("%.1fm/s", playerHUD->speed), 16) / 2, screenHeight - 100, 16, WHITE);
 
     Rectangle compassSource = {
         0,

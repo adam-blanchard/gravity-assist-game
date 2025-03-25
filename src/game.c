@@ -75,3 +75,12 @@ void freeGameTextures(GameTextures gameTextures)
         free(gameTextures.shipTextures);
     }
 }
+
+void spawnShipOnBody(Ship *ship, CelestialBody *body, float gameTime)
+{
+    Vector2 relPos = (Vector2){0, -body->radius - ship->radius - 1};
+
+    ship->position = Vector2Add(body->position, relPos);
+
+    // landShip(ship, body, gameTime);
+}

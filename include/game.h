@@ -75,6 +75,8 @@ float calculateNormalisedZoom(CameraSettings *settings, float currentZoom);
 
 void freeGameTextures(GameTextures gameTextures);
 
+void spawnShipOnBody(Ship *ship, CelestialBody *body, float gameTime);
+
 // bool mineResource(CelestialBody *body, CelestialBody *playerShip, Resource *resourceDefinitions, ResourceType type, int amount)
 // {
 //     // Check if planet has enough of the resource

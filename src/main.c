@@ -41,7 +41,7 @@ int main(void)
         .val = 1.0f,
         .increment = 1.5f,
         .min = 1.0f,
-        .max = 1024.0f};
+        .max = 8.0f};
 
     HUD playerHUD = {
         .speed = 0.0f,
@@ -124,7 +124,8 @@ int main(void)
                 {
                     ships = initShips(&numShips);
                 }
-                landShip(ships[0], bodies[1], gameTime);
+                landShip(ships[0], bodies[0], gameTime);
+                // spawnShipOnBody(ships[0], bodies[0], gameTime);
                 gameState = GAME_RUNNING;
             }
             if (IsKeyPressed(KEY_Q))
@@ -149,15 +150,6 @@ int main(void)
                 gameState = GAME_PAUSED;
             }
 
-            camera.zoom += (float)GetMouseWheelMove() * (1e-5f + camera.zoom * (camera.zoom / 4.0f));
-            camera.zoom = Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
-
-            updateCelestialPositions(bodies, numBodies, gameTime);
-            updateShipPositions(ships, numShips, bodies, numBodies, scaledDt);
-
-            cameraLockPosition = &ships[cameraLock]->position;
-            camera.target = *cameraLockPosition;
-
             if (IsKeyPressed(KEY_C))
             {
                 cameraLock++;
@@ -171,7 +163,7 @@ int main(void)
                 {
                     if (ships[i]->isSelected)
                     {
-                        ships[i]->rotation += 180.0f * scaledDt; // Rotate right
+                        ships[i]->rotation += ships[i]->rotationSpeed * scaledDt; // Rotate right
                         ships[i]->rotation = fmod(ships[i]->rotation + 360.0f, 360.0f);
                     }
                 }
@@ -182,7 +174,7 @@ int main(void)
                 {
                     if (ships[i]->isSelected)
                     {
-                        ships[i]->rotation -= 180.0f * scaledDt; // Rotate left
+                        ships[i]->rotation -= ships[i]->rotationSpeed * scaledDt; // Rotate left
                         ships[i]->rotation = fmod(ships[i]->rotation + 360.0f, 360.0f);
                     }
                 }
@@ -192,12 +184,12 @@ int main(void)
             {
                 for (int i = 0; i < numShips; i++)
                 {
-                    if (ships[i]->isSelected)
+                    if (ships[i]->state == SHIP_LANDED)
                     {
-                        if (ships[i]->state == SHIP_LANDED)
-                        {
-                            takeoffShip(ships[i]);
-                        }
+                        takeoffShip(ships[i]);
+                    }
+                    if (ships[i]->isSelected && ships[i]->state == SHIP_FLYING)
+                    {
                         // Convert rotation to radians for vector calculations
                         float radians = ships[i]->rotation * PI / 180.0f;
                         Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
@@ -208,16 +200,27 @@ int main(void)
                 }
             }
 
-            detectCollisions(ships, numShips, bodies, numBodies, gameTime);
-
-            calculateShipFuturePositions(ships, numShips, bodies, numBodies, gameTime);
-
             if (IsKeyPressed(KEY_V))
             {
                 velocityLock++;
                 velocityLock = velocityLock % numBodies;
                 velocityTarget = bodies[velocityLock];
             }
+
+            cameraLockPosition = &ships[cameraLock]->position;
+            camera.target = *cameraLockPosition;
+
+            camera.zoom += (float)GetMouseWheelMove() * (1e-5f + camera.zoom * (camera.zoom / 4.0f));
+            camera.zoom = Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
+
+            updateCelestialPositions(bodies, numBodies, gameTime);
+            updateShipPositions(ships, numShips, bodies, numBodies, scaledDt);
+            updateLandedShipPosition(ships, numShips, gameTime);
+
+            detectCollisions(ships, numShips, bodies, numBodies, gameTime);
+            calculateShipFuturePositions(ships, numShips, bodies, numBodies, gameTime);
+
+            printf("Escape velocity at the surface of Earth is: %.2f\n", calculateEscapeVelocity(bodies[0]->mass, bodies[0]->radius));
 
             // Vector2 earthVelocity = calculateBodyVelocity(bodies[1], gameTime);
             // printf("Earth velocity\nx: %.2f\ny: %.2f\n", earthVelocity.x, earthVelocity.y);
@@ -228,7 +231,6 @@ int main(void)
             // }
 
             // If the ship is landed, lock its position to the landed body
-            updateLandedShipPosition(ships, numShips, gameTime);
 
             playerHUD.speed = calculateRelativeSpeed(ships[0], velocityTarget, gameTime);
             playerHUD.playerRotation = ships[0]->rotation;

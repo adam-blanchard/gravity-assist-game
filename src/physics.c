@@ -98,22 +98,30 @@ void updateLandedShipPosition(Ship **ships, int numShips, float gameTime)
     }
 }
 
+bool detectShipBodyCollision(Ship *ship, CelestialBody *body, float gameTime)
+{
+    float dist = Vector2Distance(ship->position, body->position);
+    if (dist < (ship->radius + body->radius))
+        return true;
+    return false;
+}
+
 void detectCollisions(Ship **ships, int numShips, CelestialBody **bodies, int numBodies, float gameTime)
 {
     for (int i = 0; i < numShips; i++)
     {
         for (int j = 0; j < numBodies; j++)
         {
-            float dist = Vector2Distance(ships[i]->position, bodies[j]->position);
-            if (dist < (ships[i]->radius + bodies[j]->radius))
+            if (detectShipBodyCollision(ships[i], bodies[j], gameTime))
             {
                 printf("Collision between %s and Ship %i\n", bodies[j]->name, i);
+                if (ships[i]->state == SHIP_LANDED)
+                    continue;
                 if (ships[i]->state != SHIP_LANDED)
                 {
                     float relVel = calculateRelativeSpeed(ships[i], bodies[j], gameTime);
                     if (relVel <= MAX_LANDING_SPEED)
                     {
-                        // landShip()
                         printf("Ship %i has landed on %s\n", i, bodies[j]->name);
                         landShip(ships[i], bodies[j], gameTime);
                     }
@@ -146,33 +154,79 @@ void calculateShipFuturePositions(Ship **ships, int numShips, CelestialBody **bo
 {
     Vector2 initialVelocities[numShips];
     Vector2 initialPositions[numShips];
+    bool hasCollided[numShips]; // Track collision state for each ship
 
+    // Capture initial state and reset collision flags
     for (int i = 0; i < numShips; i++)
     {
         initialVelocities[i] = ships[i]->velocity;
         initialPositions[i] = ships[i]->position;
+        hasCollided[i] = false; // No collisions at start
     }
 
+    // Simulate system forward for FUTURE_POSITIONS timesteps
     for (int i = 0; i < FUTURE_POSITIONS; i++)
     {
         float futureTime = gameTime + (i * FUTURE_STEP_TIME);
 
-        // Update celestial body positions at this future time
+        // Update celestial body positions for this timestep
         updateCelestialPositions(bodies, numBodies, futureTime);
 
-        // Compute gravitational force on the ship at this step
-        updateShipPositions(ships, numShips, bodies, numBodies, FUTURE_STEP_TIME);
-
-        // Store the predicted position
+        // Update ship positions, but only for non-collided ships
         for (int j = 0; j < numShips; j++)
         {
-            if (ships[j]->state == SHIP_FLYING)
-                ships[j]->futurePositions[i] = ships[j]->position;
-            if (ships[j]->state == SHIP_LANDED)
-                ships[j]->futurePositions[i] = ships[j]->landedBody->position;
+            if (ships[j]->state == SHIP_FLYING && !hasCollided[j])
+            {
+                Vector2 force = computeShipGravity(ships[j], bodies, numBodies);
+                Vector2 accel = Vector2Scale(force, 1.0f / ships[j]->mass);
+                ships[j]->velocity = Vector2Add(ships[j]->velocity, Vector2Scale(accel, FUTURE_STEP_TIME));
+                ships[j]->position = Vector2Add(ships[j]->position, Vector2Scale(ships[j]->velocity, FUTURE_STEP_TIME));
+
+                // Check for collision
+                CelestialBody *collidingBody = NULL;
+                Vector2 collisionPosition = ships[j]->position;
+                for (int k = 0; k < numBodies; k++)
+                {
+                    if (detectShipBodyCollision(ships[j], bodies[k], futureTime))
+                    {
+                        collidingBody = bodies[k];
+                        // Position at surface, not center
+                        Vector2 direction = Vector2Normalize(Vector2Subtract(ships[j]->position, bodies[k]->position));
+                        collisionPosition = Vector2Add(bodies[k]->position, Vector2Scale(direction, bodies[k]->radius + ships[j]->radius));
+                        break;
+                    }
+                }
+
+                if (collidingBody != NULL)
+                {
+                    hasCollided[j] = true;
+                    ships[j]->futurePositions[i] = collisionPosition;
+                    printf("Ship %d collides with %s at step %d\n", j, collidingBody->name, i);
+                    // Set all subsequent positions to the collision point
+                    for (int k = i + 1; k < FUTURE_POSITIONS; k++)
+                    {
+                        ships[j]->futurePositions[k] = collisionPosition;
+                    }
+                }
+                else
+                {
+                    ships[j]->futurePositions[i] = ships[j]->position;
+                }
+            }
+            else if (ships[j]->state == SHIP_FLYING && hasCollided[j])
+            {
+                // Already collided, keep future positions at collision point
+                ships[j]->futurePositions[i] = ships[j]->futurePositions[i - 1];
+            }
+            else if (ships[j]->state == SHIP_LANDED)
+            {
+                // Follow landed body's position
+                ships[j]->futurePositions[i] = Vector2Add(ships[j]->landedBody->position, ships[j]->landingPosition);
+            }
         }
     }
 
+    // Reset to initial state
     updateCelestialPositions(bodies, numBodies, gameTime);
     for (int i = 0; i < numShips; i++)
     {

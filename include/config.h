@@ -3,13 +3,26 @@
 #endif
 // G is usually 6.67430e-11
 #ifndef G
-#define G 6.67430e-5
+#define G 6.67430e-1
 #endif
+
+#ifndef MASS_SCALE
+#define MASS_SCALE 1e-5
+#endif
+
+#ifndef RADIUS_SCALE
+#define RADIUS_SCALE 1e-1
+#endif
+
+#ifndef ORBIT_SCALE
+#define ORBIT_SCALE 1e-3
+#endif
+
 #ifndef PREVIOUS_POSITIONS
 #define PREVIOUS_POSITIONS 1000
 #endif
 #ifndef FUTURE_POSITIONS
-#define FUTURE_POSITIONS 1000
+#define FUTURE_POSITIONS 5000
 #endif
 #ifndef FUTURE_STEP_TIME
 #define FUTURE_STEP_TIME 0.1f

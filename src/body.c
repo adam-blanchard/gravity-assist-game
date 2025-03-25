@@ -26,50 +26,37 @@ Vector2 calculateBodyVelocity(CelestialBody *body, float gameTime)
 
 CelestialBody **initBodies(int *numBodies)
 {
-    *numBodies = 3;
+    *numBodies = 2;
     CelestialBody **bodies = malloc(sizeof(CelestialBody *) * (*numBodies));
 
-    // Star
+    // Planet orbiting Star - Earth
     bodies[0] = malloc(sizeof(CelestialBody));
     *bodies[0] = (CelestialBody){
-        .type = TYPE_STAR,
-        .name = strdup("Sol"),
-        .position = {0, 0},
-        .mass = 1e15f,
-        .radius = 1e4,
-        .rotation = 0.0f,
-        .parentBody = NULL,
-        .angularSpeed = 0,
-        .initialAngle = 0,
-        .orbitalRadius = 0};
-
-    // Planet orbiting Star - Earth
-    bodies[1] = malloc(sizeof(CelestialBody));
-    *bodies[1] = (CelestialBody){
         .type = TYPE_PLANET,
         .name = strdup("Earth"),
         .position = {0, 0},
-        .mass = 1e9,
-        .radius = 1e3,
+        .mass = 5.97e9, // Real val = 5.97e24 kg
+        .radius = 6e3,  // Real val = 6.378e3 km
         .rotation = 0.0f,
-        .parentBody = bodies[0],
-        .angularSpeed = radsPerSecond(365 * 24 * 60), // One second in-game is one minute IRL
+        .parentBody = NULL,
+        .angularSpeed = 0, // Real val = 365.2 Days (365.2 * 24 * 60 * 60 seconds)
         .initialAngle = 0,
-        .orbitalRadius = 9e5};
+        .orbitalRadius = 0 // Real val = 1.496e8 km
+    };
 
     // Moon orbiting Planet
-    bodies[2] = malloc(sizeof(CelestialBody));
-    *bodies[2] = (CelestialBody){
+    bodies[1] = malloc(sizeof(CelestialBody));
+    *bodies[1] = (CelestialBody){
         .type = TYPE_MOON,
         .name = strdup("Earth's Moon"),
         .position = {0, 0},
-        .mass = 1e7,
-        .radius = 5e2,
+        .mass = 7.3e7,
+        .radius = 2e3,
         .rotation = 0.0f,
-        .parentBody = bodies[1],
-        .angularSpeed = radsPerSecond(28 * 24 * 60),
+        .parentBody = bodies[0],
+        .angularSpeed = radsPerSecond(27.3 * 24 * 60),
         .initialAngle = 0,
-        .orbitalRadius = 2e4};
+        .orbitalRadius = 6e4};
 
     return bodies;
 }
