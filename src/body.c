@@ -50,13 +50,14 @@ CelestialBody **initBodies(int *numBodies)
         .type = TYPE_MOON,
         .name = strdup("Earth's Moon"),
         .position = {0, 0},
-        .mass = 7.3e7,
-        .radius = 2e3,
+        .mass = 7.3e7, // Real val = 7.3e22 kg
+        .radius = 2e3, // Real val = 1.7375e3 km
         .rotation = 0.0f,
         .parentBody = bodies[0],
         .angularSpeed = radsPerSecond(27.3 * 24 * 60),
         .initialAngle = 0,
-        .orbitalRadius = 6e4};
+        .orbitalRadius = 3e5 // Real val = 3.84e5 km
+    };
 
     return bodies;
 }

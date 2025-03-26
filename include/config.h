@@ -2,8 +2,9 @@
 #define PI 3.14159265358979323846f
 #endif
 // G is usually 6.67430e-11
+// G is the strength of gravity - higher is stronger
 #ifndef G
-#define G 6.67430e-1
+#define G 6.67430e-2
 #endif
 
 #ifndef MASS_SCALE

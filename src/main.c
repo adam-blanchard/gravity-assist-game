@@ -41,7 +41,7 @@ int main(void)
         .val = 1.0f,
         .increment = 1.5f,
         .min = 1.0f,
-        .max = 8.0f};
+        .max = 16.0f};
 
     HUD playerHUD = {
         .speed = 0.0f,

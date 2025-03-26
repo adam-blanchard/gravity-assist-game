@@ -13,7 +13,7 @@ Ship **initShips(int *numShips)
         .radius = 32.0f,
         .rotation = 0,
         .rotationSpeed = 90,
-        .thrust = 1.2e2,
+        .thrust = 2e1,
         .state = SHIP_FLYING,
         .isSelected = true,
         .futurePositions = malloc(sizeof(Vector2) * FUTURE_POSITIONS)};
