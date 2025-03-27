@@ -4,7 +4,7 @@
 // G is usually 6.67430e-11
 // G is the strength of gravity - higher is stronger
 #ifndef G
-#define G 6.67430e-2
+#define G 4e-2
 #endif
 
 #ifndef MASS_SCALE

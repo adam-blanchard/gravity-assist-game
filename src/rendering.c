@@ -85,7 +85,18 @@ void drawCelestialGrid(CelestialBody **bodies, int numBodies, Camera2D camera)
     int screenWidth = GetScreenWidth();
     int screenHeight = GetScreenHeight();
 
-    int gridSpacing = round((GRID_SPACING / camera.zoom) / 1e4) * 1e4; // TODO: Clamp this to levels instead of continuous sizing
+    printf("Zoom level: %.4f\n", camera.zoom);
+
+    int gridSpacing = pow(10, round(1 / camera.zoom)); // TODO: Clamp this to levels instead of continuous sizing
+
+    gridSpacing = Clamp(gridSpacing, 1e4, 1e10);
+
+    // TODO: Fix this
+
+    // We want grid spacing to be a factor of 10, with the min being 1e4
+    // i.e. 1e4, 1e5, 1e6, 1e7, 1e8 depending on zoom
+
+    printf("Grid spacing: %i\n", gridSpacing);
 
     // Calculate visible world-space bounds
     Vector2 topLeft = GetScreenToWorld2D((Vector2){0, 0}, camera);

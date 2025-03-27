@@ -201,7 +201,7 @@ void calculateShipFuturePositions(Ship **ships, int numShips, CelestialBody **bo
                 {
                     hasCollided[j] = true;
                     ships[j]->futurePositions[i] = collisionPosition;
-                    printf("Ship %d collides with %s at step %d\n", j, collidingBody->name, i);
+                    // printf("Ship %d collides with %s at step %d\n", j, collidingBody->name, i);
                     // Set all subsequent positions to the collision point
                     for (int k = i + 1; k < FUTURE_POSITIONS; k++)
                     {

@@ -56,7 +56,7 @@ CelestialBody **initBodies(int *numBodies)
         .parentBody = bodies[0],
         .angularSpeed = radsPerSecond(27.3 * 24 * 60 * 60),
         .initialAngle = 0,
-        .orbitalRadius = 3e5 // Real val = 3.84e5 km
+        .orbitalRadius = 2e5 // Real val = 3.84e5 km
     };
 
     return bodies;

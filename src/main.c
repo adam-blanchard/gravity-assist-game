@@ -220,8 +220,6 @@ int main(void)
             detectCollisions(ships, numShips, bodies, numBodies, gameTime);
             calculateShipFuturePositions(ships, numShips, bodies, numBodies, gameTime);
 
-            printf("Escape velocity at the surface of Earth is: %.2f\n", calculateEscapeVelocity(bodies[0]->mass, bodies[0]->radius));
-
             // Vector2 earthVelocity = calculateBodyVelocity(bodies[1], gameTime);
             // printf("Earth velocity\nx: %.2f\ny: %.2f\n", earthVelocity.x, earthVelocity.y);
 
@@ -281,9 +279,9 @@ int main(void)
             // drawPlayerInventory(playerShip, globalResources);
 
             DrawFPS(screenWidth - 100, 10);
-            // DrawText(TextFormat("Camera locked to: %s", bodies[cameraLock]->name), screenWidth - 280, 40, 20, DARKGRAY);
-            // DrawText(TextFormat("Time Scale: %.1fx", timeScale.val), screenWidth - 200, 70, 20, DARKGRAY);
-            // DrawText(TextFormat("Zoom Level: %.3fx", calculateNormalisedZoom(&cameraSettings, camera.zoom)), screenWidth - 200, 100, 20, DARKGRAY);
+            DrawText(TextFormat("Camera locked to Ship: %i", cameraLock), screenWidth - 280, 40, 20, DARKGRAY);
+            DrawText(TextFormat("Time Scale: %.1fx", timeScale.val), screenWidth - 200, 70, 20, DARKGRAY);
+            DrawText(TextFormat("Zoom Level: %.3fx", calculateNormalisedZoom(&cameraSettings, camera.zoom)), screenWidth - 200, 100, 20, DARKGRAY);
 
             if (gameState == GAME_PAUSED)
             {
