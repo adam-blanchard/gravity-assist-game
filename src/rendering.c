@@ -76,7 +76,7 @@ void drawStaticGrid(float zoomLevel, int numQuadrants, ColourScheme *colourSchem
     }
 }
 
-void drawCelestialGrid(CelestialBody **bodies, int numBodies, Camera2D camera, CameraSettings *cameraSettings, ColourScheme *colourScheme)
+void drawCelestialGrid(CelestialBody **bodies, int numBodies, Camera2D camera, ColourScheme *colourScheme)
 {
     /*
         Draws a grid with origin (0, 0) to the edges of visible space
@@ -85,15 +85,33 @@ void drawCelestialGrid(CelestialBody **bodies, int numBodies, Camera2D camera, C
     int screenWidth = GetScreenWidth();
     int screenHeight = GetScreenHeight();
 
-    int numLevels = 4;
-    int gridLevels[4] = {1e4, 1e5, 1e6, 1e7};
-    int i = 0;
+    int gridSpacing;
 
-    // Challenge - zoom levels are very small e.g. 0.001. How do we translate this into our grid?
+    // Do not draw grid when zoomed in
+    if (camera.zoom >= 0.01f)
+        return;
 
-    int gridSpacing = gridLevels[i];
-
-    // If we are due to draw more than 4 horizontal or vertical lines, then increase the grid level
+    // Zoom level break points for grid size
+    if (camera.zoom >= 0.002f)
+    {
+        gridSpacing = 1e5;
+    }
+    else if (camera.zoom >= 0.0002f)
+    {
+        gridSpacing = 1e6;
+    }
+    else if (camera.zoom >= 0.00002f)
+    {
+        gridSpacing = 1e7;
+    }
+    else if (camera.zoom >= 0.000001f)
+    {
+        gridSpacing = 1e8;
+    }
+    else
+    {
+        gridSpacing = 1e9;
+    }
 
     // Calculate visible world-space bounds
     Vector2 topLeft = GetScreenToWorld2D((Vector2){0, 0}, camera);
@@ -105,22 +123,16 @@ void drawCelestialGrid(CelestialBody **bodies, int numBodies, Camera2D camera, C
     float endX = ceilf(bottomRight.x / gridSpacing) * gridSpacing;
     float endY = ceilf(bottomRight.y / gridSpacing) * gridSpacing;
 
-    int numVertical = (endY - startY) / gridSpacing;
-    int numHorizontal = (endX - startX) / gridSpacing;
-
-    if (numVertical > 4 | numHorizontal > 4)
+    // Draw vertical lines
+    for (float x = startX; x <= endX; x += gridSpacing)
     {
-        i = i++ % numLevels;
+        DrawLineV((Vector2){x, startY}, (Vector2){x, endY}, GRID_COLOUR);
     }
 
-    for (int i = 0; i < numHorizontal; i++)
+    // Draw horizontal lines
+    for (float y = startY; y <= endY; y += gridSpacing)
     {
-        DrawLineV((Vector2){startX + gridSpacing * i, startY}, (Vector2){startX + gridSpacing * i, endY}, colourScheme->gridColour);
-    }
-
-    for (int i = 0; i < numVertical; i++)
-    {
-        DrawLineV((Vector2){startX, startY + gridSpacing * i}, (Vector2){endX, startY + gridSpacing * i}, colourScheme->gridColour);
+        DrawLineV((Vector2){startX, y}, (Vector2){endX, y}, GRID_COLOUR);
     }
 }
 

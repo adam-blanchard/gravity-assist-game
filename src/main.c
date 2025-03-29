@@ -277,7 +277,7 @@ int main(void)
         else
         {
             BeginMode2D(camera);
-            drawCelestialGrid(bodies, numBodies, camera, &cameraSettings, currentColourScheme);
+            drawCelestialGrid(bodies, numBodies, camera, currentColourScheme);
             drawOrbits(bodies, numBodies, currentColourScheme);
             drawTrajectories(ships, numShips, currentColourScheme);
             drawBodies(bodies, numBodies);
@@ -295,7 +295,8 @@ int main(void)
             DrawFPS(screenWidth - 100, 10);
             DrawText(TextFormat("Camera locked to Ship: %i", cameraLock), screenWidth - 280, 40, 20, DARKGRAY);
             DrawText(TextFormat("Time Scale: %.1fx", timeScale.val), screenWidth - 200, 70, 20, DARKGRAY);
-            DrawText(TextFormat("Zoom Level: %.3fx", calculateNormalisedZoom(&cameraSettings, camera.zoom)), screenWidth - 200, 100, 20, DARKGRAY);
+            // DrawText(TextFormat("Zoom Level: %.3fx", calculateNormalisedZoom(&cameraSettings, camera.zoom)), screenWidth - 200, 100, 20, DARKGRAY);
+            DrawText(TextFormat("Camera zoom: %.6fx", camera.zoom), screenWidth - 250, 100, 20, DARKGRAY);
 
             if (gameState == GAME_PAUSED)
             {
