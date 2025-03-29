@@ -6,6 +6,13 @@
 
 typedef enum
 {
+    COLOUR_LIGHT,
+    COLOUR_DARK,
+    COLOUR_COUNT
+} ColourMode;
+
+typedef enum
+{
     GAME_HOME,
     GAME_RUNNING,
     GAME_PAUSED
@@ -66,6 +73,14 @@ typedef struct PlayerStats
     int money;
     uint32_t miningXP;
 } PlayerStats;
+
+typedef struct ColourScheme
+{
+    ColourMode colourMode;
+    Color spaceColour;
+    Color gridColour;
+    Color orbitColour;
+} ColourScheme;
 
 void incrementWarp(WarpController *timeScale, float dt);
 

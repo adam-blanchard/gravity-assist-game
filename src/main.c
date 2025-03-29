@@ -28,6 +28,21 @@ int main(void)
 
     GameState gameState = GAME_HOME;
 
+    ColourScheme colourSchemes[COLOUR_COUNT];
+    colourSchemes[0] = (ColourScheme){
+        .colourMode = COLOUR_LIGHT,
+        .spaceColour = (Color){255, 255, 255, 255},
+        .gridColour = (Color){10, 10, 10, 50},
+        .orbitColour = (Color){10, 10, 10, 100}};
+
+    colourSchemes[1] = (ColourScheme){
+        .colourMode = COLOUR_DARK,
+        .spaceColour = (Color){10, 10, 10, 255},
+        .gridColour = (Color){255, 255, 255, 50},
+        .orbitColour = (Color){255, 255, 255, 100}};
+
+    ColourScheme *currentColourScheme = &colourSchemes[COLOUR_DARK];
+
     CameraSettings cameraSettings = {
         .defaultZoom = 1e-2f,
         .minZoom = 1e-6f,
@@ -251,7 +266,7 @@ int main(void)
 
         // Render
         BeginDrawing();
-        ClearBackground(SPACE_COLOUR);
+        ClearBackground(currentColourScheme->spaceColour);
 
         if (gameState == GAME_HOME)
         {
@@ -262,10 +277,9 @@ int main(void)
         else
         {
             BeginMode2D(camera);
-            drawCelestialGrid(bodies, numBodies, camera);
-
-            drawOrbits(bodies, numBodies);
-            drawTrajectories(ships, numShips);
+            drawCelestialGrid(bodies, numBodies, camera, &cameraSettings, currentColourScheme);
+            drawOrbits(bodies, numBodies, currentColourScheme);
+            drawTrajectories(ships, numShips, currentColourScheme);
             drawBodies(bodies, numBodies);
             drawShips(ships, numShips);
 
@@ -300,6 +314,7 @@ int main(void)
     }
 
     freeCelestialBodies(bodies, numBodies);
+    freeShips(ships, numShips);
     // freeGameTextures(gameTextures);
 
     CloseWindow();

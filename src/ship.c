@@ -20,3 +20,17 @@ Ship **initShips(int *numShips)
 
     return ships;
 }
+
+void freeShips(Ship **ships, int numShips)
+{
+    {
+        if (ships)
+            for (int i = 0; i < numShips; i++)
+            {
+                if (ships[i]->futurePositions)
+                    free(ships[i]->futurePositions);
+                free(ships[i]);
+            }
+        free(ships);
+    }
+}

@@ -34,5 +34,6 @@ typedef struct Ship
 } Ship;
 
 Ship **initShips(int *numShips);
+void freeShips(Ship **ships, int numShips);
 
 #endif

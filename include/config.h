@@ -57,17 +57,7 @@
     CLITERAL(Color){255, 255, 255, 50}
 #endif
 
-#ifndef SPACE_COLOUR
-#define SPACE_COLOUR \
-    CLITERAL(Color){10, 10, 10, 255}
-#endif
-
 #ifndef GUI_BACKGROUND
 #define GUI_BACKGROUND \
     CLITERAL(Color){255, 255, 255, 200}
-#endif
-
-#ifndef ORBIT_COLOUR
-#define ORBIT_COLOUR \
-    CLITERAL(Color){255, 255, 255, 100}
 #endif
