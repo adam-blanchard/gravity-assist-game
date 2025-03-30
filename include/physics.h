@@ -44,4 +44,10 @@ void landShip(struct Ship *ship, struct CelestialBody *body, float gameTime);
 
 void takeoffShip(struct Ship *ship);
 
+bool detectShipBodyCollision(struct Ship *ship, struct CelestialBody *body);
+
+bool detectShipAtmosphereCollision(struct Ship *ship, struct CelestialBody *body);
+
+Vector2 calculateDragForce(struct Ship *ship, struct CelestialBody **bodies, int numBodies);
+
 #endif
