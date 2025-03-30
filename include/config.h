@@ -4,26 +4,14 @@
 // G is usually 6.67430e-11
 // G is the strength of gravity - higher is stronger
 #ifndef G
-#define G 4e-2
-#endif
-
-#ifndef MASS_SCALE
-#define MASS_SCALE 1e-5
-#endif
-
-#ifndef RADIUS_SCALE
-#define RADIUS_SCALE 1e-1
-#endif
-
-#ifndef ORBIT_SCALE
-#define ORBIT_SCALE 1e-3
+#define G 5e-2
 #endif
 
 #ifndef PREVIOUS_POSITIONS
 #define PREVIOUS_POSITIONS 1000
 #endif
 #ifndef FUTURE_POSITIONS
-#define FUTURE_POSITIONS 5000
+#define FUTURE_POSITIONS 6000
 #endif
 #ifndef FUTURE_STEP_TIME
 #define FUTURE_STEP_TIME 0.1f
@@ -50,11 +38,6 @@
 #ifndef TRAIL_COLOUR
 #define TRAIL_COLOUR \
     CLITERAL(Color){255, 255, 255, 255}
-#endif
-
-#ifndef GRID_COLOUR
-#define GRID_COLOUR \
-    CLITERAL(Color){255, 255, 255, 50}
 #endif
 
 #ifndef GUI_BACKGROUND

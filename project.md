@@ -1,11 +1,7 @@
 ## TODO
 
-- [ ] Refactor stars, planets, and moons to use simple tree-based orbits
-- [ ] Only implement physics for player-controlled bodies
-- [ ] Implement whole-orbit visualisation for planets and moons - these will be easy to predict and stable
-- [ ] Implement trajectory prediction for player-controlled bodies 60 seconds into the future
+- [ ] Update ship physics to factor in atmosphere drag. Ensure this is reflected in trajectories
 
-- [ ] Reduce computation cost of trajectory prediction. Can I learn any lessons from KSP?
 - [ ] Finish mining capability
 - [ ] Add exploration capability and track progress of explored bodies
 - [ ] Space stations
@@ -63,3 +59,8 @@
 - [x] Add back relative speed indicator
 - [x] Take-off/landing system
 - [x] Add relative orbit instead of absolute - all bodies are flying through space so the orbit line of a ship around the planet is lost
+- [x] Refactor stars, planets, and moons to use simple tree-based orbits
+- [x] Only implement physics for player-controlled bodies
+- [x] Implement whole-orbit visualisation for planets and moons - these will be easy to predict and stable
+- [x] Implement trajectory prediction for player-controlled bodies 60 seconds into the future
+- [x] Add atmospheres to planets

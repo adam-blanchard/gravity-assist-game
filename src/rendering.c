@@ -17,7 +17,8 @@ void drawBodies(CelestialBody **bodies, int numBodies)
         {
             bodyColour = WHITE;
         }
-        DrawCircle(bodies[i]->position.x, bodies[i]->position.y, bodies[i]->radius, bodyColour);
+        DrawCircleV(bodies[i]->position, bodies[i]->radius, bodyColour);
+        DrawCircleV(bodies[i]->position, bodies[i]->atmosphereRadius, bodies[i]->atmosphereColour);
     }
 }
 
@@ -126,13 +127,13 @@ void drawCelestialGrid(CelestialBody **bodies, int numBodies, Camera2D camera, C
     // Draw vertical lines
     for (float x = startX; x <= endX; x += gridSpacing)
     {
-        DrawLineV((Vector2){x, startY}, (Vector2){x, endY}, GRID_COLOUR);
+        DrawLineV((Vector2){x, startY}, (Vector2){x, endY}, colourScheme->gridColour);
     }
 
     // Draw horizontal lines
     for (float y = startY; y <= endY; y += gridSpacing)
     {
-        DrawLineV((Vector2){startX, y}, (Vector2){endX, y}, GRID_COLOUR);
+        DrawLineV((Vector2){startX, y}, (Vector2){endX, y}, colourScheme->gridColour);
     }
 }
 

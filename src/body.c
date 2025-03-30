@@ -41,8 +41,10 @@ CelestialBody **initBodies(int *numBodies)
         .parentBody = NULL,
         .angularSpeed = 0, // Real val = 365.2 Days (365.2 * 24 * 60 * 60 seconds)
         .initialAngle = 0,
-        .orbitalRadius = 0 // Real val = 1.496e8 km
-    };
+        .orbitalRadius = 0, // Real val = 1.496e8 km
+        .atmosphereRadius = 8e3,
+        .atmosphereDrag = 1,
+        .atmosphereColour = (Color){10, 131, 251, 50}};
 
     // Moon orbiting Planet
     bodies[1] = malloc(sizeof(CelestialBody));
@@ -56,8 +58,9 @@ CelestialBody **initBodies(int *numBodies)
         .parentBody = bodies[0],
         .angularSpeed = radsPerSecond(27.3 * 24 * 60 * 60),
         .initialAngle = 0,
-        .orbitalRadius = 2e5 // Real val = 3.84e5 km
-    };
+        .orbitalRadius = 2e5, // Real val = 3.84e5 km,
+        .atmosphereRadius = -1,
+        .atmosphereDrag = -1};
 
     return bodies;
 }

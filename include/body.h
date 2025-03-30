@@ -32,6 +32,9 @@ typedef struct CelestialBody
     float orbitalRadius; // Distance from center for orbits (0 for black hole/ship)
     float angularSpeed;  // Radians per second (0 for black hole/ship)
     float initialAngle;  // Starting angle for orbit
+    float atmosphereRadius;
+    float atmosphereDrag;
+    Color atmosphereColour;
 } CelestialBody;
 
 float getBodyAngle(struct CelestialBody *body, float gameTime);
