@@ -43,7 +43,7 @@ CelestialBody **initBodies(int *numBodies)
         .initialAngle = 0,
         .orbitalRadius = 0, // Real val = 1.496e8 km
         .atmosphereRadius = 8e3,
-        .atmosphereDrag = 1,
+        .atmosphereDrag = 5,
         .atmosphereColour = (Color){10, 131, 251, 50}};
 
     // Moon orbiting Planet

@@ -63,8 +63,11 @@ void updateShipPositions(Ship **ships, int numShips, CelestialBody **bodies, int
 {
     for (int i = 0; i < numShips; i++)
     {
-        Vector2 force = computeShipGravity(ships[i], bodies, numBodies);
-        Vector2 accel = Vector2Scale(force, 1.0f / ships[i]->mass);
+        Vector2 totalForce;
+        Vector2 gravityForce = computeShipGravity(ships[i], bodies, numBodies);
+        Vector2 dragForce = calculateDragForce(ships[i], bodies, numBodies);
+        totalForce = Vector2Add(gravityForce, dragForce);
+        Vector2 accel = Vector2Scale(totalForce, 1.0f / ships[i]->mass);
         ships[i]->velocity = Vector2Add(ships[i]->velocity, Vector2Scale(accel, dt));
         ships[i]->position = Vector2Add(ships[i]->position, Vector2Scale(ships[i]->velocity, dt));
     }
@@ -173,6 +176,8 @@ Vector2 calculateDragForce(Ship *ship, CelestialBody **bodies, int numBodies)
 
     for (int i = 0; i < numBodies; i++)
     {
+        if (bodies[i]->atmosphereDrag < 0)
+            continue;
         if (detectShipAtmosphereCollision(ship, bodies[i]))
         {
             dragMagnitude = speed * speed * bodies[i]->atmosphereDrag;
@@ -211,8 +216,7 @@ void calculateShipFuturePositions(Ship **ships, int numShips, CelestialBody **bo
             if (ships[j]->state == SHIP_FLYING && !hasCollided[j])
             {
                 Vector2 gravityForce = computeShipGravity(ships[j], bodies, numBodies);
-                // Vector2 dragForce = calculateDragForce(ships[j], bodies, numBodies);
-                Vector2 dragForce = {0};
+                Vector2 dragForce = calculateDragForce(ships[j], bodies, numBodies);
                 Vector2 totalForce = Vector2Add(gravityForce, dragForce);
                 Vector2 accel = Vector2Scale(totalForce, 1.0f / ships[j]->mass);
                 ships[j]->velocity = Vector2Add(ships[j]->velocity, Vector2Scale(accel, FUTURE_STEP_TIME));
