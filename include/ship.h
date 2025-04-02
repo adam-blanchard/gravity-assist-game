@@ -26,7 +26,8 @@ typedef struct Ship
     float fuel;
     float fuelConsumption;
     bool isSelected;
-    Texture2D *thrustTexture;
+    Texture2D idleTexture;
+    Texture2D thrustTexture;
     ShipState state;
     celestialbody_t *landedBody;
     Vector2 landingPosition;

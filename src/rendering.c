@@ -27,6 +27,7 @@ void drawShips(ship_t **ships, int numShips)
     for (int i = 0; i < numShips; i++)
     {
         DrawCircleV(ships[i]->position, 32.0f, YELLOW);
+        DrawTextureV(ships[i]->idleTexture, ships[i]->position, WHITE);
     }
 }
 

@@ -16,7 +16,9 @@ ship_t **initShips(int *numShips)
         .thrust = 2e1,
         .state = SHIP_FLYING,
         .isSelected = true,
-        .futurePositions = malloc(sizeof(Vector2) * FUTURE_POSITIONS)};
+        .futurePositions = malloc(sizeof(Vector2) * FUTURE_POSITIONS),
+        .idleTexture = LoadTexture("./textures/ship/ship_1.png"),
+        .thrustTexture = LoadTexture("./textures/ship/ship_1_thrust.png")};
 
     return ships;
 }
@@ -28,7 +30,11 @@ void freeShips(ship_t **ships, int numShips)
             for (int i = 0; i < numShips; i++)
             {
                 if (ships[i]->futurePositions)
+                {
                     free(ships[i]->futurePositions);
+                }
+                UnloadTexture(ships[i]->idleTexture);
+                UnloadTexture(ships[i]->thrustTexture);
                 free(ships[i]);
             }
         free(ships);
