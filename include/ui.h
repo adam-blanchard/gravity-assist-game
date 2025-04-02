@@ -8,7 +8,7 @@ typedef struct
 {
     float speed;
     float playerRotation;
-    CelestialBody *velocityTarget;
+    celestialbody_t *velocityTarget;
     Texture2D compassTexture;
     Texture2D arrowTexture;
 } HUD;

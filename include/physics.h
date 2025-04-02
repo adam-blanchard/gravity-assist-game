@@ -18,7 +18,7 @@ float calculateDistance(Vector2 *pos1, Vector2 *pos2);
 
 float calculateOrbitalRadius(float period, float mStar);
 
-float calculateRelativeSpeed(struct Ship *ship, struct CelestialBody *body, float gameTime);
+float calculateRelativeSpeed(ship_t *ship, celestialbody_t *body, float gameTime);
 
 float rad2deg(float rad);
 
@@ -28,26 +28,28 @@ float radsPerSecond(int orbitalPeriod);
 
 float calculateOrbitalSpeed(float mass, float radius);
 
-void updateShipPositions(struct Ship **ships, int numShips, struct CelestialBody **bodies, int numBodies, float dt);
+void updateShipPositions(ship_t **ships, int numShips, celestialbody_t **bodies, int numBodies, float dt);
 
-void updateCelestialPositions(struct CelestialBody **bodies, int numBodies, float time);
+void updateCelestialPositions(celestialbody_t **bodies, int numBodies, float time);
 
-void updateLandedShipPosition(struct Ship **ships, int numShips, float gameTime);
+void updateLandedShipPosition(ship_t **ships, int numShips, float gameTime);
 
-void detectCollisions(struct Ship **ships, int numShips, struct CelestialBody **bodies, int numBodies, float gameTime);
+void detectCollisions(ship_t **ships, int numShips, celestialbody_t **bodies, int numBodies, float gameTime);
 
-Vector2 computeShipGravity(struct Ship *ship, struct CelestialBody **bodies, int numBodies);
+Vector2 computeShipGravity(ship_t *ship, celestialbody_t **bodies, int numBodies);
 
-void calculateShipFuturePositions(struct Ship **ships, int numShips, struct CelestialBody **bodies, int numBodies, float gameTime);
+void calculateShipFuturePositions(ship_t **ships, int numShips, celestialbody_t **bodies, int numBodies, float gameTime);
 
-void landShip(struct Ship *ship, struct CelestialBody *body, float gameTime);
+void landShip(ship_t *ship, celestialbody_t *body, float gameTime);
 
-void takeoffShip(struct Ship *ship);
+void takeoffShip(ship_t *ship);
 
-bool detectShipBodyCollision(struct Ship *ship, struct CelestialBody *body);
+bool detectShipBodyCollision(ship_t *ship, celestialbody_t *body);
 
-bool detectShipAtmosphereCollision(struct Ship *ship, struct CelestialBody *body);
+bool detectShipAtmosphereCollision(ship_t *ship, celestialbody_t *body);
 
-Vector2 calculateDragForce(struct Ship *ship, struct CelestialBody **bodies, int numBodies);
+Vector2 calculateDragForce(ship_t *ship, celestialbody_t **bodies, int numBodies);
+
+Vector2 calculateBodyVelocity(celestialbody_t *body, float gameTime);
 
 #endif

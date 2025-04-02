@@ -1,37 +1,18 @@
 #include "body.h"
 
-float getBodyAngle(CelestialBody *body, float gameTime)
+float getBodyAngle(celestialbody_t *body, float gameTime)
 {
     return fmod(body->initialAngle + body->angularSpeed * gameTime, 2 * PI);
 }
 
-Vector2 calculateBodyVelocity(CelestialBody *body, float gameTime)
-{
-    // Recursive function to sum velocities of current body and its parents
-
-    // Early return for non-orbiting bodies
-    if (body->parentBody == NULL || body->orbitalRadius == 0)
-        return (Vector2){0, 0};
-
-    float angle = getBodyAngle(body, gameTime);
-    float orbitalVelocity = calculateOrbitalVelocity(body->parentBody->mass, body->orbitalRadius);
-    Vector2 velocity = (Vector2){
-        orbitalVelocity * cosf(angle),
-        orbitalVelocity * sinf(angle)};
-
-    Vector2 parentVelocity = calculateBodyVelocity(body->parentBody, gameTime);
-
-    return Vector2Add(velocity, parentVelocity);
-}
-
-CelestialBody **initBodies(int *numBodies)
+celestialbody_t **initBodies(int *numBodies)
 {
     *numBodies = 2;
-    CelestialBody **bodies = malloc(sizeof(CelestialBody *) * (*numBodies));
+    celestialbody_t **bodies = malloc(sizeof(celestialbody_t *) * (*numBodies));
 
     // Planet orbiting Star - Earth
-    bodies[0] = malloc(sizeof(CelestialBody));
-    *bodies[0] = (CelestialBody){
+    bodies[0] = malloc(sizeof(celestialbody_t));
+    *bodies[0] = (celestialbody_t){
         .type = TYPE_PLANET,
         .name = strdup("Earth"),
         .position = {0, 0},
@@ -47,8 +28,8 @@ CelestialBody **initBodies(int *numBodies)
         .atmosphereColour = (Color){10, 131, 251, 50}};
 
     // Moon orbiting Planet
-    bodies[1] = malloc(sizeof(CelestialBody));
-    *bodies[1] = (CelestialBody){
+    bodies[1] = malloc(sizeof(celestialbody_t));
+    *bodies[1] = (celestialbody_t){
         .type = TYPE_MOON,
         .name = strdup("Earth's Moon"),
         .position = {0, 0},
@@ -65,7 +46,7 @@ CelestialBody **initBodies(int *numBodies)
     return bodies;
 }
 
-void freeCelestialBodies(CelestialBody **bodies, int numBodies)
+void freeCelestialBodies(celestialbody_t **bodies, int numBodies)
 {
     if (bodies)
     {

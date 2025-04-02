@@ -1,6 +1,6 @@
 #include "rendering.h"
 
-void drawBodies(CelestialBody **bodies, int numBodies)
+void drawBodies(celestialbody_t **bodies, int numBodies)
 {
     Color bodyColour;
     for (int i = numBodies - 1; i >= 0; i--)
@@ -22,7 +22,7 @@ void drawBodies(CelestialBody **bodies, int numBodies)
     }
 }
 
-void drawShips(Ship **ships, int numShips)
+void drawShips(ship_t **ships, int numShips)
 {
     for (int i = 0; i < numShips; i++)
     {
@@ -30,7 +30,7 @@ void drawShips(Ship **ships, int numShips)
     }
 }
 
-void drawOrbits(CelestialBody **bodies, int numBodies, ColourScheme *colourScheme)
+void drawOrbits(celestialbody_t **bodies, int numBodies, ColourScheme *colourScheme)
 {
     for (int i = 0; i < numBodies; i++)
     {
@@ -42,7 +42,7 @@ void drawOrbits(CelestialBody **bodies, int numBodies, ColourScheme *colourSchem
     }
 }
 
-void drawTrajectories(Ship **ships, int numShips, ColourScheme *colourScheme)
+void drawTrajectories(ship_t **ships, int numShips, ColourScheme *colourScheme)
 {
     for (int i = 0; i < numShips; i++)
     {
@@ -77,7 +77,7 @@ void drawStaticGrid(float zoomLevel, int numQuadrants, ColourScheme *colourSchem
     }
 }
 
-void drawCelestialGrid(CelestialBody **bodies, int numBodies, Camera2D camera, ColourScheme *colourScheme)
+void drawCelestialGrid(celestialbody_t **bodies, int numBodies, Camera2D camera, ColourScheme *colourScheme)
 {
     /*
         Draws a grid with origin (0, 0) to the edges of visible space
@@ -148,7 +148,7 @@ void drawPlayerHUD(HUD *playerHUD)
     int screenWidth = GetScreenWidth();
     int screenHeight = GetScreenHeight();
     float wMid = screenWidth / 2;
-    float hMid = screenHeight / 2;
+    // float hMid = screenHeight / 2;
     // DrawCircle(wMid, screenHeight - 100, 100, (Color){255, 255, 255, 100});
     if (playerHUD->velocityTarget)
     {

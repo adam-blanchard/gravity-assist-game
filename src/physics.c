@@ -31,27 +31,11 @@ float calculateOrbitalRadius(float period, float mStar)
     return (float){cbrtf(r3)};
 }
 
-float calculateRelativeSpeed(Ship *ship, CelestialBody *body, float gameTime)
+float calculateRelativeSpeed(ship_t *ship, celestialbody_t *body, float gameTime)
 {
     Vector2 bodyVelocity = calculateBodyVelocity(body, gameTime);
     Vector2 relativeVelocity = Vector2Subtract(ship->velocity, bodyVelocity);
     return sqrtf((relativeVelocity.x * relativeVelocity.x) + (relativeVelocity.y * relativeVelocity.y));
-}
-
-float rad2deg(float rad)
-{
-    return rad * (180.0f / PI);
-}
-
-float deg2rad(float deg)
-{
-    return deg * (PI / 180.0f);
-}
-
-float radsPerSecond(int orbitalPeriod)
-{
-    float deg = 360.0f / orbitalPeriod;
-    return deg2rad(deg);
 }
 
 float calculateOrbitalSpeed(float mass, float radius)
@@ -59,7 +43,7 @@ float calculateOrbitalSpeed(float mass, float radius)
     return (float){sqrtf((G * mass) / radius)};
 }
 
-void updateShipPositions(Ship **ships, int numShips, CelestialBody **bodies, int numBodies, float dt)
+void updateShipPositions(ship_t **ships, int numShips, celestialbody_t **bodies, int numBodies, float dt)
 {
     for (int i = 0; i < numShips; i++)
     {
@@ -74,7 +58,7 @@ void updateShipPositions(Ship **ships, int numShips, CelestialBody **bodies, int
 }
 
 // Update celestial body positions (on rails)
-void updateCelestialPositions(CelestialBody **bodies, int numBodies, float time)
+void updateCelestialPositions(celestialbody_t **bodies, int numBodies, float time)
 {
     for (int i = 0; i < numBodies; i++)
     {
@@ -88,7 +72,7 @@ void updateCelestialPositions(CelestialBody **bodies, int numBodies, float time)
     }
 }
 
-void updateLandedShipPosition(Ship **ships, int numShips, float gameTime)
+void updateLandedShipPosition(ship_t **ships, int numShips, float gameTime)
 {
     for (int i = 0; i < numShips; i++)
     {
@@ -101,7 +85,7 @@ void updateLandedShipPosition(Ship **ships, int numShips, float gameTime)
     }
 }
 
-bool detectShipBodyCollision(Ship *ship, CelestialBody *body)
+bool detectShipBodyCollision(ship_t *ship, celestialbody_t *body)
 {
     float dist = Vector2Distance(ship->position, body->position);
     if (dist < (ship->radius + body->radius))
@@ -109,7 +93,7 @@ bool detectShipBodyCollision(Ship *ship, CelestialBody *body)
     return false;
 }
 
-bool detectShipAtmosphereCollision(Ship *ship, CelestialBody *body)
+bool detectShipAtmosphereCollision(ship_t *ship, celestialbody_t *body)
 {
     float dist = Vector2Distance(ship->position, body->position);
     if (dist < (ship->radius + body->atmosphereRadius) && dist > (body->radius))
@@ -117,7 +101,7 @@ bool detectShipAtmosphereCollision(Ship *ship, CelestialBody *body)
     return false;
 }
 
-void detectCollisions(Ship **ships, int numShips, CelestialBody **bodies, int numBodies, float gameTime)
+void detectCollisions(ship_t **ships, int numShips, celestialbody_t **bodies, int numBodies, float gameTime)
 {
     for (int i = 0; i < numShips; i++)
     {
@@ -146,13 +130,12 @@ void detectCollisions(Ship **ships, int numShips, CelestialBody **bodies, int nu
     }
 }
 
-Vector2 computeShipGravity(Ship *ship, CelestialBody **bodies, int numBodies)
+Vector2 computeShipGravity(ship_t *ship, celestialbody_t **bodies, int numBodies)
 {
     Vector2 totalForce = {0, 0};
     for (int i = 0; i < numBodies; i++)
     {
         Vector2 dir = Vector2Subtract(bodies[i]->position, ship->position);
-        Vector2 normalDir = Vector2Normalize(dir);
         float dist = Vector2Length(dir);
         if (dist < 1e-5f)
             dist = 1e-5f;
@@ -162,7 +145,7 @@ Vector2 computeShipGravity(Ship *ship, CelestialBody **bodies, int numBodies)
     return totalForce;
 }
 
-Vector2 calculateDragForce(Ship *ship, CelestialBody **bodies, int numBodies)
+Vector2 calculateDragForce(ship_t *ship, celestialbody_t **bodies, int numBodies)
 {
     Vector2 velocity = ship->velocity;
     float speed = Vector2Length(velocity);
@@ -172,23 +155,24 @@ Vector2 calculateDragForce(Ship *ship, CelestialBody **bodies, int numBodies)
     Vector2 dragDirection = {-normalVelocity.x, -normalVelocity.y};
 
     float dragMagnitude;
-    Vector2 dragForce;
+    Vector2 dragForce = {0, 0};
 
     for (int i = 0; i < numBodies; i++)
     {
-        if (bodies[i]->atmosphereDrag < 0)
+        if (bodies[i]->atmosphereDrag <= 0)
             continue;
         if (detectShipAtmosphereCollision(ship, bodies[i]))
         {
             dragMagnitude = speed * speed * bodies[i]->atmosphereDrag;
             dragForce = Vector2Scale(dragDirection, dragMagnitude);
+            break;
         }
     }
 
     return dragForce;
 }
 
-void calculateShipFuturePositions(Ship **ships, int numShips, CelestialBody **bodies, int numBodies, float gameTime)
+void calculateShipFuturePositions(ship_t **ships, int numShips, celestialbody_t **bodies, int numBodies, float gameTime)
 {
     Vector2 initialVelocities[numShips];
     Vector2 initialPositions[numShips];
@@ -223,7 +207,7 @@ void calculateShipFuturePositions(Ship **ships, int numShips, CelestialBody **bo
                 ships[j]->position = Vector2Add(ships[j]->position, Vector2Scale(ships[j]->velocity, FUTURE_STEP_TIME));
 
                 // Check for collision
-                CelestialBody *collidingBody = NULL;
+                celestialbody_t *collidingBody = NULL;
                 Vector2 collisionPosition = ships[j]->position;
                 for (int k = 0; k < numBodies; k++)
                 {
@@ -275,7 +259,7 @@ void calculateShipFuturePositions(Ship **ships, int numShips, CelestialBody **bo
     }
 }
 
-void landShip(Ship *ship, CelestialBody *body, float gameTime)
+void landShip(ship_t *ship, celestialbody_t *body, float gameTime)
 {
     if (ship->state == SHIP_LANDED)
         return;
@@ -286,7 +270,7 @@ void landShip(Ship *ship, CelestialBody *body, float gameTime)
     ship->velocity = calculateBodyVelocity(body, gameTime); // Match velocity to the body
 
     Vector2 direction = Vector2Subtract(ship->position, body->position);
-    float distance = Vector2Length(direction);
+    // float distance = Vector2Length(direction);
     direction = Vector2Normalize(direction);
 
     // Position ship on the surface and store landing position
@@ -295,11 +279,30 @@ void landShip(Ship *ship, CelestialBody *body, float gameTime)
     ship->landingPosition = surfacePosition; // Store relative position
 }
 
-void takeoffShip(Ship *ship)
+void takeoffShip(ship_t *ship)
 {
     if (ship->state != SHIP_LANDED || ship->landedBody == NULL)
         return;
 
     ship->state = SHIP_FLYING;
     ship->landedBody = NULL;
+}
+
+Vector2 calculateBodyVelocity(celestialbody_t *body, float gameTime)
+{
+    // Recursive function to sum velocities of current body and its parents
+
+    // Early return for non-orbiting bodies
+    if (body->parentBody == NULL || body->orbitalRadius == 0)
+        return (Vector2){0, 0};
+
+    float angle = getBodyAngle(body, gameTime);
+    float orbitalVelocity = calculateOrbitalVelocity(body->parentBody->mass, body->orbitalRadius);
+    Vector2 velocity = (Vector2){
+        orbitalVelocity * cosf(angle),
+        orbitalVelocity * sinf(angle)};
+
+    Vector2 parentVelocity = calculateBodyVelocity(body->parentBody, gameTime);
+
+    return Vector2Add(velocity, parentVelocity);
 }

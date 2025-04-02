@@ -1,12 +1,12 @@
 #include <math.h>
 #include <stdio.h>
-#include "body.h"
-#include "config.h"
-#include "game.h"
-#include "physics.h"
 #include "raylib.h"
-#include "rendering.h"
+#include "config.h"
+#include "physics.h"
+#include "body.h"
 #include "ship.h"
+#include "game.h"
+#include "rendering.h"
 #include "ui.h"
 
 #define RAYGUI_IMPLEMENTATION
@@ -65,9 +65,9 @@ int main(void)
 
     float gameTime = 0.0f;
 
-    PlayerStats playerStats = {
-        .money = 0,
-        .miningXP = 0};
+    // PlayerStats playerStats = {
+    //     .money = 0,
+    //     .miningXP = 0};
 
     // Resource globalResources[RESOURCE_COUNT] = {
     //     {.type = RESOURCE_WATER_ICE, .name = "Water Ice", .weight = 1.0f, .value = 10},
@@ -76,10 +76,10 @@ int main(void)
     //     {.type = RESOURCE_GOLD_ORE, .name = "Gold Ore", .weight = 3.0f, .value = 100}};
 
     int numBodies = 0;
-    CelestialBody **bodies = NULL;
+    celestialbody_t **bodies = NULL;
 
     int numShips = 0;
-    Ship **ships = NULL;
+    ship_t **ships = NULL;
 
     int cameraLock = 0;
     Vector2 *cameraLockPosition = NULL;
@@ -87,7 +87,7 @@ int main(void)
     camera.offset = (Vector2){wMid, hMid}; // Offset from camera target
 
     int velocityLock = 0;
-    CelestialBody *velocityTarget = NULL;
+    celestialbody_t *velocityTarget = NULL;
 
     // GameTextures gameTextures = {0};
 

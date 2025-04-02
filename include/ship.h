@@ -28,12 +28,12 @@ typedef struct Ship
     bool isSelected;
     Texture2D *thrustTexture;
     ShipState state;
-    struct CelestialBody *landedBody;
+    celestialbody_t *landedBody;
     Vector2 landingPosition;
     Vector2 *futurePositions;
-} Ship;
+} ship_t;
 
-Ship **initShips(int *numShips);
-void freeShips(Ship **ships, int numShips);
+ship_t **initShips(int *numShips);
+void freeShips(ship_t **ships, int numShips);
 
 #endif

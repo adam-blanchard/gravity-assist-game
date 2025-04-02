@@ -90,7 +90,7 @@ float calculateNormalisedZoom(CameraSettings *settings, float currentZoom);
 
 void freeGameTextures(GameTextures gameTextures);
 
-void spawnShipOnBody(Ship *ship, CelestialBody *body, float gameTime);
+void spawnShipOnBody(ship_t *ship, celestialbody_t *body, float gameTime);
 
 // bool mineResource(CelestialBody *body, CelestialBody *playerShip, Resource *resourceDefinitions, ResourceType type, int amount)
 // {

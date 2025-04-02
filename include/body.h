@@ -6,8 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "raylib.h"
-#include "physics.h"
-#include "ship.h"
+#include "utils.h"
 
 typedef enum
 {
@@ -17,6 +16,8 @@ typedef enum
     TYPE_SHIP,
     TYPE_SPACESTATION
 } CelestialType;
+
+typedef struct CelestialBody celestialbody_t;
 
 typedef struct CelestialBody
 {
@@ -28,21 +29,19 @@ typedef struct CelestialBody
     float rotation;
     Texture2D *texture;
     float textureScale;
-    struct CelestialBody *parentBody;
+    celestialbody_t *parentBody;
     float orbitalRadius; // Distance from center for orbits (0 for black hole/ship)
     float angularSpeed;  // Radians per second (0 for black hole/ship)
     float initialAngle;  // Starting angle for orbit
     float atmosphereRadius;
     float atmosphereDrag;
     Color atmosphereColour;
-} CelestialBody;
+} celestialbody_t;
 
-float getBodyAngle(struct CelestialBody *body, float gameTime);
+float getBodyAngle(celestialbody_t *body, float gameTime);
 
-Vector2 calculateBodyVelocity(struct CelestialBody *body, float gameTime);
+celestialbody_t **initBodies(int *numBodies);
 
-CelestialBody **initBodies(int *numBodies);
-
-void freeCelestialBodies(struct CelestialBody **bodies, int numBodies);
+void freeCelestialBodies(celestialbody_t **bodies, int numBodies);
 
 #endif

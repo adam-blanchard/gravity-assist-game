@@ -1,12 +1,12 @@
 #include "ship.h"
 
-Ship **initShips(int *numShips)
+ship_t **initShips(int *numShips)
 {
     *numShips = 1;
-    Ship **ships = malloc(sizeof(Ship *) * (*numShips));
+    ship_t **ships = malloc(sizeof(ship_t *) * (*numShips));
 
-    ships[0] = malloc(sizeof(Ship));
-    *ships[0] = (Ship){
+    ships[0] = malloc(sizeof(ship_t));
+    *ships[0] = (ship_t){
         .position = (Vector2){0, -1e4},
         .velocity = (Vector2){0, 0},
         .mass = 1e6,
@@ -21,7 +21,7 @@ Ship **initShips(int *numShips)
     return ships;
 }
 
-void freeShips(Ship **ships, int numShips)
+void freeShips(ship_t **ships, int numShips)
 {
     {
         if (ships)
