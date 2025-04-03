@@ -22,17 +22,13 @@ typedef enum
 
 typedef enum
 {
-    ROTATION_RIGHT,
-    ROTATION_LEFT
-} ShipRotation;
-
-typedef enum
-{
     THRUSTER_RIGHT,
     THRUSTER_LEFT,
     THRUSTER_UP,
-    THRUSTER_DOWN
-} ShipThruster;
+    THRUSTER_DOWN,
+    ROTATION_RIGHT,
+    ROTATION_LEFT
+} ShipMovement;
 
 typedef struct Ship
 {
@@ -49,7 +45,13 @@ typedef struct Ship
     float fuelConsumption;
     bool isSelected;
     Texture2D idleTexture;
-    Texture2D thrustTexture;
+    Texture2D engineTexture;
+    Texture2D moveUp;
+    Texture2D moveDown;
+    Texture2D moveRight;
+    Texture2D moveLeft;
+    Texture2D rotateRight;
+    Texture2D rotateLeft;
     Texture2D *currentTexture;
     ShipState state;
     celestialbody_t *landedBody;
@@ -62,8 +64,8 @@ ship_t **initShips(int *numShips);
 void freeShips(ship_t **ships, int numShips);
 void takeoffShip(ship_t *ship);
 void handleThrottle(ship_t **ships, int numShips, float dt, ShipThrottle throttleCommand);
-void handleThruster(ship_t **ships, int numShips, float dt, ShipThruster thrusterCommand);
-void handleRotation(ship_t **ships, int numShips, float dt, ShipRotation direction);
+void handleThruster(ship_t **ships, int numShips, float dt, ShipMovement thrusterCommand);
+void handleRotation(ship_t **ships, int numShips, float dt, ShipMovement direction);
 void toggleDrawTrajectory(ship_t **ships, int numShips);
 
 #endif

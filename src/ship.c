@@ -19,8 +19,14 @@ ship_t **initShips(int *numShips)
         .isSelected = true,
         .futurePositions = malloc(sizeof(Vector2) * FUTURE_POSITIONS),
         .drawTrajectory = true,
-        .idleTexture = LoadTexture("./textures/ship/ship_1.png"),
-        .thrustTexture = LoadTexture("./textures/ship/ship_1_thrust.png")};
+        .idleTexture = LoadTexture("./textures/ship/ship_1/ship_1.png"),
+        .engineTexture = LoadTexture("./textures/ship/ship_1/ship_1_thrust.png"),
+        .moveUp = LoadTexture("./textures/ship/ship_1/ship_1_move_up.png"),
+        .moveDown = LoadTexture("./textures/ship/ship_1/ship_1_move_down.png"),
+        .moveRight = LoadTexture("./textures/ship/ship_1/ship_1_move_right.png"),
+        .moveLeft = LoadTexture("./textures/ship/ship_1/ship_1_move_left.png"),
+        .rotateRight = LoadTexture("./textures/ship/ship_1/ship_1_rotate_right.png"),
+        .rotateLeft = LoadTexture("./textures/ship/ship_1/ship_1_rotate_left.png")};
     ships[0]->currentTexture = &ships[0]->idleTexture;
 
     return ships;
@@ -37,7 +43,13 @@ void freeShips(ship_t **ships, int numShips)
                 free(ships[i]->futurePositions);
             }
             UnloadTexture(ships[i]->idleTexture);
-            UnloadTexture(ships[i]->thrustTexture);
+            UnloadTexture(ships[i]->engineTexture);
+            UnloadTexture(ships[i]->moveUp);
+            UnloadTexture(ships[i]->moveDown);
+            UnloadTexture(ships[i]->moveRight);
+            UnloadTexture(ships[i]->moveLeft);
+            UnloadTexture(ships[i]->rotateRight);
+            UnloadTexture(ships[i]->rotateLeft);
             free(ships[i]);
         }
         free(ships);
@@ -82,7 +94,7 @@ void handleThrottle(ship_t **ships, int numShips, float dt, ShipThrottle throttl
 
         if (ships[i]->throttle > 0)
         {
-            ships[i]->currentTexture = &ships[i]->thrustTexture;
+            ships[i]->currentTexture = &ships[i]->engineTexture;
         }
         else
         {
@@ -91,7 +103,7 @@ void handleThrottle(ship_t **ships, int numShips, float dt, ShipThrottle throttl
     }
 }
 
-void handleThruster(ship_t **ships, int numShips, float dt, ShipThruster thrusterCommand)
+void handleThruster(ship_t **ships, int numShips, float dt, ShipMovement thrusterCommand)
 {
     for (int i = 0; i < numShips; i++)
     {
@@ -105,37 +117,31 @@ void handleThruster(ship_t **ships, int numShips, float dt, ShipThruster thruste
         if (thrusterCommand == THRUSTER_UP)
         {
             radians = (ships[i]->rotation) * PI / 180.0f;
+            ships[i]->currentTexture = &ships[i]->moveUp;
         }
         if (thrusterCommand == THRUSTER_RIGHT)
         {
             radians = (ships[i]->rotation + 90) * PI / 180.0f;
+            ships[i]->currentTexture = &ships[i]->moveRight;
         }
         if (thrusterCommand == THRUSTER_LEFT)
         {
             radians = (ships[i]->rotation - 90) * PI / 180.0f;
+            ships[i]->currentTexture = &ships[i]->moveLeft;
         }
         if (thrusterCommand == THRUSTER_DOWN)
         {
             radians = (ships[i]->rotation - 180) * PI / 180.0f;
+            ships[i]->currentTexture = &ships[i]->moveDown;
         }
 
         Vector2 direction = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
         Vector2 force = Vector2Scale(direction, ships[i]->thrusterForce * dt);
         ships[i]->velocity = Vector2Add(ships[i]->velocity, force);
-
-        // if (ships[i]->state == SHIP_FLYING)
-        // {
-        //     // Convert rotation to radians for vector calculations
-        //     float radians = ships[i]->rotation * PI / 180.0f;
-        //     Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
-        //     Vector2 thrust = Vector2Scale(thrustDirection, ships[i]->thrust * dt);
-        //     ships[i]->velocity = Vector2Add(ships[i]->velocity, thrust);
-        //     ships[i]->fuel -= ships[i]->fuelConsumption;
-        // }
     }
 }
 
-void handleRotation(ship_t **ships, int numShips, float dt, ShipRotation direction)
+void handleRotation(ship_t **ships, int numShips, float dt, ShipMovement direction)
 {
     for (int i = 0; i < numShips; i++)
     {
@@ -146,10 +152,12 @@ void handleRotation(ship_t **ships, int numShips, float dt, ShipRotation directi
         if (direction == ROTATION_RIGHT)
         {
             ships[i]->rotation += ships[i]->rotationSpeed * dt; // Rotate right
+            ships[i]->currentTexture = &ships[i]->rotateRight;
         }
         else
         {
             ships[i]->rotation -= ships[i]->rotationSpeed * dt; // Rotate left
+            ships[i]->currentTexture = &ships[i]->rotateLeft;
         }
 
         ships[i]->rotation = fmod(ships[i]->rotation + 360.0f, 360.0f);
