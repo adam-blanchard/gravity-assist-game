@@ -14,9 +14,11 @@ ship_t **initShips(int *numShips)
         .rotation = 0,
         .rotationSpeed = 90,
         .thrust = 8e8,
+        .thrusterForce = 2,
         .state = SHIP_FLYING,
         .isSelected = true,
         .futurePositions = malloc(sizeof(Vector2) * FUTURE_POSITIONS),
+        .drawTrajectory = true,
         .idleTexture = LoadTexture("./textures/ship/ship_1.png"),
         .thrustTexture = LoadTexture("./textures/ship/ship_1_thrust.png")};
     ships[0]->currentTexture = &ships[0]->idleTexture;
@@ -26,18 +28,18 @@ ship_t **initShips(int *numShips)
 
 void freeShips(ship_t **ships, int numShips)
 {
+    if (ships)
     {
-        if (ships)
-            for (int i = 0; i < numShips; i++)
+        for (int i = 0; i < numShips; i++)
+        {
+            if (ships[i]->futurePositions)
             {
-                if (ships[i]->futurePositions)
-                {
-                    free(ships[i]->futurePositions);
-                }
-                UnloadTexture(ships[i]->idleTexture);
-                UnloadTexture(ships[i]->thrustTexture);
-                free(ships[i]);
+                free(ships[i]->futurePositions);
             }
+            UnloadTexture(ships[i]->idleTexture);
+            UnloadTexture(ships[i]->thrustTexture);
+            free(ships[i]);
+        }
         free(ships);
     }
 }
@@ -89,7 +91,7 @@ void handleThrottle(ship_t **ships, int numShips, float dt, ShipThrottle throttl
     }
 }
 
-void handleThrust(ship_t **ships, int numShips, float dt)
+void handleThruster(ship_t **ships, int numShips, float dt, ShipThruster thrusterCommand)
 {
     for (int i = 0; i < numShips; i++)
     {
@@ -98,12 +100,29 @@ void handleThrust(ship_t **ships, int numShips, float dt)
             continue;
         }
 
-        ships[i]->currentTexture = &ships[i]->thrustTexture;
+        float radians;
 
-        if (ships[i]->state == SHIP_LANDED)
+        if (thrusterCommand == THRUSTER_UP)
         {
-            takeoffShip(ships[i]);
+            radians = (ships[i]->rotation) * PI / 180.0f;
         }
+        if (thrusterCommand == THRUSTER_RIGHT)
+        {
+            radians = (ships[i]->rotation + 90) * PI / 180.0f;
+        }
+        if (thrusterCommand == THRUSTER_LEFT)
+        {
+            radians = (ships[i]->rotation - 90) * PI / 180.0f;
+        }
+        if (thrusterCommand == THRUSTER_DOWN)
+        {
+            radians = (ships[i]->rotation - 180) * PI / 180.0f;
+        }
+
+        Vector2 direction = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
+        Vector2 force = Vector2Scale(direction, ships[i]->thrusterForce * dt);
+        ships[i]->velocity = Vector2Add(ships[i]->velocity, force);
+
         // if (ships[i]->state == SHIP_FLYING)
         // {
         //     // Convert rotation to radians for vector calculations
@@ -134,5 +153,18 @@ void handleRotation(ship_t **ships, int numShips, float dt, ShipRotation directi
         }
 
         ships[i]->rotation = fmod(ships[i]->rotation + 360.0f, 360.0f);
+    }
+}
+
+void toggleDrawTrajectory(ship_t **ships, int numShips)
+{
+    for (int i = 0; i < numShips; i++)
+    {
+        if (!ships[i]->isSelected)
+        {
+            continue;
+        }
+
+        ships[i]->drawTrajectory = !ships[i]->drawTrajectory;
     }
 }

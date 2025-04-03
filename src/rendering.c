@@ -66,6 +66,10 @@ void drawTrajectories(ship_t **ships, int numShips, ColourScheme *colourScheme)
 {
     for (int i = 0; i < numShips; i++)
     {
+        if (!ships[i]->drawTrajectory)
+        {
+            continue;
+        }
         for (int j = 0; j < FUTURE_POSITIONS; j++)
         {
             if (j > 0)

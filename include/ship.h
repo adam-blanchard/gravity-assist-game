@@ -26,6 +26,14 @@ typedef enum
     ROTATION_LEFT
 } ShipRotation;
 
+typedef enum
+{
+    THRUSTER_RIGHT,
+    THRUSTER_LEFT,
+    THRUSTER_UP,
+    THRUSTER_DOWN
+} ShipThruster;
+
 typedef struct Ship
 {
     Vector2 position;
@@ -36,6 +44,7 @@ typedef struct Ship
     float radius;
     float thrust;
     float throttle;
+    float thrusterForce;
     float fuel;
     float fuelConsumption;
     bool isSelected;
@@ -45,6 +54,7 @@ typedef struct Ship
     ShipState state;
     celestialbody_t *landedBody;
     Vector2 landingPosition;
+    bool drawTrajectory;
     Vector2 *futurePositions;
 } ship_t;
 
@@ -52,7 +62,8 @@ ship_t **initShips(int *numShips);
 void freeShips(ship_t **ships, int numShips);
 void takeoffShip(ship_t *ship);
 void handleThrottle(ship_t **ships, int numShips, float dt, ShipThrottle throttleCommand);
-void handleThrust(ship_t **ships, int numShips, float dt);
+void handleThruster(ship_t **ships, int numShips, float dt, ShipThruster thrusterCommand);
 void handleRotation(ship_t **ships, int numShips, float dt, ShipRotation direction);
+void toggleDrawTrajectory(ship_t **ships, int numShips);
 
 #endif

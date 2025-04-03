@@ -177,38 +177,38 @@ int main(void)
             {
                 handleThrottle(ships, numShips, scaledDt, THROTTLE_UP);
             }
-
             if (IsKeyDown(KEY_LEFT_CONTROL))
             {
                 handleThrottle(ships, numShips, scaledDt, THROTTLE_DOWN);
             }
-
             if (IsKeyDown(KEY_D))
             {
                 handleRotation(ships, numShips, scaledDt, ROTATION_RIGHT);
             }
-
             if (IsKeyDown(KEY_A))
             {
                 handleRotation(ships, numShips, scaledDt, ROTATION_LEFT);
             }
-
             if (IsKeyDown(KEY_E))
             {
-                // Should allow the ship to tralsate in the x direction
+                handleThruster(ships, numShips, scaledDt, THRUSTER_RIGHT);
             }
             if (IsKeyDown(KEY_Q))
             {
-                // Should allow the ship to tralsate in the x direction
+                handleThruster(ships, numShips, scaledDt, THRUSTER_LEFT);
             }
-
             if (IsKeyDown(KEY_W))
             {
-                // Should allow the ship to tralsate in the y direction
+                handleThruster(ships, numShips, scaledDt, THRUSTER_UP);
             }
             if (IsKeyDown(KEY_S))
             {
-                // Should allow the ship to tralsate in the y direction
+                handleThruster(ships, numShips, scaledDt, THRUSTER_DOWN);
+            }
+
+            if (IsKeyPressed(KEY_T))
+            {
+                toggleDrawTrajectory(ships, numShips);
             }
 
             if (IsKeyPressed(KEY_V))
