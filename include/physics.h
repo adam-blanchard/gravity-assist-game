@@ -42,8 +42,6 @@ void calculateShipFuturePositions(ship_t **ships, int numShips, celestialbody_t 
 
 void landShip(ship_t *ship, celestialbody_t *body, float gameTime);
 
-void takeoffShip(ship_t *ship);
-
 bool detectShipBodyCollision(ship_t *ship, celestialbody_t *body);
 
 bool detectShipAtmosphereCollision(ship_t *ship, celestialbody_t *body);

@@ -34,6 +34,9 @@
 #ifndef HUD_FONT_SIZE
 #define HUD_FONT_SIZE 16
 #endif
+#ifndef THROTTLE_INCREMENT
+#define THROTTLE_INCREMENT 0.01
+#endif
 
 #ifndef TRAIL_COLOUR
 #define TRAIL_COLOUR \

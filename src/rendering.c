@@ -26,8 +26,27 @@ void drawShips(ship_t **ships, int numShips)
 {
     for (int i = 0; i < numShips; i++)
     {
-        DrawCircleV(ships[i]->position, 32.0f, YELLOW);
-        DrawTextureV(ships[i]->idleTexture, ships[i]->position, WHITE);
+        // DrawCircleV(ships[i]->position, 32.0f, YELLOW);
+
+        if (ships[i]->currentTexture == NULL)
+        {
+            continue;
+        }
+        Rectangle shipSource = {
+            0,
+            0,
+            (float)ships[i]->currentTexture->width,
+            (float)ships[i]->currentTexture->height};
+        Rectangle shipDest = {
+            (float)ships[i]->position.x,
+            (float)ships[i]->position.y,
+            (float)ships[i]->currentTexture->width,
+            (float)ships[i]->currentTexture->height};
+        Vector2 shipOrigin = {
+            (float)(ships[i]->currentTexture->width / 2),
+            (float)(ships[i]->currentTexture->height / 2)};
+        DrawTexturePro(*ships[i]->currentTexture, shipSource, shipDest, shipOrigin, ships[i]->rotation, WHITE);
+        // DrawTextureV(ships[i]->idleTexture, ships[i]->position, WHITE);
     }
 }
 

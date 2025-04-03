@@ -43,14 +43,31 @@ float calculateOrbitalSpeed(float mass, float radius)
     return (float){sqrtf((G * mass) / radius)};
 }
 
+Vector2 calculateShipThrustForce(ship_t *ship, float dt)
+{
+    float radians = ship->rotation * PI / 180.0f;
+    Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
+    Vector2 thrust = Vector2Scale(thrustDirection, ship->thrust * dt);
+    return (Vector2)Vector2Scale(thrust, ship->throttle);
+}
+
 void updateShipPositions(ship_t **ships, int numShips, celestialbody_t **bodies, int numBodies, float dt)
 {
     for (int i = 0; i < numShips; i++)
     {
-        Vector2 totalForce;
+        Vector2 totalForce = {0, 0};
+        Vector2 thrustForce = calculateShipThrustForce(ships[i], dt);
+
+        if (Vector2Length(thrustForce) > 0 && ships[i]->state == SHIP_LANDED)
+        {
+            takeoffShip(ships[i]);
+        }
+
         Vector2 gravityForce = computeShipGravity(ships[i], bodies, numBodies);
         Vector2 dragForce = calculateDragForce(ships[i], bodies, numBodies);
-        totalForce = Vector2Add(gravityForce, dragForce);
+        totalForce = Vector2Add(totalForce, thrustForce);
+        totalForce = Vector2Add(totalForce, gravityForce);
+        totalForce = Vector2Add(totalForce, dragForce);
         Vector2 accel = Vector2Scale(totalForce, 1.0f / ships[i]->mass);
         ships[i]->velocity = Vector2Add(ships[i]->velocity, Vector2Scale(accel, dt));
         ships[i]->position = Vector2Add(ships[i]->position, Vector2Scale(ships[i]->velocity, dt));
@@ -277,15 +294,6 @@ void landShip(ship_t *ship, celestialbody_t *body, float gameTime)
     Vector2 surfacePosition = Vector2Scale(direction, body->radius + ship->radius);
     ship->position = Vector2Add(body->position, surfacePosition);
     ship->landingPosition = surfacePosition; // Store relative position
-}
-
-void takeoffShip(ship_t *ship)
-{
-    if (ship->state != SHIP_LANDED || ship->landedBody == NULL)
-        return;
-
-    ship->state = SHIP_FLYING;
-    ship->landedBody = NULL;
 }
 
 Vector2 calculateBodyVelocity(celestialbody_t *body, float gameTime)

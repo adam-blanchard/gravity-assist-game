@@ -67,7 +67,8 @@ int main(void)
 
     // PlayerStats playerStats = {
     //     .money = 0,
-    //     .miningXP = 0};
+    //     .miningXP = 0
+    // };
 
     // Resource globalResources[RESOURCE_COUNT] = {
     //     {.type = RESOURCE_WATER_ICE, .name = "Water Ice", .weight = 1.0f, .value = 10},
@@ -151,9 +152,9 @@ int main(void)
             break;
 
         case GAME_RUNNING:
-            if (IsKeyDown(KEY_E))
+            if (IsKeyDown(KEY_PERIOD))
                 incrementWarp(&timeScale, dt);
-            if (IsKeyDown(KEY_Q))
+            if (IsKeyDown(KEY_COMMA))
                 decrementWarp(&timeScale, dt);
 
             float scaledDt = dt * timeScale.val;
@@ -172,47 +173,42 @@ int main(void)
                 cameraLockPosition = &ships[cameraLock]->position;
             }
 
+            if (IsKeyDown(KEY_LEFT_SHIFT))
+            {
+                handleThrottle(ships, numShips, scaledDt, THROTTLE_UP);
+            }
+
+            if (IsKeyDown(KEY_LEFT_CONTROL))
+            {
+                handleThrottle(ships, numShips, scaledDt, THROTTLE_DOWN);
+            }
+
             if (IsKeyDown(KEY_D))
             {
-                for (int i = 0; i < numShips; i++)
-                {
-                    if (ships[i]->isSelected)
-                    {
-                        ships[i]->rotation += ships[i]->rotationSpeed * scaledDt; // Rotate right
-                        ships[i]->rotation = fmod(ships[i]->rotation + 360.0f, 360.0f);
-                    }
-                }
+                handleRotation(ships, numShips, scaledDt, ROTATION_RIGHT);
             }
+
             if (IsKeyDown(KEY_A))
             {
-                for (int i = 0; i < numShips; i++)
-                {
-                    if (ships[i]->isSelected)
-                    {
-                        ships[i]->rotation -= ships[i]->rotationSpeed * scaledDt; // Rotate left
-                        ships[i]->rotation = fmod(ships[i]->rotation + 360.0f, 360.0f);
-                    }
-                }
+                handleRotation(ships, numShips, scaledDt, ROTATION_LEFT);
+            }
+
+            if (IsKeyDown(KEY_E))
+            {
+                // Should allow the ship to tralsate in the x direction
+            }
+            if (IsKeyDown(KEY_Q))
+            {
+                // Should allow the ship to tralsate in the x direction
             }
 
             if (IsKeyDown(KEY_W))
             {
-                for (int i = 0; i < numShips; i++)
-                {
-                    if (ships[i]->state == SHIP_LANDED)
-                    {
-                        takeoffShip(ships[i]);
-                    }
-                    if (ships[i]->isSelected && ships[i]->state == SHIP_FLYING)
-                    {
-                        // Convert rotation to radians for vector calculations
-                        float radians = ships[i]->rotation * PI / 180.0f;
-                        Vector2 thrustDirection = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
-                        Vector2 thrust = Vector2Scale(thrustDirection, ships[i]->thrust * scaledDt);
-                        ships[i]->velocity = Vector2Add(ships[i]->velocity, thrust);
-                        ships[i]->fuel -= ships[i]->fuelConsumption;
-                    }
-                }
+                // Should allow the ship to tralsate in the y direction
+            }
+            if (IsKeyDown(KEY_S))
+            {
+                // Should allow the ship to tralsate in the y direction
             }
 
             if (IsKeyPressed(KEY_V))
@@ -298,6 +294,8 @@ int main(void)
             // DrawText(TextFormat("Zoom Level: %.3fx", calculateNormalisedZoom(&cameraSettings, camera.zoom)), screenWidth - 200, 100, 20, DARKGRAY);
             DrawText(TextFormat("Camera zoom: %.6fx", camera.zoom), screenWidth - 250, 100, 20, DARKGRAY);
 
+            DrawText(TextFormat("Ship throttle: %.2fpct", ships[0]->throttle), screenWidth - 250, 130, 20, DARKGRAY);
+
             if (gameState == GAME_PAUSED)
             {
                 DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(GRAY, 0.5f));
@@ -305,7 +303,7 @@ int main(void)
                 DrawText("Press ESC to Resume", GetScreenWidth() / 2 - MeasureText("Press ESC to Resume", 20) / 2, 300, 20, WHITE);
                 DrawText("Press Q to Quit", GetScreenWidth() / 2 - MeasureText("Press Q to Quit", 20) / 2, 340, 20, WHITE);
                 DrawText("Press 'C' to switch camera", 10, 40, 20, WHITE);
-                DrawText("Press 'Q' and 'E' to time warp", 10, 70, 20, WHITE);
+                DrawText("Press '.' and ',' to time warp", 10, 70, 20, WHITE);
                 DrawText("Scroll to zoom", 10, 100, 20, WHITE);
                 DrawText("Press 'V' to switch velocity lock", 10, 130, 20, WHITE);
             }
