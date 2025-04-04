@@ -28,25 +28,51 @@ void drawShips(ship_t **ships, int numShips)
     {
         // DrawCircleV(ships[i]->position, 32.0f, YELLOW);
 
-        if (ships[i]->currentTexture == NULL)
-        {
-            continue;
-        }
-        Rectangle shipSource = {
+        Rectangle source = {
             0,
             0,
-            (float)ships[i]->currentTexture->width,
-            (float)ships[i]->currentTexture->height};
-        Rectangle shipDest = {
+            (float)ships[i]->baseTexture.width,
+            (float)ships[i]->baseTexture.height};
+        Rectangle dest = {
             (float)ships[i]->position.x,
             (float)ships[i]->position.y,
-            (float)ships[i]->currentTexture->width,
-            (float)ships[i]->currentTexture->height};
-        Vector2 shipOrigin = {
-            (float)(ships[i]->currentTexture->width / 2),
-            (float)(ships[i]->currentTexture->height / 2)};
-        DrawTexturePro(*ships[i]->currentTexture, shipSource, shipDest, shipOrigin, ships[i]->rotation, WHITE);
-        // DrawTextureV(ships[i]->idleTexture, ships[i]->position, WHITE);
+            (float)ships[i]->baseTexture.width,
+            (float)ships[i]->baseTexture.height};
+        Vector2 origin = {
+            (float)(ships[i]->baseTexture.width / 2),
+            (float)(ships[i]->baseTexture.height / 2)};
+
+        // Draw base texture
+        DrawTexturePro(ships[i]->baseTexture, source, dest, origin, ships[i]->rotation, WHITE);
+
+        if (ships[i]->mainEnginesOn)
+        {
+            DrawTexturePro(ships[i]->engineTexture, source, dest, origin, ships[i]->rotation, WHITE);
+        }
+        if (ships[i]->thrusterUp)
+        {
+            DrawTexturePro(ships[i]->thrusterUpTexture, source, dest, origin, ships[i]->rotation, WHITE);
+        }
+        if (ships[i]->thrusterDown)
+        {
+            DrawTexturePro(ships[i]->thrusterDownTexture, source, dest, origin, ships[i]->rotation, WHITE);
+        }
+        if (ships[i]->thrusterRight)
+        {
+            DrawTexturePro(ships[i]->thrusterRightTexture, source, dest, origin, ships[i]->rotation, WHITE);
+        }
+        if (ships[i]->thrusterLeft)
+        {
+            DrawTexturePro(ships[i]->thrusterLeftTexture, source, dest, origin, ships[i]->rotation, WHITE);
+        }
+        if (ships[i]->thrusterRotateRight)
+        {
+            DrawTexturePro(ships[i]->thrusterRotateRightTexture, source, dest, origin, ships[i]->rotation, WHITE);
+        }
+        if (ships[i]->thrusterRotateLeft)
+        {
+            DrawTexturePro(ships[i]->thrusterRotateLeftTexture, source, dest, origin, ships[i]->rotation, WHITE);
+        }
     }
 }
 

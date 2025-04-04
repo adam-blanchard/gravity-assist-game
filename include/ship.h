@@ -44,15 +44,21 @@ typedef struct Ship
     float fuel;
     float fuelConsumption;
     bool isSelected;
-    Texture2D idleTexture;
+    Texture2D baseTexture;
+    bool mainEnginesOn;
     Texture2D engineTexture;
-    Texture2D moveUp;
-    Texture2D moveDown;
-    Texture2D moveRight;
-    Texture2D moveLeft;
-    Texture2D rotateRight;
-    Texture2D rotateLeft;
-    Texture2D *currentTexture;
+    bool thrusterUp;
+    Texture2D thrusterUpTexture;
+    bool thrusterDown;
+    Texture2D thrusterDownTexture;
+    bool thrusterRight;
+    Texture2D thrusterRightTexture;
+    bool thrusterLeft;
+    Texture2D thrusterLeftTexture;
+    bool thrusterRotateRight;
+    Texture2D thrusterRotateRightTexture;
+    bool thrusterRotateLeft;
+    Texture2D thrusterRotateLeftTexture;
     ShipState state;
     celestialbody_t *landedBody;
     Vector2 landingPosition;
@@ -67,5 +73,6 @@ void handleThrottle(ship_t **ships, int numShips, float dt, ShipThrottle throttl
 void handleThruster(ship_t **ships, int numShips, float dt, ShipMovement thrusterCommand);
 void handleRotation(ship_t **ships, int numShips, float dt, ShipMovement direction);
 void toggleDrawTrajectory(ship_t **ships, int numShips);
+void updateShipTextureFlags(ship_t **ships, int numShips);
 
 #endif

@@ -19,15 +19,21 @@ ship_t **initShips(int *numShips)
         .isSelected = true,
         .futurePositions = malloc(sizeof(Vector2) * FUTURE_POSITIONS),
         .drawTrajectory = true,
-        .idleTexture = LoadTexture("./textures/ship/ship_1/ship_1.png"),
+        .baseTexture = LoadTexture("./textures/ship/ship_1/ship_1.png"),
         .engineTexture = LoadTexture("./textures/ship/ship_1/ship_1_thrust.png"),
-        .moveUp = LoadTexture("./textures/ship/ship_1/ship_1_move_up.png"),
-        .moveDown = LoadTexture("./textures/ship/ship_1/ship_1_move_down.png"),
-        .moveRight = LoadTexture("./textures/ship/ship_1/ship_1_move_right.png"),
-        .moveLeft = LoadTexture("./textures/ship/ship_1/ship_1_move_left.png"),
-        .rotateRight = LoadTexture("./textures/ship/ship_1/ship_1_rotate_right.png"),
-        .rotateLeft = LoadTexture("./textures/ship/ship_1/ship_1_rotate_left.png")};
-    ships[0]->currentTexture = &ships[0]->idleTexture;
+        .thrusterUpTexture = LoadTexture("./textures/ship/ship_1/ship_1_move_up.png"),
+        .thrusterDownTexture = LoadTexture("./textures/ship/ship_1/ship_1_move_down.png"),
+        .thrusterRightTexture = LoadTexture("./textures/ship/ship_1/ship_1_move_right.png"),
+        .thrusterLeftTexture = LoadTexture("./textures/ship/ship_1/ship_1_move_left.png"),
+        .thrusterRotateRightTexture = LoadTexture("./textures/ship/ship_1/ship_1_rotate_right.png"),
+        .thrusterRotateLeftTexture = LoadTexture("./textures/ship/ship_1/ship_1_rotate_left.png"),
+        .mainEnginesOn = false,
+        .thrusterUp = false,
+        .thrusterDown = false,
+        .thrusterRight = false,
+        .thrusterLeft = false,
+        .thrusterRotateRight = false,
+        .thrusterRotateLeft = false};
 
     return ships;
 }
@@ -42,14 +48,14 @@ void freeShips(ship_t **ships, int numShips)
             {
                 free(ships[i]->futurePositions);
             }
-            UnloadTexture(ships[i]->idleTexture);
+            UnloadTexture(ships[i]->baseTexture);
             UnloadTexture(ships[i]->engineTexture);
-            UnloadTexture(ships[i]->moveUp);
-            UnloadTexture(ships[i]->moveDown);
-            UnloadTexture(ships[i]->moveRight);
-            UnloadTexture(ships[i]->moveLeft);
-            UnloadTexture(ships[i]->rotateRight);
-            UnloadTexture(ships[i]->rotateLeft);
+            UnloadTexture(ships[i]->thrusterUpTexture);
+            UnloadTexture(ships[i]->thrusterDownTexture);
+            UnloadTexture(ships[i]->thrusterRightTexture);
+            UnloadTexture(ships[i]->thrusterLeftTexture);
+            UnloadTexture(ships[i]->thrusterRotateRightTexture);
+            UnloadTexture(ships[i]->thrusterRotateLeftTexture);
             free(ships[i]);
         }
         free(ships);
@@ -91,15 +97,6 @@ void handleThrottle(ship_t **ships, int numShips, float dt, ShipThrottle throttl
             ships[i]->throttle -= THROTTLE_INCREMENT;
         }
         ships[i]->throttle = Clamp(ships[i]->throttle, 0, 1);
-
-        if (ships[i]->throttle > 0)
-        {
-            ships[i]->currentTexture = &ships[i]->engineTexture;
-        }
-        else
-        {
-            ships[i]->currentTexture = &ships[i]->idleTexture;
-        }
     }
 }
 
@@ -117,22 +114,22 @@ void handleThruster(ship_t **ships, int numShips, float dt, ShipMovement thruste
         if (thrusterCommand == THRUSTER_UP)
         {
             radians = (ships[i]->rotation) * PI / 180.0f;
-            ships[i]->currentTexture = &ships[i]->moveUp;
+            ships[i]->thrusterUp = true;
         }
         if (thrusterCommand == THRUSTER_RIGHT)
         {
             radians = (ships[i]->rotation + 90) * PI / 180.0f;
-            ships[i]->currentTexture = &ships[i]->moveRight;
+            ships[i]->thrusterRight = true;
         }
         if (thrusterCommand == THRUSTER_LEFT)
         {
             radians = (ships[i]->rotation - 90) * PI / 180.0f;
-            ships[i]->currentTexture = &ships[i]->moveLeft;
+            ships[i]->thrusterLeft = true;
         }
         if (thrusterCommand == THRUSTER_DOWN)
         {
             radians = (ships[i]->rotation - 180) * PI / 180.0f;
-            ships[i]->currentTexture = &ships[i]->moveDown;
+            ships[i]->thrusterDown = true;
         }
 
         Vector2 direction = {sinf(radians), -cosf(radians)}; // Negative cos because Y increases downward
@@ -152,12 +149,12 @@ void handleRotation(ship_t **ships, int numShips, float dt, ShipMovement directi
         if (direction == ROTATION_RIGHT)
         {
             ships[i]->rotation += ships[i]->rotationSpeed * dt; // Rotate right
-            ships[i]->currentTexture = &ships[i]->rotateRight;
+            ships[i]->thrusterRotateRight = true;
         }
         else
         {
             ships[i]->rotation -= ships[i]->rotationSpeed * dt; // Rotate left
-            ships[i]->currentTexture = &ships[i]->rotateLeft;
+            ships[i]->thrusterRotateLeft = true;
         }
 
         ships[i]->rotation = fmod(ships[i]->rotation + 360.0f, 360.0f);
@@ -174,5 +171,27 @@ void toggleDrawTrajectory(ship_t **ships, int numShips)
         }
 
         ships[i]->drawTrajectory = !ships[i]->drawTrajectory;
+    }
+}
+
+void updateShipTextureFlags(ship_t **ships, int numShips)
+{
+    for (int i = 0; i < numShips; i++)
+    {
+        if (ships[i]->throttle > 0)
+        {
+            ships[i]->mainEnginesOn = true;
+        }
+        else
+        {
+            ships[i]->mainEnginesOn = false;
+        }
+
+        ships[i]->thrusterUp = false;
+        ships[i]->thrusterDown = false;
+        ships[i]->thrusterRight = false;
+        ships[i]->thrusterLeft = false;
+        ships[i]->thrusterRotateRight = false;
+        ships[i]->thrusterRotateLeft = false;
     }
 }

@@ -46,7 +46,7 @@ int main(void)
     CameraSettings cameraSettings = {
         .defaultZoom = 1e-2f,
         .minZoom = 1e-6f,
-        .maxZoom = 1.0f};
+        .maxZoom = 2.0f};
 
     Camera2D camera = {0};
     camera.rotation = 0.0f;
@@ -115,13 +115,6 @@ int main(void)
     // gameTextures.moonTextures = malloc(sizeof(Texture2D *) * (gameTextures.numMoonTextures));
     // gameTextures.moonTextures[0] = &moonTexture1;
 
-    // Texture2D shipTexture = LoadTexture("./textures/ship/ship_1.png");
-    // Texture2D shipThrustTexture = LoadTexture("./textures/ship/ship_1_thrust.png");
-    // gameTextures.numShipTextures = 2;
-    // gameTextures.shipTextures = malloc(sizeof(Texture2D *) * (gameTextures.numShipTextures));
-    // gameTextures.shipTextures[0] = &shipTexture;
-    // gameTextures.shipTextures[1] = &shipThrustTexture;
-
     while (!WindowShouldClose())
     {
         float dt = GetFrameTime();
@@ -181,6 +174,10 @@ int main(void)
             {
                 handleThrottle(ships, numShips, scaledDt, THROTTLE_DOWN);
             }
+
+            // Sets engine texture and resets thruster flags before input
+            updateShipTextureFlags(ships, numShips);
+
             if (IsKeyDown(KEY_D))
             {
                 handleRotation(ships, numShips, scaledDt, ROTATION_RIGHT);
@@ -226,6 +223,7 @@ int main(void)
 
             updateCelestialPositions(bodies, numBodies, gameTime);
             updateShipPositions(ships, numShips, bodies, numBodies, scaledDt);
+
             updateLandedShipPosition(ships, numShips, gameTime);
 
             detectCollisions(ships, numShips, bodies, numBodies, gameTime);
@@ -238,8 +236,6 @@ int main(void)
             // {
             //     mineResource(playerShip->shipSettings.landedBody, playerShip, globalResources, RESOURCE_GOLD_ORE, 1);
             // }
-
-            // If the ship is landed, lock its position to the landed body
 
             playerHUD.speed = calculateRelativeSpeed(ships[0], velocityTarget, gameTime);
             playerHUD.playerRotation = ships[0]->rotation;
@@ -314,6 +310,8 @@ int main(void)
 
     freeCelestialBodies(bodies, numBodies);
     freeShips(ships, numShips);
+    UnloadTexture(playerHUD.compassTexture);
+    UnloadTexture(playerHUD.arrowTexture);
     // freeGameTextures(gameTextures);
 
     CloseWindow();
