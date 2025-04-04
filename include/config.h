@@ -11,8 +11,9 @@
 #define PREVIOUS_POSITIONS 1000
 #endif
 #ifndef FUTURE_POSITIONS
-#define FUTURE_POSITIONS 6000
+#define FUTURE_POSITIONS 16000
 #endif
+// Size of vector2 is 8 bytes
 #ifndef FUTURE_STEP_TIME
 #define FUTURE_STEP_TIME 0.1f
 #endif
