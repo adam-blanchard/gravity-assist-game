@@ -204,7 +204,7 @@ void calculateShipFuturePositions(ship_t **ships, int numShips, celestialbody_t 
     }
 
     // Simulate system forward for FUTURE_POSITIONS timesteps
-    for (int i = 0; i < FUTURE_POSITIONS; i++)
+    for (int i = 0; i < MAX_FUTURE_POSITIONS; i++)
     {
         float futureTime = gameTime + (i * FUTURE_STEP_TIME);
 
@@ -244,25 +244,34 @@ void calculateShipFuturePositions(ship_t **ships, int numShips, celestialbody_t 
                     ships[j]->futurePositions[i] = collisionPosition;
                     // printf("Ship %d collides with %s at step %d\n", j, collidingBody->name, i);
                     // Set all subsequent positions to the collision point
-                    for (int k = i + 1; k < FUTURE_POSITIONS; k++)
+                    for (int k = i + 1; k < ships[j]->trajectorySize; k++)
                     {
                         ships[j]->futurePositions[k] = collisionPosition;
                     }
                 }
                 else
                 {
-                    ships[j]->futurePositions[i] = ships[j]->position;
+                    if (i < ships[j]->trajectorySize)
+                    {
+                        ships[j]->futurePositions[i] = ships[j]->position;
+                    }
                 }
             }
             else if (ships[j]->state == SHIP_FLYING && hasCollided[j])
             {
                 // Already collided, keep future positions at collision point
-                ships[j]->futurePositions[i] = ships[j]->futurePositions[i - 1];
+                if (i < ships[j]->trajectorySize)
+                {
+                    ships[j]->futurePositions[i] = ships[j]->futurePositions[i - 1];
+                }
             }
             else if (ships[j]->state == SHIP_LANDED)
             {
                 // Follow landed body's position
-                ships[j]->futurePositions[i] = Vector2Add(ships[j]->landedBody->position, ships[j]->landingPosition);
+                if (i < ships[j]->trajectorySize)
+                {
+                    ships[j]->futurePositions[i] = Vector2Add(ships[j]->landedBody->position, ships[j]->landingPosition);
+                }
             }
         }
     }
@@ -313,4 +322,27 @@ Vector2 calculateBodyVelocity(celestialbody_t *body, float gameTime)
     Vector2 parentVelocity = calculateBodyVelocity(body->parentBody, gameTime);
 
     return Vector2Add(velocity, parentVelocity);
+}
+
+void initStableOrbit(ship_t *ship, celestialbody_t *body, float gameTime)
+{
+    // Puts a ship in a stable orbit around a body at a fixed height
+    float orbitHeight = 1e4;
+    float bodyRadius;
+    if (body->atmosphereRadius > 0)
+    {
+        bodyRadius = body->atmosphereRadius;
+    }
+    else
+    {
+        bodyRadius = body->radius;
+    }
+    // Ship position is directly above body
+    ship->position = (Vector2){body->position.x, body->position.y - bodyRadius - orbitHeight};
+    // Ship will orbit body clockwise
+    float orbitalVelocity = calculateOrbitalVelocity(body->mass, bodyRadius + orbitHeight);
+    Vector2 shipVelocity = (Vector2){orbitalVelocity, 0};
+    Vector2 bodyVelocity = calculateBodyVelocity(body, gameTime);
+
+    ship->velocity = Vector2Add(shipVelocity, bodyVelocity);
 }

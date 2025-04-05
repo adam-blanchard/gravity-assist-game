@@ -3,6 +3,7 @@
 
 #include "body.h"
 #include "ship.h"
+#include "physics.h"
 
 typedef enum
 {
@@ -83,14 +84,11 @@ typedef struct ColourScheme
 } ColourScheme;
 
 void incrementWarp(WarpController *timeScale, float dt);
-
 void decrementWarp(WarpController *timeScale, float dt);
-
 float calculateNormalisedZoom(CameraSettings *settings, float currentZoom);
-
 void freeGameTextures(GameTextures gameTextures);
-
 void spawnShipOnBody(ship_t *ship, celestialbody_t *body, float gameTime);
+void initStartPositions(ship_t **ships, int numShips, celestialbody_t **bodies, int numBodies, float gameTime);
 
 // bool mineResource(CelestialBody *body, CelestialBody *playerShip, Resource *resourceDefinitions, ResourceType type, int amount)
 // {

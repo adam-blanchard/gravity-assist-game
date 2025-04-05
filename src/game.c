@@ -84,3 +84,9 @@ void spawnShipOnBody(ship_t *ship, celestialbody_t *body, float gameTime)
 
     // landShip(ship, body, gameTime);
 }
+
+void initStartPositions(ship_t **ships, int numShips, celestialbody_t **bodies, int numBodies, float gameTime)
+{
+    landShip(ships[0], bodies[0], gameTime);
+    initStableOrbit(ships[1], bodies[0], gameTime);
+}

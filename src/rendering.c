@@ -96,7 +96,7 @@ void drawTrajectories(ship_t **ships, int numShips, ColourScheme *colourScheme)
         {
             continue;
         }
-        for (int j = 0; j < FUTURE_POSITIONS; j++)
+        for (int j = 0; j < ships[i]->trajectorySize; j++)
         {
             if (j > 0)
                 DrawLineV(ships[i]->futurePositions[j - 1], ships[i]->futurePositions[j], colourScheme->orbitColour);

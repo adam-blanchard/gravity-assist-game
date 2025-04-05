@@ -2,7 +2,7 @@
 
 ship_t **initShips(int *numShips)
 {
-    *numShips = 1;
+    *numShips = 2;
     ship_t **ships = malloc(sizeof(ship_t *) * (*numShips));
 
     ships[0] = malloc(sizeof(ship_t));
@@ -16,8 +16,9 @@ ship_t **initShips(int *numShips)
         .thrust = 6e8,
         .thrusterForce = 1,
         .state = SHIP_FLYING,
+        .type = SHIP_ROCKET,
         .isSelected = true,
-        .futurePositions = malloc(sizeof(Vector2) * FUTURE_POSITIONS),
+        .trajectorySize = 36000,
         .drawTrajectory = true,
         .baseTexture = LoadTexture("./textures/ship/ship_1/ship_1.png"),
         .engineTexture = LoadTexture("./textures/ship/ship_1/ship_1_thrust.png"),
@@ -34,6 +35,53 @@ ship_t **initShips(int *numShips)
         .thrusterLeft = false,
         .thrusterRotateRight = false,
         .thrusterRotateLeft = false};
+
+    if (ships[0]->trajectorySize > MAX_FUTURE_POSITIONS)
+    {
+        printf("Ship trajectory size %i is greater than max size %i. Exiting.", ships[0]->trajectorySize, MAX_FUTURE_POSITIONS);
+        exit(0);
+    }
+    ships[0]->futurePositions = malloc(sizeof(Vector2) * ships[0]->trajectorySize);
+    // ships[0]->futurePositions = malloc(sizeof(Vector2) * MAX_FUTURE_POSITIONS);
+
+    ships[1] = malloc(sizeof(ship_t));
+    *ships[1] = (ship_t){
+        .position = (Vector2){0, 0},
+        .velocity = (Vector2){0, 0},
+        .mass = 3e6,
+        .radius = 32.0f,
+        .rotation = 0,
+        .rotationSpeed = 90,
+        .thrust = 0,
+        .thrusterForce = 1,
+        .state = SHIP_FLYING,
+        .type = SHIP_STATION,
+        .isSelected = false,
+        .trajectorySize = 8780,
+        .drawTrajectory = true,
+        .baseTexture = LoadTexture("./textures/ship/ship_1/ship_1.png"),
+        .engineTexture = LoadTexture("./textures/ship/ship_1/ship_1_thrust.png"),
+        .thrusterUpTexture = LoadTexture("./textures/ship/ship_1/ship_1_move_up.png"),
+        .thrusterDownTexture = LoadTexture("./textures/ship/ship_1/ship_1_move_down.png"),
+        .thrusterRightTexture = LoadTexture("./textures/ship/ship_1/ship_1_move_right.png"),
+        .thrusterLeftTexture = LoadTexture("./textures/ship/ship_1/ship_1_move_left.png"),
+        .thrusterRotateRightTexture = LoadTexture("./textures/ship/ship_1/ship_1_rotate_right.png"),
+        .thrusterRotateLeftTexture = LoadTexture("./textures/ship/ship_1/ship_1_rotate_left.png"),
+        .mainEnginesOn = false,
+        .thrusterUp = false,
+        .thrusterDown = false,
+        .thrusterRight = false,
+        .thrusterLeft = false,
+        .thrusterRotateRight = false,
+        .thrusterRotateLeft = false};
+
+    if (ships[1]->trajectorySize > MAX_FUTURE_POSITIONS)
+    {
+        printf("Ship trajectory size %i is greater than max size %i. Exiting.", ships[1]->trajectorySize, MAX_FUTURE_POSITIONS);
+        exit(0);
+    }
+    ships[1]->futurePositions = malloc(sizeof(Vector2) * ships[1]->trajectorySize);
+    // ships[1]->futurePositions = malloc(sizeof(Vector2) * MAX_FUTURE_POSITIONS);
 
     return ships;
 }

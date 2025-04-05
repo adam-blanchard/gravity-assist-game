@@ -133,8 +133,7 @@ int main(void)
                 {
                     ships = initShips(&numShips);
                 }
-                landShip(ships[0], bodies[0], gameTime);
-                // spawnShipOnBody(ships[0], bodies[0], gameTime);
+                initStartPositions(ships, numShips, bodies, numBodies, gameTime);
                 gameState = GAME_RUNNING;
             }
             if (IsKeyPressed(KEY_Q))

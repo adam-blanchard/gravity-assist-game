@@ -16,6 +16,13 @@ typedef enum
 
 typedef enum
 {
+    SHIP_ROCKET,
+    SHIP_BOOSTER,
+    SHIP_STATION
+} ShipType;
+
+typedef enum
+{
     THROTTLE_UP,
     THROTTLE_DOWN
 } ShipThrottle;
@@ -60,9 +67,11 @@ typedef struct Ship
     bool thrusterRotateLeft;
     Texture2D thrusterRotateLeftTexture;
     ShipState state;
+    ShipType type;
     celestialbody_t *landedBody;
     Vector2 landingPosition;
     bool drawTrajectory;
+    int trajectorySize;
     Vector2 *futurePositions;
 } ship_t;
 
