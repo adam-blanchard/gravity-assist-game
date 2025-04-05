@@ -51,6 +51,7 @@ typedef struct Ship
     float fuel;
     float fuelConsumption;
     bool isSelected;
+    float textureScale;
     Texture2D baseTexture;
     bool mainEnginesOn;
     Texture2D engineTexture;

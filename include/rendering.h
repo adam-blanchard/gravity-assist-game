@@ -8,7 +8,7 @@
 #include "ui.h"
 
 void drawBodies(celestialbody_t **bodies, int numBodies);
-void drawShips(ship_t **ships, int numShips);
+void drawShips(ship_t **ships, int numShips, Camera2D *camera, Texture2D *shipLogoTexture);
 void drawOrbits(celestialbody_t **bodies, int numBodies, ColourScheme *colourScheme);
 void drawTrajectories(ship_t **ships, int numShips, ColourScheme *colourScheme);
 void drawStaticGrid(float zoomLevel, int numQuadrants, ColourScheme *colourScheme);

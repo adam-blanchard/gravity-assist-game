@@ -63,6 +63,8 @@ int main(void)
         .compassTexture = LoadTexture("./textures/hud/compass.png"),
         .arrowTexture = LoadTexture("./textures/hud/arrow_2.png")};
 
+    Texture2D shipLogo = LoadTexture("./textures/icons/logo_ship.png");
+
     float gameTime = 0.0f;
 
     // PlayerStats playerStats = {
@@ -160,9 +162,11 @@ int main(void)
 
             if (IsKeyPressed(KEY_C))
             {
+                ships[cameraLock]->isSelected = false;
                 cameraLock++;
                 cameraLock = cameraLock % numShips;
                 cameraLockPosition = &ships[cameraLock]->position;
+                ships[cameraLock]->isSelected = true;
             }
 
             if (IsKeyDown(KEY_LEFT_SHIFT))
@@ -272,7 +276,7 @@ int main(void)
             drawOrbits(bodies, numBodies, currentColourScheme);
             drawTrajectories(ships, numShips, currentColourScheme);
             drawBodies(bodies, numBodies);
-            drawShips(ships, numShips);
+            drawShips(ships, numShips, &camera, &shipLogo);
 
             EndMode2D();
 
@@ -311,6 +315,7 @@ int main(void)
     freeShips(ships, numShips);
     UnloadTexture(playerHUD.compassTexture);
     UnloadTexture(playerHUD.arrowTexture);
+    UnloadTexture(shipLogo);
     // freeGameTextures(gameTextures);
 
     CloseWindow();

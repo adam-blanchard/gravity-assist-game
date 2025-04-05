@@ -22,7 +22,7 @@ void drawBodies(celestialbody_t **bodies, int numBodies)
     }
 }
 
-void drawShips(ship_t **ships, int numShips)
+void drawShips(ship_t **ships, int numShips, Camera2D *camera, Texture2D *shipLogoTexture)
 {
     for (int i = 0; i < numShips; i++)
     {
@@ -36,11 +36,11 @@ void drawShips(ship_t **ships, int numShips)
         Rectangle dest = {
             (float)ships[i]->position.x,
             (float)ships[i]->position.y,
-            (float)ships[i]->baseTexture.width,
-            (float)ships[i]->baseTexture.height};
+            (float)ships[i]->baseTexture.width * ships[i]->textureScale,
+            (float)ships[i]->baseTexture.height * ships[i]->textureScale};
         Vector2 origin = {
-            (float)(ships[i]->baseTexture.width / 2),
-            (float)(ships[i]->baseTexture.height / 2)};
+            (float)((ships[i]->baseTexture.width * ships[i]->textureScale) / 2),
+            (float)((ships[i]->baseTexture.height * ships[i]->textureScale) / 2)};
 
         // Draw base texture
         DrawTexturePro(ships[i]->baseTexture, source, dest, origin, ships[i]->rotation, WHITE);
@@ -72,6 +72,29 @@ void drawShips(ship_t **ships, int numShips)
         if (ships[i]->thrusterRotateLeft)
         {
             DrawTexturePro(ships[i]->thrusterRotateLeftTexture, source, dest, origin, ships[i]->rotation, WHITE);
+        }
+
+        if (camera->zoom <= 0.05)
+        {
+            source = (Rectangle){
+                0,
+                0,
+                (float)shipLogoTexture->width,
+                (float)shipLogoTexture->height};
+
+            // As zoom gets smaller, size of thing is bigger
+            float textureScale = (1 / camera->zoom) + 8;
+
+            dest = (Rectangle){
+                (float)ships[i]->position.x,
+                (float)ships[i]->position.y,
+                (float)shipLogoTexture->width * textureScale,
+                (float)shipLogoTexture->height * textureScale};
+            origin = (Vector2){
+                (float)((shipLogoTexture->width * textureScale) / 2),
+                (float)((shipLogoTexture->height * textureScale) / 2)};
+
+            DrawTexturePro(*shipLogoTexture, source, dest, origin, ships[i]->rotation, WHITE);
         }
     }
 }

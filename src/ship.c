@@ -20,6 +20,7 @@ ship_t **initShips(int *numShips)
         .isSelected = true,
         .trajectorySize = 36000,
         .drawTrajectory = true,
+        .textureScale = 1,
         .baseTexture = LoadTexture("./textures/ship/ship_1/ship_1.png"),
         .engineTexture = LoadTexture("./textures/ship/ship_1/ship_1_thrust.png"),
         .thrusterUpTexture = LoadTexture("./textures/ship/ship_1/ship_1_move_up.png"),
@@ -42,7 +43,6 @@ ship_t **initShips(int *numShips)
         exit(0);
     }
     ships[0]->futurePositions = malloc(sizeof(Vector2) * ships[0]->trajectorySize);
-    // ships[0]->futurePositions = malloc(sizeof(Vector2) * MAX_FUTURE_POSITIONS);
 
     ships[1] = malloc(sizeof(ship_t));
     *ships[1] = (ship_t){
@@ -59,14 +59,14 @@ ship_t **initShips(int *numShips)
         .isSelected = false,
         .trajectorySize = 8780,
         .drawTrajectory = true,
-        .baseTexture = LoadTexture("./textures/ship/ship_1/ship_1.png"),
-        .engineTexture = LoadTexture("./textures/ship/ship_1/ship_1_thrust.png"),
-        .thrusterUpTexture = LoadTexture("./textures/ship/ship_1/ship_1_move_up.png"),
-        .thrusterDownTexture = LoadTexture("./textures/ship/ship_1/ship_1_move_down.png"),
-        .thrusterRightTexture = LoadTexture("./textures/ship/ship_1/ship_1_move_right.png"),
-        .thrusterLeftTexture = LoadTexture("./textures/ship/ship_1/ship_1_move_left.png"),
-        .thrusterRotateRightTexture = LoadTexture("./textures/ship/ship_1/ship_1_rotate_right.png"),
-        .thrusterRotateLeftTexture = LoadTexture("./textures/ship/ship_1/ship_1_rotate_left.png"),
+        .textureScale = 3,
+        .baseTexture = LoadTexture("./textures/ship/station_1/station_1_base.png"),
+        .thrusterUpTexture = LoadTexture("./textures/ship/station_1/station_1_move_up.png"),
+        .thrusterDownTexture = LoadTexture("./textures/ship/station_1/station_1_move_down.png"),
+        .thrusterRightTexture = LoadTexture("./textures/ship/station_1/station_1_move_right.png"),
+        .thrusterLeftTexture = LoadTexture("./textures/ship/station_1/station_1_move_left.png"),
+        .thrusterRotateRightTexture = LoadTexture("./textures/ship/station_1/station_1_rotate_right.png"),
+        .thrusterRotateLeftTexture = LoadTexture("./textures/ship/station_1/station_1_rotate_left.png"),
         .mainEnginesOn = false,
         .thrusterUp = false,
         .thrusterDown = false,
@@ -81,7 +81,6 @@ ship_t **initShips(int *numShips)
         exit(0);
     }
     ships[1]->futurePositions = malloc(sizeof(Vector2) * ships[1]->trajectorySize);
-    // ships[1]->futurePositions = malloc(sizeof(Vector2) * MAX_FUTURE_POSITIONS);
 
     return ships;
 }
@@ -97,7 +96,10 @@ void freeShips(ship_t **ships, int numShips)
                 free(ships[i]->futurePositions);
             }
             UnloadTexture(ships[i]->baseTexture);
-            UnloadTexture(ships[i]->engineTexture);
+            if (ships[i]->type != SHIP_STATION)
+            {
+                UnloadTexture(ships[i]->engineTexture);
+            }
             UnloadTexture(ships[i]->thrusterUpTexture);
             UnloadTexture(ships[i]->thrusterDownTexture);
             UnloadTexture(ships[i]->thrusterRightTexture);
@@ -131,7 +133,7 @@ void handleThrottle(ship_t **ships, int numShips, float dt, ShipThrottle throttl
 {
     for (int i = 0; i < numShips; i++)
     {
-        if (!ships[i]->isSelected)
+        if (!ships[i]->isSelected || ships[i]->type == SHIP_STATION)
         {
             continue;
         }
