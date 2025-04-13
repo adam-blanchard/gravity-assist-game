@@ -56,7 +56,7 @@ int main(void)
         .val = 1.0f,
         .increment = 1.5f,
         .min = 1.0f,
-        .max = 32.0f};
+        .max = 64.0f};
 
     HUD playerHUD = {
         .speed = 0.0f,
@@ -91,31 +91,6 @@ int main(void)
 
     int velocityLock = 0;
     celestialbody_t *velocityTarget = NULL;
-
-    // GameTextures gameTextures = {0};
-
-    // Texture2D starTexture1 = LoadTexture("./textures/star/sun.png");
-    // gameTextures.numStarTextures = 1;
-    // gameTextures.starTextures = malloc(sizeof(Texture2D *) * (gameTextures.numStarTextures));
-    // gameTextures.starTextures[0] = &starTexture1;
-
-    // Texture2D planetTexture1 = LoadTexture("./textures/planet/planet_1.png");
-    // Texture2D planetTexture2 = LoadTexture("./textures/planet/planet_2.png");
-    // Texture2D planetTexture3 = LoadTexture("./textures/planet/planet_3.png");
-    // Texture2D planetTexture4 = LoadTexture("./textures/planet/planet_4.png");
-    // Texture2D planetTexture5 = LoadTexture("./textures/planet/planet_5.png");
-    // gameTextures.numPlanetTextures = 5;
-    // gameTextures.planetTextures = malloc(sizeof(Texture2D *) * (gameTextures.numPlanetTextures));
-    // gameTextures.planetTextures[0] = &planetTexture1;
-    // gameTextures.planetTextures[1] = &planetTexture2;
-    // gameTextures.planetTextures[2] = &planetTexture3;
-    // gameTextures.planetTextures[3] = &planetTexture4;
-    // gameTextures.planetTextures[4] = &planetTexture5;
-
-    // Texture2D moonTexture1 = LoadTexture("./textures/moon/moon_1.png");
-    // gameTextures.numMoonTextures = 1;
-    // gameTextures.moonTextures = malloc(sizeof(Texture2D *) * (gameTextures.numMoonTextures));
-    // gameTextures.moonTextures[0] = &moonTexture1;
 
     while (!WindowShouldClose())
     {
@@ -204,6 +179,10 @@ int main(void)
             if (IsKeyDown(KEY_S))
             {
                 handleThruster(ships, numShips, scaledDt, THRUSTER_DOWN);
+            }
+            if (IsKeyDown(KEY_X))
+            {
+                cutEngines(ships, numShips);
             }
 
             if (IsKeyPressed(KEY_T))

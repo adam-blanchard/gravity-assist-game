@@ -82,6 +82,7 @@ void takeoffShip(ship_t *ship);
 void handleThrottle(ship_t **ships, int numShips, float dt, ShipThrottle throttleCommand);
 void handleThruster(ship_t **ships, int numShips, float dt, ShipMovement thrusterCommand);
 void handleRotation(ship_t **ships, int numShips, float dt, ShipMovement direction);
+void cutEngines(ship_t **ships, int numShips);
 void toggleDrawTrajectory(ship_t **ships, int numShips);
 void updateShipTextureFlags(ship_t **ships, int numShips);
 

@@ -211,6 +211,18 @@ void handleRotation(ship_t **ships, int numShips, float dt, ShipMovement directi
     }
 }
 
+void cutEngines(ship_t **ships, int numShips)
+{
+    for (int i = 0; i < numShips; i++)
+    {
+        if (!ships[i]->isSelected)
+        {
+            continue;
+        }
+        ships[i]->throttle = 0;
+    }
+}
+
 void toggleDrawTrajectory(ship_t **ships, int numShips)
 {
     for (int i = 0; i < numShips; i++)
