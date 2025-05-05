@@ -85,6 +85,12 @@ ship_t **initShips(int *numShips)
     return ships;
 }
 
+void serialiseShip(ship_t *ship, FILE *file) {
+    // TODO: finish this logic
+    fwrite(&ship->position, sizeof(Vector2), 1, file);
+    fwrite(&ship->velocity, sizeof(Vector2), 1, file);
+}
+
 void freeShips(ship_t **ships, int numShips)
 {
     if (ships)

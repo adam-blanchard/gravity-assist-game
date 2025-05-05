@@ -80,12 +80,6 @@ int main(void)
     gameState.numShips = 0;
     gameState.ships = NULL;
 
-    // int numBodies = 0;
-    // celestialbody_t **bodies = NULL;
-
-    // int numShips = 0;
-    // ship_t **ships = NULL;
-
     int cameraLock = 0;
     Vector2 *cameraLockPosition = NULL;
     camera.target = (Vector2){0, 0};
@@ -101,11 +95,24 @@ int main(void)
         switch (screenState)
         {
         case GAME_HOME:
-            if (IsKeyPressed(KEY_ENTER))
+            if (IsKeyPressed(KEY_ENTER) && !IsKeyDown(KEY_LEFT_SHIFT))
             {
-                initNewGame(&gameState, &screenState);
+                initNewGame(&gameState);
+                screenState = GAME_RUNNING;
                 velocityTarget = gameState.bodies[0];
             }
+
+            if (IsKeyPressed(KEY_ENTER) && IsKeyDown(KEY_LEFT_SHIFT)) {
+                if (!loadGame("gas_save_1.dat", &gameState)) {
+                    printf("could not load saved game");
+                    CloseWindow();
+                    return 0;
+                }
+                printf("loading saved game\n");
+                screenState = GAME_RUNNING;
+                velocityTarget = gameState.bodies[0];
+            }
+
             if (IsKeyPressed(KEY_Q))
             {
                 CloseWindow();
@@ -204,14 +211,6 @@ int main(void)
             detectCollisions(gameState.ships, gameState.numShips, gameState.bodies, gameState.numBodies, gameState.gameTime);
             calculateShipFuturePositions(gameState.ships, gameState.numShips, gameState.bodies, gameState.numBodies, gameState.gameTime);
 
-            // Vector2 earthVelocity = calculateBodyVelocity(bodies[1], gameTime);
-            // printf("Earth velocity\nx: %.2f\ny: %.2f\n", earthVelocity.x, earthVelocity.y);
-
-            // if (IsKeyPressed(KEY_M) && playerShip->shipSettings.landedBody != NULL)
-            // {
-            //     mineResource(playerShip->shipSettings.landedBody, playerShip, globalResources, RESOURCE_GOLD_ORE, 1);
-            // }
-
             playerHUD.speed = calculateRelativeSpeed(gameState.ships[0], velocityTarget, gameState.gameTime);
             playerHUD.playerRotation = gameState.ships[0]->rotation;
             playerHUD.velocityTarget = velocityTarget;
@@ -223,6 +222,12 @@ int main(void)
             {
                 screenState = GAME_RUNNING;
             }
+
+            if (IsKeyPressed(KEY_S))
+            {
+                saveGame("gas_save_1.dat", &gameState);
+            }
+
             if (IsKeyPressed(KEY_Q))
             {
                 CloseWindow();
@@ -286,7 +291,8 @@ int main(void)
                 DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(GRAY, 0.5f));
                 DrawText("Game Paused", GetScreenWidth() / 2 - MeasureText("Game Paused", 40) / 2, 200, 40, WHITE);
                 DrawText("Press ESC to Resume", GetScreenWidth() / 2 - MeasureText("Press ESC to Resume", 20) / 2, 300, 20, WHITE);
-                DrawText("Press Q to Quit", GetScreenWidth() / 2 - MeasureText("Press Q to Quit", 20) / 2, 340, 20, WHITE);
+                DrawText("Press S to Save", GetScreenWidth() / 2 - MeasureText("Press S to Save", 20) / 2, 340, 20, WHITE);
+                DrawText("Press Q to Quit", GetScreenWidth() / 2 - MeasureText("Press Q to Quit", 20) / 2, 380, 20, WHITE);
                 DrawText("Press 'C' to switch camera", 10, 40, 20, WHITE);
                 DrawText("Press '.' and ',' to time warp", 10, 70, 20, WHITE);
                 DrawText("Scroll to zoom", 10, 100, 20, WHITE);
@@ -302,15 +308,7 @@ int main(void)
     UnloadTexture(playerHUD.compassTexture);
     UnloadTexture(playerHUD.arrowTexture);
     UnloadTexture(shipLogo);
-    // freeGameTextures(gameTextures);
 
     CloseWindow();
     return 0;
 }
-
-// void DrawGame(void) {
-//     BeginDrawing();
-
-//     ClearBackground(SPACE_COLOUR);
-
-// }

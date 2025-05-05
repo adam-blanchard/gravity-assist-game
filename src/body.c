@@ -46,6 +46,13 @@ celestialbody_t **initBodies(int *numBodies)
     return bodies;
 }
 
+void serialiseBody(celestialbody_t *body, FILE *file) {
+    // TODO: finish this logic
+    fwrite(&body->position, sizeof(Vector2), 1, file);
+    fwrite(&body->mass, sizeof(float), 1, file);
+    fwrite(&body->radius, sizeof(float), 1, file);
+}
+
 void freeCelestialBodies(celestialbody_t **bodies, int numBodies)
 {
     if (bodies)

@@ -39,9 +39,8 @@ typedef struct CelestialBody
 } celestialbody_t;
 
 float getBodyAngle(celestialbody_t *body, float gameTime);
-
 celestialbody_t **initBodies(int *numBodies);
-
+void serialiseBody(celestialbody_t *body, FILE *file);
 void freeCelestialBodies(celestialbody_t **bodies, int numBodies);
 
 #endif

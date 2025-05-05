@@ -81,7 +81,7 @@ typedef struct GameState {
 
 void saveGame(char* filename, gamestate_t* state);
 bool loadGame(char* filename, gamestate_t* state);
-void initNewGame(gamestate_t* gameState, ScreenState* screenState);
+void initNewGame(gamestate_t* gameState);
 void incrementWarp(WarpController *timeScale, float dt);
 void decrementWarp(WarpController *timeScale, float dt);
 float calculateNormalisedZoom(CameraSettings *settings, float currentZoom);

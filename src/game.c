@@ -2,14 +2,36 @@
 
 void saveGame(char* filename, gamestate_t* state) {
     // Takes the current state of the game and saves to a local binary
+    // Game state contains pointers, so we need to write all the data so it can be read and allocated by the loading function
+    /*
+        typedef struct GameState {
+            float gameTime;
+            int numBodies;
+            celestialbody_t **bodies;
+            int numShips;
+            ship_t **ships;
+        } gamestate_t;
+    */
+    
     FILE* file = fopen(filename, "wb"); // Open file in binary write mode
     if (file == NULL) {
         TraceLog(LOG_ERROR, "Failed to open file for saving: %s", filename);
         return;
     }
 
-    // Write the entire gamestate_t struct to the file
-    fwrite(state, sizeof(gamestate_t), 1, file);
+    fwrite(&state->gameTime, sizeof(float), 1, file);
+    fwrite(&state->numBodies, sizeof(int), 1, file);
+    fwrite(&state->numShips, sizeof(int), 1, file);
+
+    for (int i = 0; i < state->numBodies; i++) {
+        celestialbody_t* body = state->bodies[i];
+        serialiseBody(body, file);
+    }
+
+    for (int i = 0; i < state->numShips; i++) {
+        ship_t* ship = state->ships[i];
+        serialiseShip(ship, file);
+    }
 
     fclose(file);
     TraceLog(LOG_INFO, "Game state saved to %s", filename);
@@ -35,18 +57,16 @@ bool loadGame(char* filename, gamestate_t* state) {
     return true;
 }
 
-void initNewGame(gamestate_t* gameState, ScreenState* screenState) {
+void initNewGame(gamestate_t* gameState) {
     if (!gameState->bodies)
     {
         gameState->bodies = initBodies(&gameState->numBodies);
-        // velocityTarget = gameState.bodies[0];
     }
     if (!gameState->ships)
     {
         gameState->ships = initShips(&gameState->numShips);
     }
     initStartPositions(gameState->ships, gameState->numShips, gameState->bodies, gameState->numBodies, gameState->gameTime);
-    *screenState = GAME_RUNNING;
 }
 
 void incrementWarp(WarpController *timeScale, float dt)
