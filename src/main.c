@@ -26,7 +26,7 @@ int main(void)
     int wMid = screenWidth / 2;
     int hMid = screenHeight / 2;
 
-    GameState gameState = GAME_HOME;
+    ScreenState screenState = GAME_HOME;
 
     ColourScheme colourSchemes[COLOUR_COUNT];
     colourSchemes[0] = (ColourScheme){
@@ -96,7 +96,7 @@ int main(void)
     {
         float dt = GetFrameTime();
 
-        switch (gameState)
+        switch (screenState)
         {
         case GAME_HOME:
             if (IsKeyPressed(KEY_ENTER))
@@ -111,7 +111,7 @@ int main(void)
                     ships = initShips(&numShips);
                 }
                 initStartPositions(ships, numShips, bodies, numBodies, gameTime);
-                gameState = GAME_RUNNING;
+                screenState = GAME_RUNNING;
             }
             if (IsKeyPressed(KEY_Q))
             {
@@ -132,7 +132,7 @@ int main(void)
 
             if (IsKeyPressed(KEY_ESCAPE))
             {
-                gameState = GAME_PAUSED;
+                screenState = GAME_PAUSED;
             }
 
             if (IsKeyPressed(KEY_C))
@@ -228,7 +228,7 @@ int main(void)
         case GAME_PAUSED:
             if (IsKeyPressed(KEY_ESCAPE))
             {
-                gameState = GAME_RUNNING;
+                screenState = GAME_RUNNING;
             }
             if (IsKeyPressed(KEY_Q))
             {
@@ -242,7 +242,7 @@ int main(void)
         BeginDrawing();
         ClearBackground(currentColourScheme->spaceColour);
 
-        if (gameState == GAME_HOME)
+        if (screenState == GAME_HOME)
         {
             DrawText("Gravity Assist", GetScreenWidth() / 2 - MeasureText("Gravity Assist", 40) / 2, 200, 40, WHITE);
             DrawText("Press ENTER to Start", GetScreenWidth() / 2 - MeasureText("Press ENTER to Start", 20) / 2, 300, 20, WHITE);
@@ -274,7 +274,7 @@ int main(void)
 
             DrawText(TextFormat("Ship throttle: %.2fpct", ships[0]->throttle), screenWidth - 250, 130, 20, DARKGRAY);
 
-            if (gameState == GAME_PAUSED)
+            if (screenState == GAME_PAUSED)
             {
                 DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(GRAY, 0.5f));
                 DrawText("Game Paused", GetScreenWidth() / 2 - MeasureText("Game Paused", 40) / 2, 200, 40, WHITE);

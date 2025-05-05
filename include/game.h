@@ -17,42 +17,7 @@ typedef enum
     GAME_HOME,
     GAME_RUNNING,
     GAME_PAUSED
-} GameState;
-
-typedef enum
-{
-    RESOURCE_WATER_ICE = 0,
-    RESOURCE_COPPER_ORE,
-    RESOURCE_IRON_ORE,
-    RESOURCE_GOLD_ORE,
-    RESOURCE_COUNT // This tracks the number of resources and simplifies future additions
-} ResourceType;
-
-typedef struct
-{
-    ResourceType type;
-    char name[32]; // Name of the resource (e.g., "Water Ice")
-    float weight;  // Weight per unit (e.g., for ship capacity limits)
-    int value;     // Value for trading or crafting
-} Resource;
-
-typedef struct InventoryResource
-{
-    int resourceId; // Corresponds to ResourceType
-    int quantity;   // Amount available on the CelestialBody
-} InventoryResource;
-
-typedef struct GameTextures
-{
-    int numStarTextures;
-    Texture2D **starTextures;
-    int numPlanetTextures;
-    Texture2D **planetTextures;
-    int numMoonTextures;
-    Texture2D **moonTextures;
-    int numShipTextures;
-    Texture2D **shipTextures;
-} GameTextures;
+} ScreenState;
 
 typedef struct
 {
@@ -83,10 +48,42 @@ typedef struct ColourScheme
     Color orbitColour;
 } ColourScheme;
 
+typedef struct GameState {
+    float gameTime;
+    int numBodies;
+    celestialbody_t **bodies;
+    int numShips;
+    ship_t **ships;
+} gamestate_t;
+
+// typedef enum
+// {
+//     RESOURCE_WATER_ICE = 0,
+//     RESOURCE_COPPER_ORE,
+//     RESOURCE_IRON_ORE,
+//     RESOURCE_GOLD_ORE,
+//     RESOURCE_COUNT // This tracks the number of resources and simplifies future additions
+// } ResourceType;
+
+// typedef struct
+// {
+//     ResourceType type;
+//     char name[32]; // Name of the resource (e.g., "Water Ice")
+//     float weight;  // Weight per unit (e.g., for ship capacity limits)
+//     int value;     // Value for trading or crafting
+// } Resource;
+
+// typedef struct InventoryResource
+// {
+//     int resourceId; // Corresponds to ResourceType
+//     int quantity;   // Amount available on the CelestialBody
+// } InventoryResource;
+
+void saveGame(char* filename, gamestate_t* state);
+bool loadGame(char* filename, gamestate_t* state);
 void incrementWarp(WarpController *timeScale, float dt);
 void decrementWarp(WarpController *timeScale, float dt);
 float calculateNormalisedZoom(CameraSettings *settings, float currentZoom);
-void freeGameTextures(GameTextures gameTextures);
 void spawnShipOnBody(ship_t *ship, celestialbody_t *body, float gameTime);
 void initStartPositions(ship_t **ships, int numShips, celestialbody_t **bodies, int numBodies, float gameTime);
 

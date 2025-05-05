@@ -1,5 +1,40 @@
 #include "game.h"
 
+void saveGame(char* filename, gamestate_t* state) {
+    // Takes the current state of the game and saves to a local binary
+    FILE* file = fopen(filename, "wb"); // Open file in binary write mode
+    if (file == NULL) {
+        TraceLog(LOG_ERROR, "Failed to open file for saving: %s", filename);
+        return;
+    }
+
+    // Write the entire gamestate_t struct to the file
+    fwrite(state, sizeof(gamestate_t), 1, file);
+
+    fclose(file);
+    TraceLog(LOG_INFO, "Game state saved to %s", filename);
+}
+
+bool loadGame(char* filename, gamestate_t* state) {
+    FILE* file = fopen(filename, "rb"); // Open file in binary read mode
+    if (file == NULL) {
+        TraceLog(LOG_ERROR, "Failed to open file for loading: %s", filename);
+        return false;
+    }
+
+    // Read the gamestate_t struct from the file
+    size_t read = fread(state, sizeof(gamestate_t), 1, file);
+    fclose(file);
+
+    if (read != 1) {
+        TraceLog(LOG_ERROR, "Failed to read game state from %s", filename);
+        return false;
+    }
+
+    TraceLog(LOG_INFO, "Game state loaded from %s", filename);
+    return true;
+}
+
 void incrementWarp(WarpController *timeScale, float dt)
 {
     timeScale->val += timeScale->increment * timeScale->val * dt;
@@ -40,41 +75,6 @@ float calculateNormalisedZoom(CameraSettings *settings, float currentZoom)
 
 //     return true;
 // }
-
-void freeGameTextures(GameTextures gameTextures)
-{
-    if (
-        gameTextures.numStarTextures > 0 || gameTextures.numPlanetTextures > 0 || gameTextures.numMoonTextures > 0 || gameTextures.numShipTextures > 0)
-    {
-        for (int i = 0; i < gameTextures.numStarTextures; i++)
-        {
-            UnloadTexture(*gameTextures.starTextures[i]);
-            free(gameTextures.starTextures[i]);
-        }
-        free(gameTextures.starTextures);
-
-        for (int i = 0; i < gameTextures.numPlanetTextures; i++)
-        {
-            UnloadTexture(*gameTextures.planetTextures[i]);
-            free(gameTextures.planetTextures[i]);
-        }
-        free(gameTextures.planetTextures);
-
-        for (int i = 0; i < gameTextures.numMoonTextures; i++)
-        {
-            UnloadTexture(*gameTextures.moonTextures[i]);
-            free(gameTextures.moonTextures[i]);
-        }
-        free(gameTextures.moonTextures);
-
-        for (int i = 0; i < gameTextures.numShipTextures; i++)
-        {
-            UnloadTexture(*gameTextures.shipTextures[i]);
-            free(gameTextures.shipTextures[i]);
-        }
-        free(gameTextures.shipTextures);
-    }
-}
 
 void spawnShipOnBody(ship_t *ship, celestialbody_t *body, float gameTime)
 {
