@@ -27,6 +27,7 @@ int main(void)
     int hMid = screenHeight / 2;
 
     ScreenState screenState = GAME_HOME;
+    gamestate_t gameState = {0};
 
     ColourScheme colourSchemes[COLOUR_COUNT];
     colourSchemes[0] = (ColourScheme){
@@ -65,7 +66,7 @@ int main(void)
 
     Texture2D shipLogo = LoadTexture("./textures/icons/logo_ship.png");
 
-    float gameTime = 0.0f;
+    gameState.gameTime = 0.0f;
 
     // PlayerStats playerStats = {
     //     .money = 0,
@@ -110,7 +111,8 @@ int main(void)
                 {
                     ships = initShips(&numShips);
                 }
-                initStartPositions(ships, numShips, bodies, numBodies, gameTime);
+                // initStartPositions(gameState);
+                initStartPositions(ships, numShips, bodies, numBodies, gameState.gameTime);
                 screenState = GAME_RUNNING;
             }
             if (IsKeyPressed(KEY_Q))
@@ -128,7 +130,7 @@ int main(void)
 
             float scaledDt = dt * timeScale.val;
 
-            gameTime += scaledDt;
+            gameState.gameTime += scaledDt;
 
             if (IsKeyPressed(KEY_ESCAPE))
             {
@@ -203,13 +205,13 @@ int main(void)
             camera.zoom += (float)GetMouseWheelMove() * (1e-5f + camera.zoom * (camera.zoom / 4.0f));
             camera.zoom = Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
 
-            updateCelestialPositions(bodies, numBodies, gameTime);
+            updateCelestialPositions(bodies, numBodies, gameState.gameTime);
             updateShipPositions(ships, numShips, bodies, numBodies, scaledDt);
 
-            updateLandedShipPosition(ships, numShips, gameTime);
+            updateLandedShipPosition(ships, numShips, gameState.gameTime);
 
-            detectCollisions(ships, numShips, bodies, numBodies, gameTime);
-            calculateShipFuturePositions(ships, numShips, bodies, numBodies, gameTime);
+            detectCollisions(ships, numShips, bodies, numBodies, gameState.gameTime);
+            calculateShipFuturePositions(ships, numShips, bodies, numBodies, gameState.gameTime);
 
             // Vector2 earthVelocity = calculateBodyVelocity(bodies[1], gameTime);
             // printf("Earth velocity\nx: %.2f\ny: %.2f\n", earthVelocity.x, earthVelocity.y);
@@ -219,7 +221,7 @@ int main(void)
             //     mineResource(playerShip->shipSettings.landedBody, playerShip, globalResources, RESOURCE_GOLD_ORE, 1);
             // }
 
-            playerHUD.speed = calculateRelativeSpeed(ships[0], velocityTarget, gameTime);
+            playerHUD.speed = calculateRelativeSpeed(ships[0], velocityTarget, gameState.gameTime);
             playerHUD.playerRotation = ships[0]->rotation;
             playerHUD.velocityTarget = velocityTarget;
 
