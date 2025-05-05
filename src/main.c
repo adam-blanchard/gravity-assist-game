@@ -68,22 +68,23 @@ int main(void)
 
     gameState.gameTime = 0.0f;
 
-    // PlayerStats playerStats = {
-    //     .money = 0,
-    //     .miningXP = 0
-    // };
-
     // Resource globalResources[RESOURCE_COUNT] = {
     //     {.type = RESOURCE_WATER_ICE, .name = "Water Ice", .weight = 1.0f, .value = 10},
     //     {.type = RESOURCE_COPPER_ORE, .name = "Copper Ore", .weight = 2.0f, .value = 20},
     //     {.type = RESOURCE_IRON_ORE, .name = "Iron Ore", .weight = 2.5f, .value = 25},
     //     {.type = RESOURCE_GOLD_ORE, .name = "Gold Ore", .weight = 3.0f, .value = 100}};
 
-    int numBodies = 0;
-    celestialbody_t **bodies = NULL;
+    gameState.numBodies = 0;
+    gameState.bodies = NULL;
 
-    int numShips = 0;
-    ship_t **ships = NULL;
+    gameState.numShips = 0;
+    gameState.ships = NULL;
+
+    // int numBodies = 0;
+    // celestialbody_t **bodies = NULL;
+
+    // int numShips = 0;
+    // ship_t **ships = NULL;
 
     int cameraLock = 0;
     Vector2 *cameraLockPosition = NULL;
@@ -102,17 +103,17 @@ int main(void)
         case GAME_HOME:
             if (IsKeyPressed(KEY_ENTER))
             {
-                if (!bodies)
+                if (!gameState.bodies)
                 {
-                    bodies = initBodies(&numBodies);
-                    velocityTarget = bodies[0];
+                    gameState.bodies = initBodies(&gameState.numBodies);
+                    velocityTarget = gameState.bodies[0];
                 }
-                if (!ships)
+                if (!gameState.ships)
                 {
-                    ships = initShips(&numShips);
+                    gameState.ships = initShips(&gameState.numShips);
                 }
                 // initStartPositions(gameState);
-                initStartPositions(ships, numShips, bodies, numBodies, gameState.gameTime);
+                initStartPositions(gameState.ships, gameState.numShips, gameState.bodies, gameState.numBodies, gameState.gameTime);
                 screenState = GAME_RUNNING;
             }
             if (IsKeyPressed(KEY_Q))
@@ -139,79 +140,79 @@ int main(void)
 
             if (IsKeyPressed(KEY_C))
             {
-                ships[cameraLock]->isSelected = false;
+                gameState.ships[cameraLock]->isSelected = false;
                 cameraLock++;
-                cameraLock = cameraLock % numShips;
-                cameraLockPosition = &ships[cameraLock]->position;
-                ships[cameraLock]->isSelected = true;
+                cameraLock = cameraLock % gameState.numShips;
+                cameraLockPosition = &gameState.ships[cameraLock]->position;
+                gameState.ships[cameraLock]->isSelected = true;
             }
 
             if (IsKeyDown(KEY_LEFT_SHIFT))
             {
-                handleThrottle(ships, numShips, scaledDt, THROTTLE_UP);
+                handleThrottle(gameState.ships, gameState.numShips, scaledDt, THROTTLE_UP);
             }
             if (IsKeyDown(KEY_LEFT_CONTROL))
             {
-                handleThrottle(ships, numShips, scaledDt, THROTTLE_DOWN);
+                handleThrottle(gameState.ships, gameState.numShips, scaledDt, THROTTLE_DOWN);
             }
 
             // Sets engine texture and resets thruster flags before input
-            updateShipTextureFlags(ships, numShips);
+            updateShipTextureFlags(gameState.ships, gameState.numShips);
 
             if (IsKeyDown(KEY_D))
             {
-                handleRotation(ships, numShips, scaledDt, ROTATION_RIGHT);
+                handleRotation(gameState.ships, gameState.numShips, scaledDt, ROTATION_RIGHT);
             }
             if (IsKeyDown(KEY_A))
             {
-                handleRotation(ships, numShips, scaledDt, ROTATION_LEFT);
+                handleRotation(gameState.ships, gameState.numShips, scaledDt, ROTATION_LEFT);
             }
             if (IsKeyDown(KEY_E))
             {
-                handleThruster(ships, numShips, scaledDt, THRUSTER_RIGHT);
+                handleThruster(gameState.ships, gameState.numShips, scaledDt, THRUSTER_RIGHT);
             }
             if (IsKeyDown(KEY_Q))
             {
-                handleThruster(ships, numShips, scaledDt, THRUSTER_LEFT);
+                handleThruster(gameState.ships, gameState.numShips, scaledDt, THRUSTER_LEFT);
             }
             if (IsKeyDown(KEY_W))
             {
-                handleThruster(ships, numShips, scaledDt, THRUSTER_UP);
+                handleThruster(gameState.ships, gameState.numShips, scaledDt, THRUSTER_UP);
             }
             if (IsKeyDown(KEY_S))
             {
-                handleThruster(ships, numShips, scaledDt, THRUSTER_DOWN);
+                handleThruster(gameState.ships, gameState.numShips, scaledDt, THRUSTER_DOWN);
             }
             if (IsKeyDown(KEY_X))
             {
-                cutEngines(ships, numShips);
+                cutEngines(gameState.ships, gameState.numShips);
             }
 
             if (IsKeyPressed(KEY_T))
             {
-                toggleDrawTrajectory(ships, numShips);
+                toggleDrawTrajectory(gameState.ships, gameState.numShips);
             }
 
             if (IsKeyPressed(KEY_V))
             {
                 velocityLock++;
-                velocityLock = velocityLock % numBodies;
-                velocityTarget = bodies[velocityLock];
+                velocityLock = velocityLock % gameState.numBodies;
+                velocityTarget = gameState.bodies[velocityLock];
             }
 
-            cameraLockPosition = &ships[cameraLock]->position;
+            cameraLockPosition = &gameState.ships[cameraLock]->position;
             camera.target = *cameraLockPosition;
 
             camera.zoom += (float)GetMouseWheelMove() * (1e-5f + camera.zoom * (camera.zoom / 4.0f));
             camera.zoom = Clamp(camera.zoom, cameraSettings.minZoom, cameraSettings.maxZoom);
 
-            updateCelestialPositions(bodies, numBodies, gameState.gameTime);
-            updateShipPositions(ships, numShips, bodies, numBodies, scaledDt);
+            updateCelestialPositions(gameState.bodies, gameState.numBodies, gameState.gameTime);
+            updateShipPositions(gameState.ships, gameState.numShips, gameState.bodies, gameState.numBodies, scaledDt);
 
-            updateLandedShipPosition(ships, numShips, gameState.gameTime);
+            updateLandedShipPosition(gameState.ships, gameState.numShips, gameState.gameTime);
 
-            detectCollisions(ships, numShips, bodies, numBodies, gameState.gameTime);
-            calculateShipFuturePositions(ships, numShips, bodies, numBodies, gameState.gameTime);
+            detectCollisions(gameState.ships, gameState.numShips, gameState.bodies, gameState.numBodies, gameState.gameTime);
+            calculateShipFuturePositions(gameState.ships, gameState.numShips, gameState.bodies, gameState.numBodies, gameState.gameTime);
 
             // Vector2 earthVelocity = calculateBodyVelocity(bodies[1], gameTime);
             // printf("Earth velocity\nx: %.2f\ny: %.2f\n", earthVelocity.x, earthVelocity.y);
@@ -221,8 +222,8 @@ int main(void)
             //     mineResource(playerShip->shipSettings.landedBody, playerShip, globalResources, RESOURCE_GOLD_ORE, 1);
             // }
 
-            playerHUD.speed = calculateRelativeSpeed(ships[0], velocityTarget, gameState.gameTime);
-            playerHUD.playerRotation = ships[0]->rotation;
+            playerHUD.speed = calculateRelativeSpeed(gameState.ships[0], velocityTarget, gameState.gameTime);
+            playerHUD.playerRotation = gameState.ships[0]->rotation;
             playerHUD.velocityTarget = velocityTarget;
 
             break;
@@ -260,11 +261,11 @@ int main(void)
         else
         {
             BeginMode2D(camera);
-            drawCelestialGrid(bodies, numBodies, camera, currentColourScheme);
-            drawOrbits(bodies, numBodies, currentColourScheme);
-            drawTrajectories(ships, numShips, currentColourScheme);
-            drawBodies(bodies, numBodies);
-            drawShips(ships, numShips, &camera, &shipLogo);
+            drawCelestialGrid(gameState.bodies, gameState.numBodies, camera, currentColourScheme);
+            drawOrbits(gameState.bodies, gameState.numBodies, currentColourScheme);
+            drawTrajectories(gameState.ships, gameState.numShips, currentColourScheme);
+            drawBodies(gameState.bodies, gameState.numBodies);
+            drawShips(gameState.ships, gameState.numShips, &camera, &shipLogo);
 
             EndMode2D();
 
@@ -281,7 +282,7 @@ int main(void)
             // DrawText(TextFormat("Zoom Level: %.3fx", calculateNormalisedZoom(&cameraSettings, camera.zoom)), screenWidth - 200, 100, 20, DARKGRAY);
             DrawText(TextFormat("Camera zoom: %.6fx", camera.zoom), screenWidth - 250, 100, 20, DARKGRAY);
 
-            DrawText(TextFormat("Ship throttle: %.2fpct", ships[0]->throttle), screenWidth - 250, 130, 20, DARKGRAY);
+            DrawText(TextFormat("Ship throttle: %.2fpct", gameState.ships[0]->throttle), screenWidth - 250, 130, 20, DARKGRAY);
 
             if (screenState == GAME_PAUSED)
             {
@@ -299,8 +300,8 @@ int main(void)
         EndDrawing();
     }
 
-    freeCelestialBodies(bodies, numBodies);
-    freeShips(ships, numShips);
+    freeCelestialBodies(gameState.bodies, gameState.numBodies);
+    freeShips(gameState.ships, gameState.numShips);
     UnloadTexture(playerHUD.compassTexture);
     UnloadTexture(playerHUD.arrowTexture);
     UnloadTexture(shipLogo);
