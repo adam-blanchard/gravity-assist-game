@@ -103,18 +103,8 @@ int main(void)
         case GAME_HOME:
             if (IsKeyPressed(KEY_ENTER))
             {
-                if (!gameState.bodies)
-                {
-                    gameState.bodies = initBodies(&gameState.numBodies);
-                    velocityTarget = gameState.bodies[0];
-                }
-                if (!gameState.ships)
-                {
-                    gameState.ships = initShips(&gameState.numShips);
-                }
-                // initStartPositions(gameState);
-                initStartPositions(gameState.ships, gameState.numShips, gameState.bodies, gameState.numBodies, gameState.gameTime);
-                screenState = GAME_RUNNING;
+                initNewGame(&gameState, &screenState);
+                velocityTarget = gameState.bodies[0];
             }
             if (IsKeyPressed(KEY_Q))
             {

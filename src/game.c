@@ -35,6 +35,20 @@ bool loadGame(char* filename, gamestate_t* state) {
     return true;
 }
 
+void initNewGame(gamestate_t* gameState, ScreenState* screenState) {
+    if (!gameState->bodies)
+    {
+        gameState->bodies = initBodies(&gameState->numBodies);
+        // velocityTarget = gameState.bodies[0];
+    }
+    if (!gameState->ships)
+    {
+        gameState->ships = initShips(&gameState->numShips);
+    }
+    initStartPositions(gameState->ships, gameState->numShips, gameState->bodies, gameState->numBodies, gameState->gameTime);
+    *screenState = GAME_RUNNING;
+}
+
 void incrementWarp(WarpController *timeScale, float dt)
 {
     timeScale->val += timeScale->increment * timeScale->val * dt;
