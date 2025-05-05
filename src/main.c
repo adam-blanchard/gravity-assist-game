@@ -238,14 +238,21 @@ int main(void)
         if (screenState == GAME_HOME)
         {
             DrawText("Gravity Assist", GetScreenWidth() / 2 - MeasureText("Gravity Assist", 40) / 2, 200, 40, WHITE);
-            if (GuiButton((Rectangle){ GetScreenWidth() / 2 - 60, 280, 120, 40 }, "PLAY (ENTER)")) {
-                // screenState = GAME_RUNNING;
-                // This results in a segfault...
-                printf("Player selected 'PLAY'\n");
+            if (GuiButton((Rectangle){ GetScreenWidth() / 2 - 60, 280, 200, 40 }, "NEW GAME (ENTER)")) {
+                printf("Player selected 'NEW GAME'\n");
+                // Initialise new game
+                // This currently results in a segfault...
+                // initNewGame(&gameState, &screenState);
             }
 
-            if (GuiButton((Rectangle){ GetScreenWidth() / 2 - 60, 340, 120, 40 }, "QUIT (Q)")) {
+            if (GuiButton((Rectangle){ GetScreenWidth() / 2 - 60, 340, 200, 40 }, "LOAD SAVE (SHIFT + ENTER)")) {
+                printf("Player selected 'LOAD SAVE'\n");
+                // Load saved game - initially a single save slot but eventually open dedicated save management screen
+            }
+
+            if (GuiButton((Rectangle){ GetScreenWidth() / 2 - 60, 480, 200, 40 }, "QUIT (Q)")) {
                 printf("Player selected 'QUIT'\n");
+                // Quit game
             }
         }
         else
