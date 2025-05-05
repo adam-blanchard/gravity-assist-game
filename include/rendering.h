@@ -15,6 +15,6 @@ void drawStaticGrid(float zoomLevel, int numQuadrants, ColourScheme *colourSchem
 void drawCelestialGrid(celestialbody_t **bodies, int numBodies, Camera2D camera, ColourScheme *colourScheme);
 void drawPlayerStats(PlayerStats *playerStats);
 void drawPlayerHUD(HUD *playerHUD);
-void drawPlayerInventory(ship_t *playerShip, Resource *resourceDefinitions);
+// void drawPlayerInventory(ship_t *playerShip, Resource *resourceDefinitions);
 
 #endif

@@ -245,6 +245,7 @@ int main(void)
         if (screenState == GAME_HOME)
         {
             DrawText("Gravity Assist", GetScreenWidth() / 2 - MeasureText("Gravity Assist", 40) / 2, 200, 40, WHITE);
+            GuiButton((Rectangle){ 24, 24, 120, 30 }, "#191#Show Message");
             DrawText("Press ENTER to Start", GetScreenWidth() / 2 - MeasureText("Press ENTER to Start", 20) / 2, 300, 20, WHITE);
             DrawText("Press Q to Quit", GetScreenWidth() / 2 - MeasureText("Press Q to Quit", 20) / 2, 340, 20, WHITE);
         }
