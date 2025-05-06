@@ -7,6 +7,7 @@
 #include "raylib.h"
 #include "raymath.h"
 #include "body.h"
+#include "textures.h"
 
 typedef enum
 {
@@ -52,20 +53,28 @@ typedef struct Ship
     float fuelConsumption;
     bool isSelected;
     float textureScale;
+    int baseTextureId;
     Texture2D baseTexture;
     bool mainEnginesOn;
+    int engineTextureId;
     Texture2D engineTexture;
     bool thrusterUp;
+    int thrusterUpTextureId;
     Texture2D thrusterUpTexture;
     bool thrusterDown;
+    int thrusterDownTextureId;
     Texture2D thrusterDownTexture;
     bool thrusterRight;
+    int thrusterRightTextureId;
     Texture2D thrusterRightTexture;
     bool thrusterLeft;
+    int thrusterLeftTextureId;
     Texture2D thrusterLeftTexture;
     bool thrusterRotateRight;
+    int thrusterRotateRightTextureId;
     Texture2D thrusterRotateRightTexture;
     bool thrusterRotateLeft;
+    int thrusterRotateLeftTextureId;
     Texture2D thrusterRotateLeftTexture;
     ShipState state;
     ShipType type;

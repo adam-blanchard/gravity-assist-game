@@ -21,14 +21,14 @@ ship_t **initShips(int *numShips)
         .trajectorySize = 36000,
         .drawTrajectory = true,
         .textureScale = 1,
-        .baseTexture = LoadTexture("assets/ship/ship_1/ship_1.png"),
-        .engineTexture = LoadTexture("assets/ship/ship_1/ship_1_thrust.png"),
-        .thrusterUpTexture = LoadTexture("assets/ship/ship_1/ship_1_move_up.png"),
-        .thrusterDownTexture = LoadTexture("assets/ship/ship_1/ship_1_move_down.png"),
-        .thrusterRightTexture = LoadTexture("assets/ship/ship_1/ship_1_move_right.png"),
-        .thrusterLeftTexture = LoadTexture("assets/ship/ship_1/ship_1_move_left.png"),
-        .thrusterRotateRightTexture = LoadTexture("assets/ship/ship_1/ship_1_rotate_right.png"),
-        .thrusterRotateLeftTexture = LoadTexture("assets/ship/ship_1/ship_1_rotate_left.png"),
+        .baseTextureId = 0,
+        .engineTextureId = 1,
+        .thrusterUpTextureId = 2,
+        .thrusterDownTextureId = 3,
+        .thrusterRightTextureId = 4,
+        .thrusterLeftTextureId = 5,
+        .thrusterRotateRightTextureId = 6,
+        .thrusterRotateLeftTextureId = 7,
         .mainEnginesOn = false,
         .thrusterUp = false,
         .thrusterDown = false,
@@ -43,6 +43,14 @@ ship_t **initShips(int *numShips)
         exit(0);
     }
     ships[0]->futurePositions = malloc(sizeof(Vector2) * ships[0]->trajectorySize);
+    ships[0]->baseTexture = LoadTextureById(ships[0]->baseTextureId);
+    ships[0]->engineTexture = LoadTextureById(ships[0]->engineTextureId);
+    ships[0]->thrusterUpTexture = LoadTextureById(ships[0]->thrusterUpTextureId);
+    ships[0]->thrusterDownTexture = LoadTextureById(ships[0]->thrusterDownTextureId);
+    ships[0]->thrusterRightTexture = LoadTextureById(ships[0]->thrusterRightTextureId);
+    ships[0]->thrusterLeftTexture = LoadTextureById(ships[0]->thrusterLeftTextureId);
+    ships[0]->thrusterRotateRightTexture = LoadTextureById(ships[0]->thrusterRotateRightTextureId);
+    ships[0]->thrusterRotateLeftTexture = LoadTextureById(ships[0]->thrusterRotateLeftTextureId);
 
     ships[1] = malloc(sizeof(ship_t));
     *ships[1] = (ship_t){
