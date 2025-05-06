@@ -61,10 +61,10 @@ int main(void)
 
     HUD playerHUD = {
         .speed = 0.0f,
-        .compassTexture = LoadTexture("./textures/hud/compass.png"),
-        .arrowTexture = LoadTexture("./textures/hud/arrow_2.png")};
+        .compassTexture = LoadTexture("assets/hud/compass.png"),
+        .arrowTexture = LoadTexture("assets/hud/arrow_2.png")};
 
-    Texture2D shipLogo = LoadTexture("./textures/icons/logo_ship.png");
+    Texture2D shipLogo = LoadTexture("assets/icons/logo_ship.png");
 
     gameState.gameTime = 0.0f;
 
