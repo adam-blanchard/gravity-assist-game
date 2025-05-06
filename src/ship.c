@@ -101,9 +101,32 @@ ship_t **initShips(int *numShips)
 }
 
 void serialiseShip(ship_t *ship, FILE *file) {
-    // TODO: finish this logic
+    // Serialises all ship attributes that cannot be re-computed
     fwrite(&ship->position, sizeof(Vector2), 1, file);
     fwrite(&ship->velocity, sizeof(Vector2), 1, file);
+    fwrite(&ship->mass, sizeof(float), 1, file);
+    fwrite(&ship->rotation, sizeof(float), 1, file);
+    fwrite(&ship->rotationSpeed, sizeof(float), 1, file);
+    fwrite(&ship->radius, sizeof(float), 1, file);
+    fwrite(&ship->thrust, sizeof(float), 1, file);
+    fwrite(&ship->thrusterForce, sizeof(float), 1, file);
+    fwrite(&ship->fuel, sizeof(float), 1, file);
+    fwrite(&ship->fuelConsumption, sizeof(float), 1, file);
+    fwrite(&ship->state, sizeof(ShipState), 1, file);
+    fwrite(&ship->type, sizeof(ShipType), 1, file);
+    // celestialbody_t *landedBody;
+    fwrite(&ship->landingPosition, sizeof(Vector2), 1, file);
+    fwrite(&ship->trajectorySize, sizeof(int), 1, file);
+    fwrite(&ship->baseTextureId, sizeof(int), 1, file);
+    fwrite(&ship->engineTextureId, sizeof(int), 1, file);
+    fwrite(&ship->thrusterUpTextureId, sizeof(int), 1, file);
+    fwrite(&ship->thrusterDownTextureId, sizeof(int), 1, file);
+    fwrite(&ship->thrusterRightTextureId, sizeof(int), 1, file);
+    fwrite(&ship->thrusterLeftTextureId, sizeof(int), 1, file);
+    fwrite(&ship->thrusterRotateRightTextureId, sizeof(int), 1, file);
+    fwrite(&ship->thrusterRotateLeftTextureId, sizeof(int), 1, file);
+    fwrite(&ship->textureScale, sizeof(float), 1, file);
+
 }
 
 void freeShips(ship_t **ships, int numShips)
