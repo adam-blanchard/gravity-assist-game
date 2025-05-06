@@ -1,7 +1,6 @@
 ## TODO
 
-- [ ] Update ship physics to factor in atmosphere drag. Ensure this is reflected in trajectories
-
+- [ ] Finish game saving and loading
 - [ ] Finish mining capability
 - [ ] Add exploration capability and track progress of explored bodies
 - [ ] Space stations
@@ -64,3 +63,4 @@
 - [x] Implement whole-orbit visualisation for planets and moons - these will be easy to predict and stable
 - [x] Implement trajectory prediction for player-controlled bodies 60 seconds into the future
 - [x] Add atmospheres to planets
+- [x] Update ship physics to factor in atmosphere drag. Ensure this is reflected in trajectories
