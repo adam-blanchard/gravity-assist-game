@@ -13,6 +13,13 @@ static struct {
     {5, "assets/ship/ship_1/ship_1_move_left.png"},
     {6, "assets/ship/ship_1/ship_1_rotate_right.png"},
     {7, "assets/ship/ship_1/ship_1_rotate_left.png"},
+    {8, "assets/ship/station_1/station_1_base.png"},
+    {9, "assets/ship/station_1/station_1_move_up.png"},
+    {10, "assets/ship/station_1/station_1_move_down.png"},
+    {11, "assets/ship/station_1/station_1_move_right.png"},
+    {12, "assets/ship/station_1/station_1_move_left.png"},
+    {13, "assets/ship/station_1/station_1_rotate_right.png"},
+    {14, "assets/ship/station_1/station_1_rotate_left.png"},
     {-1, NULL}
 };
 
