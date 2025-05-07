@@ -53,6 +53,15 @@ void serialiseBody(celestialbody_t *body, FILE *file) {
     fwrite(&body->radius, sizeof(float), 1, file);
 }
 
+int getBodyIndex(celestialbody_t *body, celestialbody_t **bodies, int numBodies) {
+    for (int i = 0; i < numBodies; i++) {
+        if (body == bodies[i]) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 void freeCelestialBodies(celestialbody_t **bodies, int numBodies)
 {
     if (bodies)

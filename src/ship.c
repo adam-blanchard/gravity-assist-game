@@ -1,4 +1,5 @@
 #include "ship.h"
+#include "game.h"
 
 ship_t **initShips(int *numShips)
 {
@@ -100,7 +101,7 @@ ship_t **initShips(int *numShips)
     return ships;
 }
 
-void serialiseShip(ship_t *ship, FILE *file) {
+void serialiseShip(ship_t *ship, FILE *file, gamestate_t *state) {
     // Serialises all ship attributes that cannot be re-computed
     fwrite(&ship->position, sizeof(Vector2), 1, file);
     fwrite(&ship->velocity, sizeof(Vector2), 1, file);
@@ -114,7 +115,8 @@ void serialiseShip(ship_t *ship, FILE *file) {
     fwrite(&ship->fuelConsumption, sizeof(float), 1, file);
     fwrite(&ship->state, sizeof(ShipState), 1, file);
     fwrite(&ship->type, sizeof(ShipType), 1, file);
-    // celestialbody_t *landedBody;
+    int landedIndex = getBodyIndex(ship->landedBody, state->bodies, state->numBodies);
+    fwrite(&landedIndex, sizeof(int), 1, file);
     fwrite(&ship->landingPosition, sizeof(Vector2), 1, file);
     fwrite(&ship->trajectorySize, sizeof(int), 1, file);
     fwrite(&ship->baseTextureId, sizeof(int), 1, file);

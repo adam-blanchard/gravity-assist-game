@@ -1,4 +1,6 @@
 #include "game.h"
+#include "body.h"
+#include "ship.h"
 
 void saveGame(char* filename, gamestate_t* state) {
     // Takes the current state of the game and saves to a local binary
@@ -30,7 +32,7 @@ void saveGame(char* filename, gamestate_t* state) {
 
     for (int i = 0; i < state->numShips; i++) {
         ship_t* ship = state->ships[i];
-        serialiseShip(ship, file);
+        serialiseShip(ship, file, state);
     }
 
     fclose(file);

@@ -1,9 +1,12 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include "body.h"
-#include "ship.h"
+#include <raylib.h>
 #include "physics.h"
+
+// Forward declarations
+typedef struct CelestialBody celestialbody_t;
+typedef struct Ship ship_t;
 
 typedef enum
 {

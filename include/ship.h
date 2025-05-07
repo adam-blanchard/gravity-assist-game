@@ -9,6 +9,8 @@
 #include "body.h"
 #include "textures.h"
 
+typedef struct GameState gamestate_t;
+
 typedef enum
 {
     SHIP_FLYING,
@@ -86,7 +88,7 @@ typedef struct Ship
 } ship_t;
 
 ship_t **initShips(int *numShips);
-void serialiseShip(ship_t *ship, FILE *file);
+void serialiseShip(ship_t *ship, FILE *file, gamestate_t *state);
 void freeShips(ship_t **ships, int numShips);
 void takeoffShip(ship_t *ship);
 void handleThrottle(ship_t **ships, int numShips, float dt, ShipThrottle throttleCommand);
