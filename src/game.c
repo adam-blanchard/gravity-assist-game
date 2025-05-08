@@ -5,16 +5,6 @@
 void saveGame(char* filename, gamestate_t* state) {
     // Takes the current state of the game and saves to a local binary
     // Game state contains pointers, so we need to write all the data so it can be read and allocated by the loading function
-    /*
-        typedef struct GameState {
-            float gameTime;
-            int numBodies;
-            celestialbody_t **bodies;
-            int numShips;
-            ship_t **ships;
-        } gamestate_t;
-    */
-    
     FILE* file = fopen(filename, "wb"); // Open file in binary write mode
     if (file == NULL) {
         TraceLog(LOG_ERROR, "Failed to open file for saving: %s", filename);
@@ -27,12 +17,12 @@ void saveGame(char* filename, gamestate_t* state) {
 
     for (int i = 0; i < state->numBodies; i++) {
         celestialbody_t* body = state->bodies[i];
-        serialiseBody(body, file);
+        saveBody(body, file, state);
     }
 
     for (int i = 0; i < state->numShips; i++) {
         ship_t* ship = state->ships[i];
-        serialiseShip(ship, file, state);
+        saveShip(ship, file, state);
     }
 
     fclose(file);
@@ -47,7 +37,11 @@ bool loadGame(char* filename, gamestate_t* state) {
     }
 
     // Read the gamestate_t struct from the file
-    size_t read = fread(state, sizeof(gamestate_t), 1, file);
+    // size_t read = fread(state, sizeof(gamestate_t), 1, file);
+    fread(&state->gameTime, sizeof(float), 1, file);
+    fread(&state->numBodies, sizeof(int), 1, file);
+    fread(&state->numShips, sizeof(int), 1, file);
+    
     fclose(file);
 
     if (read != 1) {

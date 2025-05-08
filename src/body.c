@@ -1,4 +1,5 @@
 #include "body.h"
+#include "game.h"
 
 float getBodyAngle(celestialbody_t *body, float gameTime)
 {
@@ -46,11 +47,34 @@ celestialbody_t **initBodies(int *numBodies)
     return bodies;
 }
 
-void serialiseBody(celestialbody_t *body, FILE *file) {
-    // TODO: finish this logic
+bool saveBody(celestialbody_t *body, FILE *file, gamestate_t *state) {
+    fwrite(&body->type, sizeof(CelestialType), 1, file);
+    int nameLen = body->name ? strlen(body->name) : 0;
+    fwrite(&nameLen, sizeof(int), 1, file);
+    if (nameLen > 0) {
+        fwrite(body->name, sizeof(char), nameLen, file);
+    }
     fwrite(&body->position, sizeof(Vector2), 1, file);
     fwrite(&body->mass, sizeof(float), 1, file);
     fwrite(&body->radius, sizeof(float), 1, file);
+    fwrite(&body->rotation, sizeof(float), 1, file);
+    // Texture ID
+    fwrite(&body->textureScale, sizeof(float), 1, file);
+    int parentIndex = getBodyIndex(body->parentBody, state->bodies, state->numBodies);
+    fwrite(parentIndex, sizeof(int), 1, file);
+    fwrite(&body->orbitalRadius, sizeof(float), 1, file);
+    fwrite(&body->angularSpeed, sizeof(float), 1, file);
+    fwrite(&body->initialAngle, sizeof(float), 1, file);
+    fwrite(&body->atmosphereRadius, sizeof(float), 1, file);
+    fwrite(&body->atmosphereDrag, sizeof(float), 1, file);
+    fwrite(&body->atmosphereColour, sizeof(Color), 1, file);
+
+    if (ferror(file)) {
+        TraceLog(LOG_ERROR, "Write error in saveBody");
+        return false;
+    }
+    return true;
+
 }
 
 int getBodyIndex(celestialbody_t *body, celestialbody_t **bodies, int numBodies) {
@@ -60,6 +84,13 @@ int getBodyIndex(celestialbody_t *body, celestialbody_t **bodies, int numBodies)
         }
     }
     return -1;
+}
+
+celestialbody_t* getBodyPtr(int index, celestialbody_t **bodies, int numBodies) {
+    if (index < 0 || index > numBodies - 1){
+        return NULL;
+    }
+    return bodies[index];
 }
 
 void freeCelestialBodies(celestialbody_t **bodies, int numBodies)

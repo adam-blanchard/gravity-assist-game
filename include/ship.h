@@ -88,7 +88,8 @@ typedef struct Ship
 } ship_t;
 
 ship_t **initShips(int *numShips);
-void serialiseShip(ship_t *ship, FILE *file, gamestate_t *state);
+bool saveShip(ship_t *ship, FILE *file, gamestate_t *state);
+void freeShip(ship_t* ship);
 void freeShips(ship_t **ships, int numShips);
 void takeoffShip(ship_t *ship);
 void handleThrottle(ship_t **ships, int numShips, float dt, ShipThrottle throttleCommand);

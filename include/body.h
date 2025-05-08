@@ -8,6 +8,8 @@
 #include "raylib.h"
 #include "utils.h"
 
+typedef struct GameState gamestate_t;
+
 typedef enum
 {
     TYPE_STAR,
@@ -40,8 +42,9 @@ typedef struct CelestialBody
 
 float getBodyAngle(celestialbody_t *body, float gameTime);
 celestialbody_t **initBodies(int *numBodies);
-void serialiseBody(celestialbody_t *body, FILE *file);
+bool saveBody(celestialbody_t *body, FILE *file, gamestate_t *state);
 int getBodyIndex(celestialbody_t *body, celestialbody_t **bodies, int numBodies);
+celestialbody_t* getBodyPtr(int index, celestialbody_t **bodies, int numBodies);
 void freeCelestialBodies(celestialbody_t **bodies, int numBodies);
 
 #endif

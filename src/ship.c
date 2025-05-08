@@ -101,7 +101,7 @@ ship_t **initShips(int *numShips)
     return ships;
 }
 
-void serialiseShip(ship_t *ship, FILE *file, gamestate_t *state) {
+bool saveShip(ship_t *ship, FILE *file, gamestate_t *state) {
     // Serialises all ship attributes that cannot be re-computed
     fwrite(&ship->position, sizeof(Vector2), 1, file);
     fwrite(&ship->velocity, sizeof(Vector2), 1, file);
@@ -129,6 +129,99 @@ void serialiseShip(ship_t *ship, FILE *file, gamestate_t *state) {
     fwrite(&ship->thrusterRotateLeftTextureId, sizeof(int), 1, file);
     fwrite(&ship->textureScale, sizeof(float), 1, file);
 
+    if (ferror(file)) {
+        TraceLog(LOG_ERROR, "Write error in saveShip");
+        return false;
+    }
+    return true;
+}
+
+ship_t* loadShip(FILE *file, gamestate_t* state) {
+    ship_t* ship = malloc(sizeof(ship_t));
+    if (!ship) {
+        TraceLog(LOG_ERROR, "Failed to allocate ship_t");
+        return NULL;
+    }
+
+    ship->futurePositions = NULL;
+    ship->landedBody = NULL;
+    int landedIndex = -1;
+
+    if (fread(&ship->position, sizeof(Vector2), 1, file) != 1 
+        || fread(&ship->velocity, sizeof(Vector2), 1, file) != 1 
+        || fread(&ship->mass, sizeof(float), 1, file) != 1
+        || fread(&ship->rotation, sizeof(float), 1, file) != 1
+        || fread(&ship->rotationSpeed, sizeof(float), 1, file) != 1
+        || fread(&ship->radius, sizeof(float), 1, file) != 1
+        || fread(&ship->thrust, sizeof(float), 1, file) != 1
+        || fread(&ship->thrusterForce, sizeof(float), 1, file) != 1
+        || fread(&ship->fuel, sizeof(float), 1, file) != 1
+        || fread(&ship->fuelConsumption, sizeof(float), 1, file) != 1
+        || fread(&ship->state, sizeof(ShipState), 1, file) != 1
+        || fread(&ship->type, sizeof(ShipType), 1, file) != 1
+        || fread(&landedIndex, sizeof(int), 1, file) != 1
+        || fread(&ship->landingPosition, sizeof(Vector2), 1, file) != 1
+        || fread(&ship->trajectorySize, sizeof(int), 1, file) != 1
+        || fread(&ship->baseTextureId, sizeof(int), 1, file) != 1
+        || fread(&ship->engineTextureId, sizeof(int), 1, file) != 1
+        || fread(&ship->thrusterUpTextureId, sizeof(int), 1, file) != 1
+        || fread(&ship->thrusterDownTextureId, sizeof(int), 1, file) != 1
+        || fread(&ship->thrusterRightTextureId, sizeof(int), 1, file) != 1
+        || fread(&ship->thrusterLeftTextureId, sizeof(int), 1, file) != 1
+        || fread(&ship->thrusterRotateRightTextureId, sizeof(int), 1, file) != 1
+        || fread(&ship->thrusterRotateLeftTextureId, sizeof(int), 1, file) != 1
+        || fread(&ship->textureScale, sizeof(float), 1, file) != 1)
+        {
+        TraceLog(LOG_ERROR, "Failed to read ship fields");
+        goto error;
+    }
+
+    ship->landedBody = getBodyPtr(landedIndex, state->bodies, state->numBodies);
+
+    // Load textures
+    ship->baseTexture = LoadTextureById(ship->baseTextureId);
+    ship->thrusterUpTexture = LoadTextureById(ship->thrusterUpTextureId);
+    ship->thrusterDownTexture = LoadTextureById(ship->thrusterDownTextureId);
+    ship->thrusterRightTexture = LoadTextureById(ship->thrusterRightTextureId);
+    ship->thrusterLeftTexture = LoadTextureById(ship->thrusterLeftTextureId);
+    ship->thrusterRotateRightTexture = LoadTextureById(ship->thrusterRotateRightTextureId);
+    ship->thrusterRotateLeftTexture = LoadTextureById(ship->thrusterRotateLeftTextureId);
+
+    // Initialise remaining attributes
+    ship->isSelected = false;
+    ship->drawTrajectory = true;
+    ship->mainEnginesOn = false;
+    ship->thrusterUp = false;
+    ship->thrusterDown = false;
+    ship->thrusterRight = false;
+    ship->thrusterLeft = false;
+    ship->thrusterRotateRight = false;
+    ship->thrusterRotateLeft = false;
+
+    return ship;
+
+    error:
+        freeShip(ship);
+        return NULL;
+}
+
+void freeShip(ship_t* ship) {
+    if (ship->futurePositions)
+    {
+        free(ship->futurePositions);
+    }
+    UnloadTexture(ship->baseTexture);
+    if (ship->type != SHIP_STATION)
+    {
+        UnloadTexture(ship->engineTexture);
+    }
+    UnloadTexture(ship->thrusterUpTexture);
+    UnloadTexture(ship->thrusterDownTexture);
+    UnloadTexture(ship->thrusterRightTexture);
+    UnloadTexture(ship->thrusterLeftTexture);
+    UnloadTexture(ship->thrusterRotateRightTexture);
+    UnloadTexture(ship->thrusterRotateLeftTexture);
+    free(ship);
 }
 
 void freeShips(ship_t **ships, int numShips)
@@ -137,26 +230,12 @@ void freeShips(ship_t **ships, int numShips)
     {
         for (int i = 0; i < numShips; i++)
         {
-            if (ships[i]->futurePositions)
-            {
-                free(ships[i]->futurePositions);
-            }
-            UnloadTexture(ships[i]->baseTexture);
-            if (ships[i]->type != SHIP_STATION)
-            {
-                UnloadTexture(ships[i]->engineTexture);
-            }
-            UnloadTexture(ships[i]->thrusterUpTexture);
-            UnloadTexture(ships[i]->thrusterDownTexture);
-            UnloadTexture(ships[i]->thrusterRightTexture);
-            UnloadTexture(ships[i]->thrusterLeftTexture);
-            UnloadTexture(ships[i]->thrusterRotateRightTexture);
-            UnloadTexture(ships[i]->thrusterRotateLeftTexture);
-            free(ships[i]);
+            freeShip(ships[i]);
         }
         free(ships);
     }
 }
+
 
 void takeoffShip(ship_t *ship)
 {
